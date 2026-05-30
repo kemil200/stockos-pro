@@ -1,90 +1,45 @@
-'use client';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { db } from '@/lib/db';
+import { shops, shopSettings, invoiceSettings, subscriptions, users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { OnboardingCreateOrg } from './create-org';
 
-import { CreateOrganization, useAuth } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { Store } from 'lucide-react';
+export default async function OnboardingPage() {
+  const { userId, orgId, orgSlug } = await auth();
 
-export default function OnboardingPage() {
-  const { orgId, isLoaded } = useAuth();
-  const router = useRouter();
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isLoaded || !orgId) return;
-
-    async function createShop() {
-      setCreating(true);
-      try {
-        const res = await fetch('/api/shop/create', { method: 'POST' });
-        if (!res.ok) {
-          const data = await res.json();
-          setError(data.error || 'Erreur lors de la création');
-          return;
-        }
-        router.push('/invoices');
-      } catch {
-        setError('Erreur réseau');
-      }
-    }
-    createShop();
-  }, [isLoaded, orgId, router]);
-
-  if (creating) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-        <div className="text-center">
-          <div className="size-16 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-6">
-            <Store className="size-8 text-white" />
-          </div>
-          <h2 className="text-lg font-semibold mb-2">Création de votre boutique...</h2>
-          <p className="text-sm text-zinc-500">Un instant</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => { setError(null); window.location.reload(); }}
-            className="px-4 py-2 text-sm bg-zinc-900 text-white rounded-lg"
-          >
-            Réessayer
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (!userId) redirect('/sign-in');
 
   if (orgId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-        <div className="text-zinc-400">Redirection...</div>
-      </div>
-    );
+    const [existing] = await db
+      .select()
+      .from(shops)
+      .where(eq(shops.clerkOrgId, orgId));
+
+    if (!existing) {
+      const [shop] = await db
+        .insert(shops)
+        .values({ name: orgSlug || 'Ma boutique', slug: orgSlug || orgId, clerkOrgId: orgId })
+        .returning();
+
+      await db.insert(shopSettings).values({ shopId: shop.id, legalName: shop.name, email: '', phone: '' });
+      await db.insert(invoiceSettings).values({ shopId: shop.id });
+      await db.insert(subscriptions).values({
+        shopId: shop.id, plan: 'TRIAL', status: 'TRIAL',
+        trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      });
+
+      const [user] = await db.select().from(users).where(eq(users.clerkUserId, userId));
+      if (!user) {
+        await db.insert(users).values({
+          clerkUserId: userId, shopId: shop.id, role: 'owner', displayName: 'Utilisateur', email: '',
+        });
+      }
+    }
+
+    redirect('/invoices');
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-6">
-      <div className="w-full max-w-lg">
-        <div className="text-center mb-8">
-          <div className="size-16 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-4">
-            <Store className="size-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold">Créez votre boutique</h1>
-          <p className="text-zinc-500 mt-2">
-            Donnez un nom à votre commerce pour commencer
-          </p>
-        </div>
-        <div className="bg-white rounded-xl border p-6">
-          <CreateOrganization afterCreateOrganizationUrl="/onboarding" />
-        </div>
-      </div>
-    </div>
-  );
+  return <OnboardingCreateOrg />;
 }

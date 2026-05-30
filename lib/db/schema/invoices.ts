@@ -1,0 +1,86 @@
+import { pgTable, uuid, text, numeric, boolean, timestamp, jsonb } from 'drizzle-orm/pg-core';
+import { shops } from './shops';
+import { products } from './products';
+import { users } from './users';
+
+export const invoiceSettings = pgTable('invoice_settings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  shopId: uuid('shop_id').notNull().unique().references(() => shops.id, { onDelete: 'cascade' }),
+  enableTax: boolean('enable_tax').notNull().default(false),
+  taxRate: numeric('tax_rate', { precision: 5, scale: 3 }),
+  taxLabel: text('tax_label').default('TVA'),
+  enableGlobalDiscount: boolean('enable_global_discount').notNull().default(false),
+  globalDiscountMax: numeric('global_discount_max', { precision: 5, scale: 3 }),
+  enableLineDiscount: boolean('enable_line_discount').notNull().default(false),
+  lineDiscountMax: numeric('line_discount_max', { precision: 5, scale: 3 }),
+  enableCommercialDiscount: boolean('enable_commercial_discount').notNull().default(false),
+  commercialDiscountName: text('commercial_discount_name').default('Ristourne'),
+  enableShipping: boolean('enable_shipping').notNull().default(false),
+  shippingLabel: text('shipping_label').default('Frais de port'),
+  enableRounding: boolean('enable_rounding').notNull().default(false),
+  roundingPrecision: numeric('rounding_precision').default('0'),
+  invoicePrefix: text('invoice_prefix').default('FACT-'),
+  creditNotePrefix: text('credit_note_prefix').default('AVOIR-'),
+  nextInvoiceNumber: numeric('next_invoice_number').notNull().default('1'),
+  nextCreditNoteNumber: numeric('next_credit_note_number').notNull().default('1'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const invoices = pgTable('invoices', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  shopId: uuid('shop_id').notNull().references(() => shops.id, { onDelete: 'cascade' }),
+  invoiceNumber: text('invoice_number').notNull(),
+  clientName: text('client_name').notNull(),
+  clientPhone: text('client_phone'),
+  clientEmail: text('client_email'),
+  clientAddress: text('client_address'),
+  clientTaxId: text('client_tax_id'),
+  status: text('status').notNull().default('DRAFT'),
+  currency: text('currency').notNull().default('XOF'),
+  subtotal: numeric('subtotal', { precision: 12, scale: 2 }).notNull().default('0'),
+  lineDiscountTotal: numeric('line_discount_total', { precision: 12, scale: 2 }).notNull().default('0'),
+  globalDiscount: numeric('global_discount', { precision: 12, scale: 2 }).notNull().default('0'),
+  shippingFee: numeric('shipping_fee', { precision: 12, scale: 2 }).notNull().default('0'),
+  taxAmount: numeric('tax_amount', { precision: 12, scale: 2 }).notNull().default('0'),
+  roundingAdjustment: numeric('rounding_adjustment', { precision: 12, scale: 2 }).notNull().default('0'),
+  total: numeric('total', { precision: 12, scale: 2 }).notNull().default('0'),
+  amountPaid: numeric('amount_paid', { precision: 12, scale: 2 }).notNull().default('0'),
+  balanceDue: numeric('balance_due', { precision: 12, scale: 2 }).notNull().default('0'),
+  notes: text('notes'),
+  validations: jsonb('validations').default([]),
+  validatedAt: timestamp('validated_at', { withTimezone: true }),
+  validatedBy: uuid('validated_by').references(() => users.id),
+  createdBy: uuid('created_by').notNull().references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const invoiceLines = pgTable('invoice_lines', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  invoiceId: uuid('invoice_id').notNull().references(() => invoices.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').references(() => products.id),
+  description: text('description').notNull(),
+  quantity: numeric('quantity', { precision: 12, scale: 3 }).notNull(),
+  unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull(),
+  discountRate: numeric('discount_rate', { precision: 5, scale: 3 }).notNull().default('0'),
+  discountAmount: numeric('discount_amount', { precision: 12, scale: 2 }).notNull().default('0'),
+  lineTotal: numeric('line_total', { precision: 12, scale: 2 }).notNull(),
+  sortOrder: numeric('sort_order').notNull().default('0'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const creditNotes = pgTable('credit_notes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  shopId: uuid('shop_id').notNull().references(() => shops.id, { onDelete: 'cascade' }),
+  invoiceId: uuid('invoice_id').notNull().references(() => invoices.id),
+  creditNumber: text('credit_number').notNull(),
+  reason: text('reason').notNull(),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  status: text('status').notNull().default('ISSUED'),
+  restoreStock: boolean('restore_stock').notNull().default(true),
+  appliedAt: timestamp('applied_at', { withTimezone: true }),
+  appliedBy: uuid('applied_by').references(() => users.id),
+  createdBy: uuid('created_by').notNull().references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

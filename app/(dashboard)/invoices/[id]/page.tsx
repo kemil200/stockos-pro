@@ -76,147 +76,122 @@ export default async function InvoiceDetailPage({
         </div>
       </div>
 
-      {/* Print area */}
+      {/* Print area — design épuré */}
       <div className="print-area">
-        {/* Receipt header */}
-        <div className="text-center mb-6 print-only">
-          <p className="text-lg font-heading font-bold">{shop.name}</p>
-          {shopSettings?.address && <p className="text-xs">{shopSettings.address}</p>}
-          {shopSettings?.phone && <p className="text-xs">Tél: {shopSettings.phone}</p>}
-          {shopSettings?.email && <p className="text-xs">Email: {shopSettings.email}</p>}
-          <hr className="my-3 border-t-2 border-black" />
-          <h2 className="text-base font-heading font-bold">FACTURE</h2>
-          <p className="text-xs">{invoice.invoice_number}</p>
-          <hr className="my-3 border-t" />
-        </div>
-
-        <div className="flex justify-between text-xs mb-4 print-only">
-          <div>
-            <p className="font-medium">Client : {invoice.client_name}</p>
-            {invoice.client_phone && <p>Tél : {invoice.client_phone}</p>}
-          </div>
-          <div className="text-right">
-            <p>Date : {new Date(invoice.created_at).toLocaleDateString('fr-FR')}</p>
-            <p>Statut : {invoice.status === 'PAID' ? 'Payée' : invoice.status === 'DRAFT' ? 'Brouillon' : invoice.status === 'VALIDATED' ? 'Validée' : invoice.status === 'CANCELLED' ? 'Annulée' : invoice.status}</p>
-          </div>
-        </div>
-
-        {/* Details grid */}
-        <div className="grid grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl border p-6 space-y-4">
-            <h2 className="font-semibold">Détails</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Client</span>
-                <span>{invoice.client_name}</span>
-              </div>
-              {invoice.client_phone && (
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Téléphone</span>
-                  <span>{invoice.client_phone}</span>
-                </div>
+        {/* En-tête boutique + facture */}
+        <div className="print-only">
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <h2 className="text-xl font-heading font-bold text-zinc-900">{shop.name}</h2>
+              {shopSettings?.address && <p className="text-xs text-zinc-500 mt-0.5">{shopSettings.address}</p>}
+              {shopSettings?.phone && <p className="text-xs text-zinc-500">{shopSettings.phone}</p>}
+              {shopSettings?.email && <p className="text-xs text-zinc-500">{shopSettings.email}</p>}
+            </div>
+            <div className="text-right">
+              <h1 className="text-2xl font-heading font-bold text-zinc-900 tracking-tight">FACTURE</h1>
+              <p className="text-sm font-mono text-zinc-600 mt-1">{invoice.invoice_number}</p>
+              <p className="text-xs text-zinc-400 mt-1">{new Date(invoice.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              {invoice.due_date && (
+                <p className="text-xs text-zinc-400">Échéance : {new Date(invoice.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               )}
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Date</span>
-                <span>{new Date(invoice.created_at).toLocaleDateString('fr-FR')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Devise</span>
-                <span>{invoice.currency}</span>
-              </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border p-6 space-y-4">
-            <h2 className="font-semibold">Total</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Sous-total</span>
-                <span>{formatCurrency(Number(invoice.subtotal))}</span>
-              </div>
-              {Number(invoice.line_discount_total) > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Rabais</span>
-                  <span className="text-red-600">-{formatCurrency(Number(invoice.line_discount_total))}</span>
-                </div>
-              )}
-              {Number(invoice.tax_amount) > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">TVA</span>
-                  <span>{formatCurrency(Number(invoice.tax_amount))}</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold text-base pt-2 border-t">
-                <span>Total</span>
-                <span>{formatCurrency(Number(invoice.total))}</span>
-              </div>
-              {Number(invoice.amount_paid) > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Payé</span>
-                  <span>{formatCurrency(Number(invoice.amount_paid))}</span>
-                </div>
-              )}
-              {Number(invoice.balance_due) > 0 && invoice.status !== 'DRAFT' && invoice.status !== 'CANCELLED' && (
-                <div className="flex justify-between text-orange-600 font-medium">
-                  <span>Reste dû</span>
-                  <span>{formatCurrency(Number(invoice.balance_due))}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+          <hr className="border-t-2 border-zinc-200 mb-6" />
 
-        {/* Articles */}
-        <div className="bg-white rounded-xl border p-6 mt-6">
-          <h2 className="font-semibold mb-4">Articles</h2>
-          <table className="w-full">
+          {/* Client */}
+          <div className="mb-8">
+            <p className="text-[10px] uppercase tracking-widest text-zinc-400 mb-1">Facturé à</p>
+            <p className="font-semibold text-zinc-900">{invoice.client_name}</p>
+            {invoice.client_phone && <p className="text-sm text-zinc-500">{invoice.client_phone}</p>}
+          </div>
+
+          {/* Tableau articles */}
+          <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-sm text-zinc-500">
-                <th className="text-left pb-2">Description</th>
-                <th className="text-right pb-2">Qté</th>
-                <th className="text-right pb-2">Prix unitaire</th>
-                <th className="text-right pb-2">Total</th>
+              <tr className="border-b-2 border-zinc-200 text-left">
+                <th className="pb-2 font-medium text-zinc-400">Description</th>
+                <th className="pb-2 font-medium text-zinc-400 text-center">Qté</th>
+                <th className="pb-2 font-medium text-zinc-400 text-right">Prix unit.</th>
+                <th className="pb-2 font-medium text-zinc-400 text-right">Total</th>
               </tr>
             </thead>
             <tbody>
               {(lines ?? []).map((line: any) => (
-                <tr key={line.id} className="border-b last:border-0">
-                  <td className="py-3 text-sm">{line.description}</td>
-                  <td className="py-3 text-sm text-right">{Number(line.quantity)}</td>
-                  <td className="py-3 text-sm text-right">{formatCurrency(Number(line.unit_price))}</td>
-                  <td className="py-3 text-sm text-right font-medium">{formatCurrency(Number(line.line_total))}</td>
+                <tr key={line.id} className="border-b border-zinc-100">
+                  <td className="py-3 text-zinc-800">{line.description}</td>
+                  <td className="py-3 text-center text-zinc-600">{Number(line.quantity)}</td>
+                  <td className="py-3 text-right text-zinc-600">{formatCurrency(Number(line.unit_price))}</td>
+                  <td className="py-3 text-right font-medium text-zinc-900">{formatCurrency(Number(line.line_total))}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
 
-        {/* Payments */}
-        {invoicePayments && invoicePayments.length > 0 && (
-          <div className="bg-white rounded-xl border p-6 mt-6">
-            <h2 className="font-semibold mb-4">Paiements</h2>
-            <div className="space-y-2">
+          {/* Totaux */}
+          <div className="mt-6 ml-auto w-64 space-y-1.5 text-sm">
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Sous-total</span>
+              <span className="text-zinc-800">{formatCurrency(Number(invoice.subtotal))}</span>
+            </div>
+            {Number(invoice.line_discount_total) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Rabais</span>
+                <span className="text-red-500">−{formatCurrency(Number(invoice.line_discount_total))}</span>
+              </div>
+            )}
+            {Number(invoice.tax_amount) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">TVA</span>
+                <span className="text-zinc-800">{formatCurrency(Number(invoice.tax_amount))}</span>
+              </div>
+            )}
+            {Number(invoice.shipping_fee) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Livraison</span>
+                <span className="text-zinc-800">{formatCurrency(Number(invoice.shipping_fee))}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-base pt-2 mt-2 border-t-2 border-zinc-200">
+              <span>Total</span>
+              <span>{formatCurrency(Number(invoice.total))}</span>
+            </div>
+            {Number(invoice.amount_paid) > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <span>Payé</span>
+                <span>{formatCurrency(Number(invoice.amount_paid))}</span>
+              </div>
+            )}
+            {Number(invoice.balance_due) > 0 && invoice.status !== 'DRAFT' && invoice.status !== 'CANCELLED' && (
+              <div className="flex justify-between font-medium text-amber-600">
+                <span>Reste dû</span>
+                <span>{formatCurrency(Number(invoice.balance_due))}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Paiements */}
+          {invoicePayments && invoicePayments.length > 0 && (
+            <div className="mt-8">
+              <p className="text-[10px] uppercase tracking-widest text-zinc-400 mb-2">Paiements reçus</p>
               {invoicePayments.map((p: any) => (
-                <div key={p.id} className="flex justify-between py-2 border-b last:border-0 text-sm">
-                  <div>
-                    <span className="font-medium">{p.method}</span>
-                    {p.reference && <span className="text-zinc-500 ml-2">Réf: {p.reference}</span>}
-                  </div>
-                  <div className="text-right">
-                    <span className="font-medium">{formatCurrency(Number(p.amount))}</span>
-                    <p className="text-xs text-zinc-400">{new Date(p.payment_date).toLocaleDateString('fr-FR')}</p>
-                  </div>
+                <div key={p.id} className="flex justify-between py-1.5 border-b border-zinc-100 text-sm">
+                  <span className="text-zinc-600">{p.method} {p.reference ? `· ${p.reference}` : ''}</span>
+                  <span className="font-medium text-zinc-800">{formatCurrency(Number(p.amount))}</span>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Receipt footer */}
-        <div className="text-center text-xs text-zinc-400 mt-8 print-only">
-          <hr className="mb-2" />
-          <p>Merci de votre confiance</p>
-          {shopSettings?.invoice_footer && <p className="mt-1">{shopSettings.invoice_footer}</p>}
+          {/* Pied de page */}
+          <div className="mt-12 pt-4 border-t border-zinc-200 text-center">
+            <p className="text-xs text-zinc-400">
+              {shopSettings?.invoice_footer || `Merci de votre confiance — ${shop.name}`}
+            </p>
+            <p className="text-[10px] text-zinc-300 mt-1">
+              Généré par StockOS Pro
+            </p>
+          </div>
         </div>
       </div>
 

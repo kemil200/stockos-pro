@@ -65,30 +65,40 @@ export function InvoiceForm({ products, settings }: Props) {
   const onSubmit = useCallback(async (data: InvoiceFormData) => {
     setSubmitting(true);
     setSubmitError(null);
-    const linesWithDecimalDiscount = data.lines.map((l) => ({
-      ...l,
-      discountRate: l.discountRate ? l.discountRate / 100 : 0,
-    }));
+    try {
+      const linesWithDecimalDiscount = data.lines.map((l) => ({
+        ...l,
+        discountRate: l.discountRate ? l.discountRate / 100 : 0,
+      }));
 
-    const formData = new FormData();
-    formData.append('clientName', data.clientName);
-    if (data.clientPhone) formData.append('clientPhone', data.clientPhone);
-    formData.append('lines', JSON.stringify(linesWithDecimalDiscount));
-    if (data.globalDiscountRate && data.globalDiscountRate > 0) formData.append('globalDiscountRate', String(data.globalDiscountRate / 100));
-    if (data.shippingFee && data.shippingFee > 0) formData.append('shippingFee', String(data.shippingFee));
+      const fd = new FormData();
+      fd.append('clientName', data.clientName);
+      if (data.clientPhone) fd.append('clientPhone', data.clientPhone);
+      fd.append('lines', JSON.stringify(linesWithDecimalDiscount));
+      if (data.globalDiscountRate && data.globalDiscountRate > 0) fd.append('globalDiscountRate', String(data.globalDiscountRate / 100));
+      if (data.shippingFee && data.shippingFee > 0) fd.append('shippingFee', String(data.shippingFee));
 
-    const result = await createInvoice(formData);
+      const result = await createInvoice(fd);
 
-    if (!result.success) {
-      setSubmitError(result.error);
+      if (!result.success) {
+        setSubmitError(result.error);
+        return;
+      }
+
+      router.replace(`/invoices/${result.invoice.id}?print=true`);
+    } catch {
+      setSubmitError('Erreur réseau, veuillez réessayer');
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    router.replace(`/invoices/${result.invoice.id}?print=true`);
   }, [router]);
 
-  submitRef.current = handleSubmit(onSubmit);
+  const handleFormError = () => {
+    const el = formRef.current?.querySelector('[aria-invalid="true"], .text-red-500');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  submitRef.current = handleSubmit(onSubmit, handleFormError);
 
   const selectProduct = useCallback(async (index: number, productId: string) => {
     const product = products.find((p) => p.id === productId);
@@ -106,7 +116,7 @@ export function InvoiceForm({ products, settings }: Props) {
 
   return (
     <>
-      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="pb-40 md:pb-8">
+      <form ref={formRef} onSubmit={handleSubmit(onSubmit, handleFormError)} className="pb-40 md:pb-8">
         {/* Client — minimal, sans titre */}
         <div className="bg-white rounded-2xl border border-zinc-200/80 p-5 sm:p-6 mb-4">
           <input

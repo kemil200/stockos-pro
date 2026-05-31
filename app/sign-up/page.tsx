@@ -16,6 +16,8 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Message de succès pour les providers qui exigent une confirmation par email
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,16 +25,57 @@ export default function SignUpPage() {
     setError(null);
 
     const supabase = createClient();
-    const { error: signUpError } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
+    });
+
     if (signUpError) {
       setError(signUpError.message);
       setLoading(false);
       return;
     }
 
-    router.push('/onboarding');
-    router.refresh();
+    // Supabase peut retourner un user sans session si "Confirm email" est activé
+    // Dans ce cas, on affiche un message plutôt que de rediriger vers une page protégée
+    if (data.session) {
+      // Session immédiate → redirection directe
+      router.push('/onboarding');
+      router.refresh();
+    } else {
+      // Email de confirmation envoyé → on informe l'utilisateur
+      setSuccess(true);
+      setLoading(false);
+    }
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex flex-col bg-zinc-50">
+        <header className="px-6 h-14 flex items-center border-b bg-white">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="size-7 rounded-lg bg-zinc-900 flex items-center justify-center shadow-sm">
+              <Store className="size-4 text-white" />
+            </div>
+            <span className="font-semibold text-sm tracking-tight">StockOS Pro</span>
+          </Link>
+        </header>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-sm text-center">
+            <div className="size-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+              <ArrowRight className="size-6 text-emerald-600" />
+            </div>
+            <h1 className="text-xl font-bold mb-2">Vérifiez votre email</h1>
+            <p className="text-sm text-zinc-500">
+              Un lien de confirmation a été envoyé à <strong>{email}</strong>.
+              Cliquez sur le lien pour activer votre compte.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-zinc-50">
@@ -85,11 +128,11 @@ export default function SignUpPage() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Au moins 6 caractères"
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    minLength={6}
                     required
+                    minLength={6}
                   />
                 </div>
                 {error && (
@@ -98,7 +141,7 @@ export default function SignUpPage() {
                   </div>
                 )}
                 <Button type="submit" disabled={loading} className="w-full gap-2">
-                  {loading ? 'Inscription...' : 'Créer mon compte'}
+                  {loading ? 'Création...' : 'Créer mon compte'}
                   {!loading && <ArrowRight className="size-4" />}
                 </Button>
                 <p className="text-sm text-center text-zinc-500">

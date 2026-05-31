@@ -2,15 +2,24 @@
 
 import { createClient } from '@/lib/client';
 import { Store, ArrowRight } from 'lucide-react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function SignInPage() {
+  return (
+    <Suspense>
+      <SignInForm />
+    </Suspense>
+  );
+}
+
+function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +38,10 @@ export default function SignInPage() {
       return;
     }
 
-    router.push('/');
+    // FIX: on redirige vers la destination voulue, jamais vers '/'
+    // Si le middleware avait capturé une route protégée, on récupère le param 'redirect'
+    const redirectTo = searchParams.get('redirect') || '/invoices';
+    router.push(redirectTo);
     router.refresh();
   };
 

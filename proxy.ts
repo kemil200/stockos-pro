@@ -5,8 +5,13 @@ import { createServerClient } from '@supabase/ssr';
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const publicRoutes = ['/', '/sign-in', '/sign-up', '/_next'];
-  const isPublic = publicRoutes.some((route) => pathname.startsWith(route));
+  // FIX: liste des routes publiques étendue + vérification exacte pour '/'
+  // On utilise startsWith uniquement pour les préfixes vrais — '/' en exact match
+  // pour éviter que tout soit considéré public (pathname.startsWith('/') = toujours vrai)
+  const publicRoutes = ['/sign-in', '/sign-up', '/_next', '/favicon', '/api/webhook'];
+  const isPublic =
+    pathname === '/' ||
+    publicRoutes.some((route) => pathname.startsWith(route));
 
   if (isPublic) return NextResponse.next();
 
@@ -14,6 +19,9 @@ export default async function middleware(request: NextRequest) {
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    // FIX: utilisation de la clé anon standard de Supabase
+    // Si ton .env.local utilise NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, garde cette ligne.
+    // Si tu as NEXT_PUBLIC_SUPABASE_ANON_KEY, remplace par process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
@@ -33,10 +41,13 @@ export default async function middleware(request: NextRequest) {
     }
   );
 
+  // IMPORTANT: getUser() fait une vérification serveur — ne jamais utiliser getSession() ici
+  // car la session peut être falsifiée côté client
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     const url = new URL('/sign-in', request.url);
+    // FIX: on passe le pathname comme param 'redirect' pour y revenir après login
     url.searchParams.set('redirect', pathname);
     return NextResponse.redirect(url);
   }
@@ -46,7 +57,8 @@ export default async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next|[^/]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Exclure les fichiers statiques et les routes API internes Next.js
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)).*)',
     '/(api|trpc)(.*)',
   ],
 };

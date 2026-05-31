@@ -1,7 +1,5 @@
 import { getCurrentShop } from '@/lib/tenant';
-import { db } from '@/lib/db';
-import { payments } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
 import { Receipt } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,12 +14,13 @@ import {
 
 export default async function PaymentsPage() {
   const { shop } = await getCurrentShop();
+  const admin = createAdminClient();
 
-  const allPayments = await db
-    .select()
-    .from(payments)
-    .where(eq(payments.shopId, shop.id))
-    .orderBy(sql`created_at DESC`)
+  const { data: allPayments } = await admin
+    .from('payments')
+    .select('*')
+    .eq('shop_id', shop.id)
+    .order('created_at', { ascending: false })
     .limit(50);
 
   return (
@@ -46,7 +45,7 @@ export default async function PaymentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allPayments.length === 0 ? (
+              {!allPayments?.length ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                     <Receipt className="size-8 mx-auto mb-2 text-zinc-300" />
@@ -54,10 +53,10 @@ export default async function PaymentsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                allPayments.map((p) => (
+                allPayments.map((p: any) => (
                   <TableRow key={p.id}>
                     <TableCell className="text-muted-foreground">
-                      {new Date(p.paymentDate).toLocaleDateString('fr-FR')}
+                      {new Date(p.payment_date).toLocaleDateString('fr-FR')}
                     </TableCell>
                     <TableCell>{p.method}</TableCell>
                     <TableCell className="text-muted-foreground">{p.reference || '-'}</TableCell>

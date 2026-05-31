@@ -1,7 +1,5 @@
 import { getCurrentShop } from '@/lib/tenant';
-import { db } from '@/lib/db';
-import { stockItems, products } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
 import { Package } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,20 +15,13 @@ import {
 
 export default async function StockPage() {
   const { shop } = await getCurrentShop();
+  const admin = createAdminClient();
 
-  const items = await db
-    .select({
-      id: stockItems.id,
-      productId: stockItems.productId,
-      quantity: stockItems.quantity,
-      minThreshold: stockItems.minThreshold,
-      productName: products.name,
-      productPrice: products.unitPrice,
-    })
-    .from(stockItems)
-    .where(eq(stockItems.shopId, shop.id))
-    .innerJoin(products, eq(stockItems.productId, products.id))
-    .orderBy(sql`quantity ASC`);
+  const { data: items } = await admin
+    .from('stock_items')
+    .select('*, products(*)')
+    .eq('shop_id', shop.id)
+    .order('quantity', { ascending: true });
 
   return (
     <div className="space-y-6">
@@ -55,7 +46,7 @@ export default async function StockPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.length === 0 ? (
+              {!items?.length ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     <Package className="size-8 mx-auto mb-2 text-zinc-300" />
@@ -63,19 +54,19 @@ export default async function StockPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                items.map((item) => {
+                items.map((item: any) => {
                   const qty = Number(item.quantity);
-                  const min = Number(item.minThreshold);
+                  const min = Number(item.min_threshold);
                   const isLow = qty <= min && min > 0;
                   const isOut = qty <= 0;
                   return (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.productName}</TableCell>
+                      <TableCell className="font-medium">{item.products?.name}</TableCell>
                       <TableCell className={`text-right font-medium tabular-nums ${isOut ? 'text-destructive' : isLow ? 'text-orange-500' : ''}`}>
                         {qty}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground tabular-nums">{min}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatCurrency(qty * Number(item.productPrice))}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatCurrency(qty * Number(item.products?.unit_price ?? 0))}</TableCell>
                       <TableCell>
                         {isOut ? (
                           <Badge variant="destructive">Rupture</Badge>

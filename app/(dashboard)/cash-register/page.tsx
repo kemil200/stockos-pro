@@ -1,7 +1,5 @@
 import { getCurrentShop } from '@/lib/tenant';
-import { db } from '@/lib/db';
-import { cashMovements } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
 import { Landmark } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,19 +24,20 @@ const MOVEMENT_LABELS: Record<string, string> = {
 
 export default async function CashRegisterPage() {
   const { shop } = await getCurrentShop();
+  const admin = createAdminClient();
 
-  const [balance] = await db
-    .select({
-      total: sql<number>`COALESCE(SUM(CAST(amount AS DECIMAL(12,2))), 0)`,
-    })
-    .from(cashMovements)
-    .where(eq(cashMovements.shopId, shop.id));
+  const { data: balanceRows } = await admin
+    .from('cash_movements')
+    .select('amount')
+    .eq('shop_id', shop.id);
 
-  const movements = await db
-    .select()
-    .from(cashMovements)
-    .where(eq(cashMovements.shopId, shop.id))
-    .orderBy(sql`created_at DESC`)
+  const total = (balanceRows ?? []).reduce((sum, m) => sum + Number(m.amount), 0);
+
+  const { data: movements } = await admin
+    .from('cash_movements')
+    .select('*')
+    .eq('shop_id', shop.id)
+    .order('created_at', { ascending: false })
     .limit(100);
 
   return (
@@ -55,8 +54,8 @@ export default async function CashRegisterPage() {
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Solde actuel</p>
-              <p className={`text-lg font-bold tabular-nums ${balance.total >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                {formatCurrency(balance.total)}
+              <p className={`text-lg font-bold tabular-nums ${total >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                {formatCurrency(total)}
               </p>
             </div>
           </CardContent>
@@ -78,7 +77,7 @@ export default async function CashRegisterPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {movements.length === 0 ? (
+              {!movements?.length ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                     <Landmark className="size-8 mx-auto mb-2 text-zinc-300" />
@@ -86,16 +85,16 @@ export default async function CashRegisterPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                movements.map((m) => {
+                movements.map((m: any) => {
                   const amount = Number(m.amount);
                   return (
                     <TableRow key={m.id}>
                       <TableCell className="text-muted-foreground">
-                        {new Date(m.createdAt).toLocaleDateString('fr-FR')}
+                        {new Date(m.created_at).toLocaleDateString('fr-FR')}
                       </TableCell>
                       <TableCell>
                         <Badge variant={amount >= 0 ? 'default' : 'destructive'}>
-                          {MOVEMENT_LABELS[m.movementType] || m.movementType}
+                          {MOVEMENT_LABELS[m.movement_type] || m.movement_type}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{m.description || '-'}</TableCell>

@@ -1,7 +1,5 @@
 import { getCurrentShop } from '@/lib/tenant';
-import { db } from '@/lib/db';
-import { invoices, cashMovements } from '@/lib/db/schema';
-import { eq, sql, and, gte } from 'drizzle-orm';
+import { createAdminClient } from '@/lib/server';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import {
   TrendingUp,
@@ -31,44 +29,41 @@ const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'outline' | 'des
 
 export default async function DashboardPage() {
   const { shop } = await getCurrentShop();
+  const admin = createAdminClient();
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [todayStats] = await db
-    .select({
-      revenue: sql<number>`COALESCE(SUM(CAST(total AS DECIMAL(12,2))), 0)`,
-      count: sql<number>`COUNT(*)`,
-    })
-    .from(invoices)
-    .where(and(
-      eq(invoices.shopId, shop.id),
-      eq(invoices.status, 'PAID'),
-      gte(invoices.createdAt, today),
-    ));
+  const todayStr = today.toISOString();
 
-  const [pendingInvoices] = await db
-    .select({
-      count: sql<number>`COUNT(*)`,
-    })
-    .from(invoices)
-    .where(and(
-      eq(invoices.shopId, shop.id),
-      eq(invoices.status, 'VALIDATED'),
-    ));
+  const { data: paidToday } = await admin
+    .from('invoices')
+    .select('total')
+    .eq('shop_id', shop.id)
+    .eq('status', 'PAID')
+    .gte('created_at', todayStr);
 
-  const [cashBalance] = await db
-    .select({
-      balance: sql<number>`COALESCE(SUM(CAST(amount AS DECIMAL(12,2))), 0)`,
-    })
-    .from(cashMovements)
-    .where(eq(cashMovements.shopId, shop.id));
+  const todayRevenue = (paidToday ?? []).reduce((sum, inv) => sum + Number(inv.total), 0);
+  const todayCount = paidToday?.length ?? 0;
 
-  const recentInvoices = await db
-    .select()
-    .from(invoices)
-    .where(eq(invoices.shopId, shop.id))
-    .orderBy(sql`created_at DESC`)
+  const { count: pendingCount } = await admin
+    .from('invoices')
+    .select('*', { count: 'exact', head: true })
+    .eq('shop_id', shop.id)
+    .eq('status', 'VALIDATED');
+
+  const { data: movements } = await admin
+    .from('cash_movements')
+    .select('amount')
+    .eq('shop_id', shop.id);
+
+  const cashBalance = (movements ?? []).reduce((sum, m) => sum + Number(m.amount), 0);
+
+  const { data: recentInvoices } = await admin
+    .from('invoices')
+    .select('*')
+    .eq('shop_id', shop.id)
+    .order('created_at', { ascending: false })
     .limit(5);
 
   return (
@@ -81,22 +76,22 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="CA Aujourd&apos;hui"
-          value={formatCurrency(todayStats.revenue)}
+          value={formatCurrency(todayRevenue)}
           icon={TrendingUp}
         />
         <StatsCard
           title="Factures aujourd&apos;hui"
-          value={String(todayStats.count)}
+          value={String(todayCount)}
           icon={FileText}
         />
         <StatsCard
           title="En attente de paiement"
-          value={String(pendingInvoices.count)}
+          value={String(pendingCount ?? 0)}
           icon={Wallet}
         />
         <StatsCard
           title="Solde caisse"
-          value={formatCurrency(cashBalance.balance)}
+          value={formatCurrency(cashBalance)}
           icon={Landmark}
         />
       </div>
@@ -106,21 +101,21 @@ export default async function DashboardPage() {
           <CardTitle className="text-lg">Dernières factures</CardTitle>
         </CardHeader>
         <CardContent>
-          {recentInvoices.length === 0 ? (
+          {!recentInvoices?.length ? (
             <div className="text-center py-12">
               <FileText className="size-10 text-zinc-300 mx-auto mb-3" />
               <p className="text-sm text-zinc-500">Aucune facture récente</p>
             </div>
           ) : (
             <div className="divide-y">
-              {recentInvoices.map((inv) => (
+              {recentInvoices.map((inv: any) => (
                 <div
                   key={inv.id}
                   className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium text-sm text-zinc-900">{inv.invoiceNumber}</p>
-                    <p className="text-sm text-zinc-500 truncate">{inv.clientName}</p>
+                    <p className="font-medium text-sm text-zinc-900">{inv.invoice_number}</p>
+                    <p className="text-sm text-zinc-500 truncate">{inv.client_name}</p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0 ml-4">
                     <p className="font-medium text-sm text-zinc-900 tabular-nums">

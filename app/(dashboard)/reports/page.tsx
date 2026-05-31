@@ -1,7 +1,5 @@
 import { getCurrentShop } from '@/lib/tenant';
-import { db } from '@/lib/db';
-import { invoices, cashMovements } from '@/lib/db/schema';
-import { eq, sql, and, gte } from 'drizzle-orm';
+import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,43 +22,43 @@ const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'outline' | 'des
 
 export default async function ReportsPage() {
   const { shop } = await getCurrentShop();
+  const admin = createAdminClient();
 
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString();
 
-  const [monthlyRevenue] = await db
-    .select({
-      revenue: sql<number>`COALESCE(SUM(CAST(total AS DECIMAL(12,2))), 0)`,
-      count: sql<number>`COUNT(*)`,
-    })
-    .from(invoices)
-    .where(and(
-      eq(invoices.shopId, shop.id),
-      eq(invoices.status, 'PAID'),
-      gte(invoices.createdAt, thirtyDaysAgo),
-    ));
+  const { data: paidInvoices } = await admin
+    .from('invoices')
+    .select('total')
+    .eq('shop_id', shop.id)
+    .eq('status', 'PAID')
+    .gte('created_at', thirtyDaysAgoStr);
 
-  const [monthlyExpenses] = await db
-    .select({
-      total: sql<number>`COALESCE(SUM(CAST(amount AS DECIMAL(12,2))), 0)`,
-    })
-    .from(cashMovements)
-    .where(and(
-      eq(cashMovements.shopId, shop.id),
-      eq(cashMovements.movementType, 'EXPENSE'),
-      gte(cashMovements.createdAt, thirtyDaysAgo),
-    ));
+  const monthlyRevenue = (paidInvoices ?? []).reduce((sum, inv) => sum + Number(inv.total), 0);
+  const invoiceCount = paidInvoices?.length ?? 0;
 
-  const invoiceByStatus = await db
-    .select({
-      status: invoices.status,
-      count: sql<number>`COUNT(*)`,
-    })
-    .from(invoices)
-    .where(eq(invoices.shopId, shop.id))
-    .groupBy(invoices.status);
+  const { data: expenseMovements } = await admin
+    .from('cash_movements')
+    .select('amount')
+    .eq('shop_id', shop.id)
+    .eq('movement_type', 'EXPENSE')
+    .gte('created_at', thirtyDaysAgoStr);
 
-  const netResult = monthlyRevenue.revenue - monthlyExpenses.total;
+  const monthlyExpenses = (expenseMovements ?? []).reduce((sum, m) => sum + Number(m.amount), 0);
+
+  const { data: allInvoices } = await admin
+    .from('invoices')
+    .select('status')
+    .eq('shop_id', shop.id);
+
+  const invoiceByStatusMap = new Map<string, number>();
+  for (const inv of (allInvoices ?? [])) {
+    invoiceByStatusMap.set(inv.status, (invoiceByStatusMap.get(inv.status) ?? 0) + 1);
+  }
+  const invoiceByStatus = Array.from(invoiceByStatusMap.entries()).map(([status, count]) => ({ status, count }));
+
+  const netResult = monthlyRevenue - monthlyExpenses;
 
   return (
     <div className="space-y-6">
@@ -75,8 +73,8 @@ export default async function ReportsPage() {
             <CardTitle>Revenus</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600 tabular-nums">{formatCurrency(monthlyRevenue.revenue)}</p>
-            <p className="text-sm text-muted-foreground">{monthlyRevenue.count} facture(s) payée(s)</p>
+            <p className="text-2xl font-bold text-green-600 tabular-nums">{formatCurrency(monthlyRevenue)}</p>
+            <p className="text-sm text-muted-foreground">{invoiceCount} facture(s) payée(s)</p>
           </CardContent>
         </Card>
         <Card>
@@ -84,7 +82,7 @@ export default async function ReportsPage() {
             <CardTitle>Dépenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-destructive tabular-nums">{formatCurrency(monthlyExpenses.total)}</p>
+            <p className="text-2xl font-bold text-destructive tabular-nums">{formatCurrency(monthlyExpenses)}</p>
           </CardContent>
         </Card>
         <Card>

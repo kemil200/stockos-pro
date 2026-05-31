@@ -1,8 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/server';
-import { db } from '@/lib/db';
-import { shops } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { createClient, createAdminClient } from '@/lib/server';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Navbar } from '@/components/layout/navbar';
 
@@ -15,14 +12,14 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
-  let shop;
-  try {
-    [shop] = await db.select().from(shops).where(eq(shops.userId, user.id));
-  } catch {
-    redirect('/sign-in');
-  }
+  const admin = createAdminClient();
+  const { data: shops } = await admin
+    .from('shops')
+    .select('id')
+    .eq('user_id', user.id)
+    .limit(1);
 
-  if (!shop) redirect('/onboarding');
+  if (!shops?.length) redirect('/onboarding');
 
   return (
     <div className="flex h-screen">

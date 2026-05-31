@@ -1,7 +1,5 @@
 import { getCurrentShop } from '@/lib/tenant';
-import { db } from '@/lib/db';
-import { invoices, invoiceLines, payments } from '@/lib/db/schema';
-import { eq, and, asc } from 'drizzle-orm';
+import { createAdminClient } from '@/lib/server';
 import { notFound } from 'next/navigation';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 import { PaymentForm } from '@/components/forms/payment-form';
@@ -15,34 +13,38 @@ export default async function InvoiceDetailPage({
 }) {
   const { id } = await params;
   const { shop, user } = await getCurrentShop();
+  const admin = createAdminClient();
 
-  const [invoice] = await db
-    .select()
-    .from(invoices)
-    .where(and(eq(invoices.id, id), eq(invoices.shopId, shop.id)));
+  const { data: invoices } = await admin
+    .from('invoices')
+    .select('*')
+    .eq('id', id)
+    .eq('shop_id', shop.id)
+    .limit(1);
 
+  const invoice = invoices?.[0] ?? null;
   if (!invoice) notFound();
 
-  const lines = await db
-    .select()
-    .from(invoiceLines)
-    .where(eq(invoiceLines.invoiceId, id))
-    .orderBy(asc(invoiceLines.sortOrder));
+  const { data: lines } = await admin
+    .from('invoice_lines')
+    .select('*')
+    .eq('invoice_id', id)
+    .order('sort_order', { ascending: true });
 
-  const invoicePayments = await db
-    .select()
-    .from(payments)
-    .where(eq(payments.invoiceId, id));
+  const { data: invoicePayments } = await admin
+    .from('payments')
+    .select('*')
+    .eq('invoice_id', id);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{invoice.invoiceNumber}</h1>
+            <h1 className="text-2xl font-bold">{invoice.invoice_number}</h1>
             <InvoiceStatusBadge status={invoice.status} />
           </div>
-          <p className="text-zinc-500 mt-1">{invoice.clientName}</p>
+          <p className="text-zinc-500 mt-1">{invoice.client_name}</p>
         </div>
         <div className="flex gap-2">
           {invoice.status === 'DRAFT' && (
@@ -74,17 +76,17 @@ export default async function InvoiceDetailPage({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-zinc-500">Client</span>
-              <span>{invoice.clientName}</span>
+              <span>{invoice.client_name}</span>
             </div>
-            {invoice.clientPhone && (
+            {invoice.client_phone && (
               <div className="flex justify-between">
                 <span className="text-zinc-500">Téléphone</span>
-                <span>{invoice.clientPhone}</span>
+                <span>{invoice.client_phone}</span>
               </div>
             )}
             <div className="flex justify-between">
               <span className="text-zinc-500">Date</span>
-              <span>{new Date(invoice.createdAt).toLocaleDateString('fr-FR')}</span>
+              <span>{new Date(invoice.created_at).toLocaleDateString('fr-FR')}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-zinc-500">Devise</span>
@@ -100,32 +102,32 @@ export default async function InvoiceDetailPage({
               <span className="text-zinc-500">Sous-total</span>
               <span>{formatCurrency(Number(invoice.subtotal))}</span>
             </div>
-            {Number(invoice.lineDiscountTotal) > 0 && (
+            {Number(invoice.line_discount_total) > 0 && (
               <div className="flex justify-between">
                 <span className="text-zinc-500">Rabais</span>
-                <span className="text-red-600">-{formatCurrency(Number(invoice.lineDiscountTotal))}</span>
+                <span className="text-red-600">-{formatCurrency(Number(invoice.line_discount_total))}</span>
               </div>
             )}
-            {Number(invoice.taxAmount) > 0 && (
+            {Number(invoice.tax_amount) > 0 && (
               <div className="flex justify-between">
                 <span className="text-zinc-500">TVA</span>
-                <span>{formatCurrency(Number(invoice.taxAmount))}</span>
+                <span>{formatCurrency(Number(invoice.tax_amount))}</span>
               </div>
             )}
             <div className="flex justify-between font-bold text-base pt-2 border-t">
               <span>Total</span>
               <span>{formatCurrency(Number(invoice.total))}</span>
             </div>
-            {Number(invoice.amountPaid) > 0 && (
+            {Number(invoice.amount_paid) > 0 && (
               <div className="flex justify-between text-green-600">
                 <span>Payé</span>
-                <span>{formatCurrency(Number(invoice.amountPaid))}</span>
+                <span>{formatCurrency(Number(invoice.amount_paid))}</span>
               </div>
             )}
-            {Number(invoice.balanceDue) > 0 && invoice.status !== 'DRAFT' && invoice.status !== 'CANCELLED' && (
+            {Number(invoice.balance_due) > 0 && invoice.status !== 'DRAFT' && invoice.status !== 'CANCELLED' && (
               <div className="flex justify-between text-orange-600 font-medium">
                 <span>Reste dû</span>
-                <span>{formatCurrency(Number(invoice.balanceDue))}</span>
+                <span>{formatCurrency(Number(invoice.balance_due))}</span>
               </div>
             )}
           </div>
@@ -144,23 +146,23 @@ export default async function InvoiceDetailPage({
             </tr>
           </thead>
           <tbody>
-            {lines.map((line) => (
+            {(lines ?? []).map((line: any) => (
               <tr key={line.id} className="border-b last:border-0">
                 <td className="py-3 text-sm">{line.description}</td>
                 <td className="py-3 text-sm text-right">{Number(line.quantity)}</td>
-                <td className="py-3 text-sm text-right">{formatCurrency(Number(line.unitPrice))}</td>
-                <td className="py-3 text-sm text-right font-medium">{formatCurrency(Number(line.lineTotal))}</td>
+                <td className="py-3 text-sm text-right">{formatCurrency(Number(line.unit_price))}</td>
+                <td className="py-3 text-sm text-right font-medium">{formatCurrency(Number(line.line_total))}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {invoicePayments.length > 0 && (
+      {invoicePayments && invoicePayments.length > 0 && (
         <div className="bg-white rounded-xl border p-6">
           <h2 className="font-semibold mb-4">Paiements</h2>
           <div className="space-y-2">
-            {invoicePayments.map((p) => (
+            {invoicePayments.map((p: any) => (
               <div key={p.id} className="flex justify-between py-2 border-b last:border-0 text-sm">
                 <div>
                   <span className="font-medium">{p.method}</span>
@@ -168,7 +170,7 @@ export default async function InvoiceDetailPage({
                 </div>
                 <div className="text-right">
                   <span className="font-medium">{formatCurrency(Number(p.amount))}</span>
-                  <p className="text-xs text-zinc-400">{new Date(p.paymentDate).toLocaleDateString('fr-FR')}</p>
+                  <p className="text-xs text-zinc-400">{new Date(p.payment_date).toLocaleDateString('fr-FR')}</p>
                 </div>
               </div>
             ))}
@@ -177,7 +179,7 @@ export default async function InvoiceDetailPage({
       )}
 
       {['VALIDATED', 'PARTIALLY_PAID'].includes(invoice.status) && (
-        <PaymentForm invoiceId={id} balance={invoice.balanceDue} />
+        <PaymentForm invoiceId={id} balance={invoice.balance_due} />
       )}
     </div>
   );

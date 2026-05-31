@@ -1,7 +1,5 @@
 import { getCurrentShop } from '@/lib/tenant';
-import { db } from '@/lib/db';
-import { invoices } from '@/lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { createAdminClient } from '@/lib/server';
 import { InvoiceFilters } from '@/components/invoices/invoice-filters';
 import { InvoiceTable } from '@/components/invoices/invoice-table';
 import Link from 'next/link';
@@ -13,17 +11,18 @@ export default async function InvoicesPage({
 }) {
   const { status } = await searchParams;
   const { shop } = await getCurrentShop();
+  const admin = createAdminClient();
 
-  const conditions = [eq(invoices.shopId, shop.id)];
+  let query = admin
+    .from('invoices')
+    .select('*')
+    .eq('shop_id', shop.id);
+
   if (status && status !== '') {
-    conditions.push(eq(invoices.status, status));
+    query = query.eq('status', status);
   }
 
-  const allInvoices = await db
-    .select()
-    .from(invoices)
-    .where(and(...conditions))
-    .orderBy(desc(invoices.createdAt));
+  const { data: allInvoices } = await query.order('created_at', { ascending: false });
 
   return (
     <div className="space-y-6">
@@ -31,7 +30,7 @@ export default async function InvoicesPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Factures</h1>
           <p className="text-sm text-muted-foreground">
-            {allInvoices.length} facture{allInvoices.length !== 1 ? 's' : ''}
+            {allInvoices?.length ?? 0} facture{(allInvoices?.length ?? 0) !== 1 ? 's' : ''}
           </p>
         </div>
         <Link href="/invoices/new" className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/80 transition-colors">
@@ -41,7 +40,7 @@ export default async function InvoicesPage({
       </div>
 
       <InvoiceFilters currentStatus={status} />
-      <InvoiceTable invoices={allInvoices} />
+      <InvoiceTable invoices={allInvoices ?? []} />
     </div>
   );
 }

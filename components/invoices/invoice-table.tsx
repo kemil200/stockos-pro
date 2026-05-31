@@ -4,11 +4,11 @@ import { formatCurrency } from '@/lib/utils/currency';
 
 interface InvoiceRow {
   id: string;
-  invoiceNumber: string;
-  clientName: string;
+  invoice_number: string;
+  client_name: string;
   status: string;
   total: string;
-  createdAt: Date;
+  created_at: string;
 }
 
 export function InvoiceTable({ invoices }: { invoices: InvoiceRow[] }) {
@@ -42,10 +42,10 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceRow[] }) {
                     href={`/invoices/${inv.id}`}
                     className="font-medium text-blue-600 hover:underline"
                   >
-                    {inv.invoiceNumber}
+                    {inv.invoice_number}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-sm">{inv.clientName}</td>
+                <td className="px-4 py-3 text-sm">{inv.client_name}</td>
                 <td className="px-4 py-3">
                   <InvoiceStatusBadge status={inv.status} />
                 </td>
@@ -53,7 +53,7 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceRow[] }) {
                   {formatCurrency(Number(inv.total))}
                 </td>
                 <td className="px-4 py-3 text-right text-sm text-zinc-500">
-                  {new Date(inv.createdAt).toLocaleDateString('fr-FR')}
+                  {new Date(inv.created_at).toLocaleDateString('fr-FR')}
                 </td>
               </tr>
             ))

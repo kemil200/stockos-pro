@@ -1,7 +1,5 @@
 import { getCurrentShop } from '@/lib/tenant';
-import { db } from '@/lib/db';
-import { products, stockItems } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
 import Link from 'next/link';
 import { Plus, Package } from 'lucide-react';
@@ -18,21 +16,22 @@ import {
 
 export default async function ProductsPage() {
   const { shop } = await getCurrentShop();
+  const admin = createAdminClient();
 
-  const allProducts = await db
-    .select()
-    .from(products)
-    .where(eq(products.shopId, shop.id))
-    .orderBy(sql`created_at DESC`);
+  const { data: allProducts } = await admin
+    .from('products')
+    .select('*')
+    .eq('shop_id', shop.id)
+    .order('created_at', { ascending: false });
 
   const stockMap = new Map();
-  const stockRows = await db
-    .select()
-    .from(stockItems)
-    .where(eq(stockItems.shopId, shop.id));
+  const { data: stockRows } = await admin
+    .from('stock_items')
+    .select('*')
+    .eq('shop_id', shop.id);
 
-  for (const s of stockRows) {
-    stockMap.set(s.productId, s);
+  for (const s of (stockRows ?? [])) {
+    stockMap.set(s.product_id, s);
   }
 
   return (
@@ -40,7 +39,7 @@ export default async function ProductsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Produits</h1>
-          <p className="text-sm text-muted-foreground">{allProducts.length} produit(s)</p>
+          <p className="text-sm text-muted-foreground">{allProducts?.length ?? 0} produit(s)</p>
         </div>
         <Link href="/products/new" className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/80 transition-colors">
           <Plus className="size-4" />
@@ -64,7 +63,7 @@ export default async function ProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allProducts.length === 0 ? (
+              {!allProducts?.length ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     <Package className="size-8 mx-auto mb-2 text-zinc-300" />
@@ -72,7 +71,7 @@ export default async function ProductsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                allProducts.map((p) => {
+                allProducts.map((p: any) => {
                   const stock = stockMap.get(p.id);
                   const qty = stock ? Number(stock.quantity) : 0;
                   const isOut = qty <= 0;
@@ -80,7 +79,7 @@ export default async function ProductsPage() {
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.name}</TableCell>
                       <TableCell className="text-muted-foreground">{p.sku || '-'}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(Number(p.unitPrice))}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(Number(p.unit_price))}</TableCell>
                       <TableCell className="text-right">
                         <Badge variant={isOut ? 'destructive' : 'secondary'} className="tabular-nums">
                           {qty}

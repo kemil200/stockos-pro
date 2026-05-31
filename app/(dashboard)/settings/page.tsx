@@ -1,26 +1,32 @@
 import { getCurrentShop } from '@/lib/tenant';
-import { db } from '@/lib/db';
-import { shopSettings, invoiceSettings, subscriptions } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { createAdminClient } from '@/lib/server';
 import { SettingsForm } from '@/components/forms/settings-form';
 
 export default async function SettingsPage() {
   const { shop } = await getCurrentShop();
+  const admin = createAdminClient();
 
-  const [shopCfg] = await db
-    .select()
-    .from(shopSettings)
-    .where(eq(shopSettings.shopId, shop.id));
+  const { data: shopCfgRows } = await admin
+    .from('shop_settings')
+    .select('*')
+    .eq('shop_id', shop.id)
+    .limit(1);
 
-  const [invCfg] = await db
-    .select()
-    .from(invoiceSettings)
-    .where(eq(invoiceSettings.shopId, shop.id));
+  const { data: invCfgRows } = await admin
+    .from('invoice_settings')
+    .select('*')
+    .eq('shop_id', shop.id)
+    .limit(1);
 
-  const [sub] = await db
-    .select()
-    .from(subscriptions)
-    .where(eq(subscriptions.shopId, shop.id));
+  const { data: subRows } = await admin
+    .from('subscriptions')
+    .select('*')
+    .eq('shop_id', shop.id)
+    .limit(1);
+
+  const shopCfg = shopCfgRows?.[0] ?? null;
+  const invCfg = invCfgRows?.[0] ?? null;
+  const sub = subRows?.[0] ?? null;
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">

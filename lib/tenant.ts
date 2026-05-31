@@ -1,9 +1,6 @@
 import 'server-only';
 
-import { createClient } from '@/lib/server';
-import { db } from '@/lib/db';
-import { shops, users } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { createClient, createAdminClient } from '@/lib/server';
 
 export class TenantError extends Error {
   constructor(message: string) {
@@ -17,34 +14,40 @@ export async function getCurrentShop() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new TenantError('Unauthorized');
 
-  try {
-    const [shop] = await db
-      .select()
-      .from(shops)
-      .where(eq(shops.userId, user.id));
+  const admin = createAdminClient();
 
-    if (!shop) throw new TenantError('Shop not found');
+  const { data: shops } = await admin
+    .from('shops')
+    .select('*')
+    .eq('user_id', user.id)
+    .limit(1);
 
-    const [shopUser] = await db
-      .select()
-      .from(users)
-      .where(and(eq(users.authUserId, user.id), eq(users.shopId, shop.id)));
+  const shop = shops?.[0] ?? null;
+  if (!shop) throw new TenantError('Shop not found');
 
-    if (!shopUser) throw new TenantError('User not found in shop');
+  const { data: shopUsers } = await admin
+    .from('users')
+    .select('*')
+    .eq('auth_user_id', user.id)
+    .eq('shop_id', shop.id)
+    .limit(1);
 
-    return { shop, user: shopUser };
-  } catch (e) {
-    if (e instanceof TenantError) throw e;
-    throw new TenantError('Database unavailable');
-  }
+  const shopUser = shopUsers?.[0] ?? null;
+  if (!shopUser) throw new TenantError('User not found in shop');
+
+  return { shop, user: shopUser };
 }
 
 export async function getShopById(shopId: string) {
-  const [shop] = await db
-    .select()
-    .from(shops)
-    .where(eq(shops.id, shopId));
+  const admin = createAdminClient();
 
+  const { data: shops } = await admin
+    .from('shops')
+    .select('*')
+    .eq('id', shopId)
+    .limit(1);
+
+  const shop = shops?.[0] ?? null;
   if (!shop) throw new TenantError('Shop not found');
   return shop;
 }

@@ -55,7 +55,12 @@ export default async function InvoiceDetailPage({
           <p className="text-zinc-500 mt-1.5">{invoice.client_name}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <InvoiceActions invoiceId={id} />
+          <InvoiceActions
+            invoiceId={id}
+            clientName={invoice.client_name}
+            clientPhone={invoice.client_phone}
+            balanceDue={invoice.balance_due}
+          />
           {invoice.status === 'DRAFT' && (
             <form action={validateInvoiceAction.bind(null, id)}>
               <button

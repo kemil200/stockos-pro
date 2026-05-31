@@ -5,16 +5,16 @@ import { usePathname } from 'next/navigation';
 import {
   FileText,
   Package,
-  Receipt,
   Wallet,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/invoices', label: 'Factures', icon: FileText },
+  { href: '/clients', label: 'Clients', icon: Users },
   { href: '/products', label: 'Produits', icon: Package },
   { href: '/cash-register', label: 'Caisse', icon: Wallet },
-  { href: '/payments', label: 'Paiements', icon: Receipt },
 ];
 
 export function BottomNav() {

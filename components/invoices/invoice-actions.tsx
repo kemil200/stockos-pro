@@ -10,7 +10,12 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
-export function InvoiceActions({ invoiceId }: { invoiceId: string }) {
+export function InvoiceActions({ invoiceId, clientName, clientPhone, balanceDue }: {
+  invoiceId: string;
+  clientName?: string;
+  clientPhone?: string;
+  balanceDue?: string;
+}) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -42,6 +47,16 @@ export function InvoiceActions({ invoiceId }: { invoiceId: string }) {
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
+  const handleReminder = () => {
+    const name = clientName || 'Client';
+    const amount = balanceDue ? Number(balanceDue).toLocaleString('fr-FR') : '';
+    const text = encodeURIComponent(
+      `Bonjour ${name}, votre facture de ${amount} FCFA est toujours impayée. Merci de la régler dans les meilleurs délais. ${window.location.href}`
+    );
+    const phone = clientPhone?.replace(/[^0-9]/g, '') || '';
+    window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+  };
+
   return (
     <div className="flex gap-2 print:hidden">
       <Button
@@ -62,6 +77,17 @@ export function InvoiceActions({ invoiceId }: { invoiceId: string }) {
         <WhatsAppIcon />
         WhatsApp
       </Button>
+      {Number(balanceDue ?? 0) > 0 && clientPhone && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleReminder}
+          className="gap-1.5 bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 hover:border-amber-300"
+        >
+          <WhatsAppIcon />
+          Relancer
+        </Button>
+      )}
       {isMobile && (
         <Button
           variant="secondary"

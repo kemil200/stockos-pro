@@ -176,6 +176,63 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* Tarifs */}
+        <section className="py-24 lg:py-32 px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16 lg:mb-20">
+              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4 block">Tarifs</span>
+              <h2 className="text-[clamp(1.75rem,4vw,3rem)] font-heading font-bold tracking-tight mb-4">
+                Un abonnement unique
+              </h2>
+              <p className="text-zinc-500 max-w-2xl mx-auto text-base lg:text-lg">
+                Pas de frais cachés. Pas de surprise. Un seul abonnement pour toutes les fonctionnalités.
+              </p>
+            </div>
+            <div className="max-w-lg mx-auto">
+              <div className="bg-white rounded-2xl border border-zinc-200/80 p-8 lg:p-10 shadow-sm hover:shadow-lg transition-all duration-200 text-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold mb-6">
+                  <Sparkles className="size-3" />
+                  Premier mois gratuit
+                </div>
+                <div className="mb-6">
+                  <span className="text-4xl lg:text-5xl font-bold font-heading tracking-tight text-zinc-900">90 000</span>
+                  <span className="text-lg text-zinc-500 font-medium"> FCFA</span>
+                  <div className="text-sm text-zinc-400 mt-1 font-medium tracking-wide">PAR AN</div>
+                </div>
+                <ul className="text-left space-y-3 mb-8">
+                  {[
+                    'Facturation illimitée',
+                    'Gestion de stock en temps réel',
+                    'Caisse enregistreuse intégrée',
+                    'Rapports et analyses',
+                    'Support prioritaire',
+                    'Mises à jour gratuites',
+                  ].map((item) => (
+                    <li key={item} className="flex items-center gap-3 text-sm text-zinc-600">
+                      <Check className="size-4 text-emerald-600 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/sign-up"
+                  className="inline-flex items-center justify-center gap-2 w-full px-7 py-3.5 text-sm font-medium bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl active:scale-[0.98]"
+                >
+                  Commencer l&apos;essai gratuit
+                  <ArrowRight className="size-4" />
+                </Link>
+                <p className="text-xs text-zinc-400 mt-4">
+                  Contactez notre service client au{' '}
+                  <a href="tel:+22892294858" className="text-zinc-700 font-semibold hover:text-zinc-900 transition-colors">
+                    +228 92 29 48 58
+                  </a>
+                  {' '}pour toute question
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Testimonial / Stats */}
         <section className="py-24 lg:py-28 px-6">
           <div className="max-w-4xl mx-auto text-center">

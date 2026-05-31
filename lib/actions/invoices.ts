@@ -373,10 +373,3 @@ export async function validateInvoiceAction(invoiceId: string) {
   const result = await validateInvoice(invoiceId);
   if (!result.success) throw new Error(result.error);
 }
-
-export async function cancelInvoiceAction(formData: FormData) {
-  const invoiceId = formData.get('invoiceId') as string;
-  const reason = formData.get('reason') as string;
-  const result = await cancelInvoice(invoiceId, reason || 'Non spécifié');
-  if (!result.success) throw new Error(result.error);
-}

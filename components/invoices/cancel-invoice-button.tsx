@@ -18,9 +18,6 @@ export function CancelInvoiceButton({ invoiceId }: { invoiceId: string }) {
     setSubmitting(true);
     setError(null);
     try {
-      const formData = new FormData();
-      formData.append('invoiceId', invoiceId);
-      formData.append('reason', reason.trim());
       const mod = await import('@/lib/actions/invoices');
       const result = await mod.cancelInvoice(invoiceId, reason.trim());
       if (!result.success) {

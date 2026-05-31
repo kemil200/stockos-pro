@@ -11,9 +11,13 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
-    const [shop] = await db.select().from(shops).where(eq(shops.userId, user.id));
-    if (shop) redirect('/invoices');
-    redirect('/onboarding');
+    try {
+      const [shop] = await db.select().from(shops).where(eq(shops.userId, user.id));
+      if (shop) redirect('/invoices');
+      redirect('/onboarding');
+    } catch {
+      // DB not available (env var missing on Vercel) — show landing page
+    }
   }
 
   return (

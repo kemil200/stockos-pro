@@ -28,23 +28,16 @@ export default async function ReportsPage() {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoStr = thirtyDaysAgo.toISOString();
 
-  const { data: paidInvoices } = await admin
-    .from('invoices')
-    .select('total')
-    .eq('shop_id', shop.id)
-    .eq('status', 'PAID')
-    .gte('created_at', thirtyDaysAgoStr);
+  const [paidResult, allResult] = await Promise.all([
+    admin.from('invoices').select('total').eq('shop_id', shop.id).eq('status', 'PAID').gte('created_at', thirtyDaysAgoStr),
+    admin.from('invoices').select('status').eq('shop_id', shop.id),
+  ]);
 
-  const monthlyRevenue = (paidInvoices ?? []).reduce((sum, inv) => sum + Number(inv.total), 0);
-  const invoiceCount = paidInvoices?.length ?? 0;
-
-  const { data: allInvoices } = await admin
-    .from('invoices')
-    .select('status')
-    .eq('shop_id', shop.id);
+  const monthlyRevenue = (paidResult.data ?? []).reduce((sum, inv) => sum + Number(inv.total), 0);
+  const invoiceCount = paidResult.data?.length ?? 0;
 
   const invoiceByStatusMap = new Map<string, number>();
-  for (const inv of (allInvoices ?? [])) {
+  for (const inv of (allResult.data ?? [])) {
     invoiceByStatusMap.set(inv.status, (invoiceByStatusMap.get(inv.status) ?? 0) + 1);
   }
   const invoiceByStatus = Array.from(invoiceByStatusMap.entries()).map(([status, count]) => ({ status, count }));

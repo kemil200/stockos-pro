@@ -18,19 +18,16 @@ export default async function ProductsPage() {
   const { shop } = await getCurrentShop();
   const admin = createAdminClient();
 
-  const { data: allProducts } = await admin
-    .from('products')
-    .select('*')
-    .eq('shop_id', shop.id)
-    .order('created_at', { ascending: false });
+  const [productsResult, stockResult] = await Promise.all([
+    admin.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false }),
+    admin.from('stock_items').select('*').eq('shop_id', shop.id),
+  ]);
+
+  const allProducts = productsResult.data ?? [];
+  const stockRows = stockResult.data ?? [];
 
   const stockMap = new Map();
-  const { data: stockRows } = await admin
-    .from('stock_items')
-    .select('*')
-    .eq('shop_id', shop.id);
-
-  for (const s of (stockRows ?? [])) {
+  for (const s of stockRows) {
     stockMap.set(s.product_id, s);
   }
 
@@ -38,18 +35,18 @@ export default async function ProductsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Produits</h1>
-          <p className="text-sm text-muted-foreground">{allProducts?.length ?? 0} produit(s)</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold tracking-tight">Produits</h1>
+          <p className="text-sm text-zinc-500 mt-1.5">{allProducts.length} produit(s)</p>
         </div>
-        <Link href="/products/new" className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/80 transition-colors">
+        <Link href="/products/new" className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-800 transition-all shadow-sm">
           <Plus className="size-4" />
-          Nouveau produit
+          Nouveau
         </Link>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Catalogue</CardTitle>
+      <Card className="border-zinc-200/80 shadow-sm">
+        <CardHeader className="px-5 lg:px-6 py-4 lg:py-5">
+          <CardTitle className="text-base lg:text-lg font-heading font-semibold">Catalogue</CardTitle>
         </CardHeader>
         <CardContent className="px-0">
           <Table>
@@ -63,10 +60,10 @@ export default async function ProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {!allProducts?.length ? (
+              {!allProducts.length ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    <Package className="size-8 mx-auto mb-2 text-zinc-300" />
+                  <TableCell colSpan={5} className="text-center text-zinc-500 py-12">
+                    <Package className="size-10 text-zinc-200 mx-auto mb-3" />
                     Aucun produit. Créez votre premier produit.
                   </TableCell>
                 </TableRow>
@@ -77,15 +74,15 @@ export default async function ProductsPage() {
                   const isOut = qty <= 0;
                   return (
                     <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{p.sku || '-'}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(Number(p.unit_price))}</TableCell>
+                      <TableCell className="font-medium text-zinc-900">{p.name}</TableCell>
+                      <TableCell className="text-zinc-500">{p.sku || '-'}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatCurrency(Number(p.unit_price))}</TableCell>
                       <TableCell className="text-right">
                         <Badge variant={isOut ? 'destructive' : 'secondary'} className="tabular-nums">
                           {qty}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{p.category || '-'}</TableCell>
+                      <TableCell className="text-zinc-500">{p.category || '-'}</TableCell>
                     </TableRow>
                   );
                 })

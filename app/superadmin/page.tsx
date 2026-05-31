@@ -26,31 +26,26 @@ export default async function SuperAdminPage() {
   const { data: authUsers } = await supabase.auth.admin.listUsers();
   const totalAuthUsers = authUsers?.users.length ?? 0;
 
-  const { data: allShops } = await admin
-    .from('shops')
-    .select('*, shop_settings(*)');
+  const [shopsResult, usersResult, subsResult, invoicesResult] = await Promise.all([
+    admin.from('shops').select('*, shop_settings(*)'),
+    admin.from('users').select('*').order('created_at', { ascending: false }),
+    admin.from('subscriptions').select('*'),
+    admin.from('invoices').select('total, status'),
+  ]);
 
-  const { data: allShopUsers } = await admin
-    .from('users')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const allShops = shopsResult.data ?? [];
+  const allShopUsers = usersResult.data ?? [];
+  const allSubscriptions = subsResult.data ?? [];
+  const allInvoices = invoicesResult.data ?? [];
 
-  const { data: allSubscriptions } = await admin
-    .from('subscriptions')
-    .select('*');
-
-  const { data: allInvoices } = await admin
-    .from('invoices')
-    .select('total, status');
-
-  const totalRevenue = (allInvoices ?? [])
+  const totalRevenue = allInvoices
     .filter((inv: any) => inv.status === 'PAID')
     .reduce((sum: number, inv: any) => sum + Number(inv.total), 0);
 
-  const subMap = new Map((allSubscriptions ?? []).map((s: any) => [s.shop_id, s]));
+  const subMap = new Map(allSubscriptions.map((s: any) => [s.shop_id, s]));
 
-  const activeTrials = (allSubscriptions ?? []).filter((s: any) => s.status === 'TRIAL').length;
-  const activeSubs = (allSubscriptions ?? []).filter((s: any) => s.status === 'ACTIVE').length;
+  const activeTrials = allSubscriptions.filter((s: any) => s.status === 'TRIAL').length;
+  const activeSubs = allSubscriptions.filter((s: any) => s.status === 'ACTIVE').length;
 
   return (
     <div className="min-h-screen bg-zinc-50/80">
@@ -74,7 +69,7 @@ export default async function SuperAdminPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-8 lg:mb-10">
           <StatsCard
             title="Boutiques"
-            value={String(allShops?.length ?? 0)}
+            value={String(allShops.length)}
             icon={Store}
             accent="bg-zinc-900"
           />
@@ -104,7 +99,7 @@ export default async function SuperAdminPage() {
             <div className="flex items-center gap-2">
               <CreditCard className="size-5 text-zinc-700" />
               <h2 className="text-base lg:text-lg font-heading font-semibold">
-                Abonnements ({allShops?.length ?? 0})
+                Abonnements ({allShops.length})
               </h2>
             </div>
             <div className="flex items-center gap-2 text-xs text-zinc-500">
@@ -117,7 +112,7 @@ export default async function SuperAdminPage() {
             </div>
           </div>
 
-          {(allShops ?? []).length === 0 ? (
+          {allShops.length === 0 ? (
             <div className="bg-white rounded-xl border border-zinc-200/80 shadow-sm p-12 text-center">
               <Store className="size-10 text-zinc-200 mx-auto mb-3" />
               <p className="text-sm text-zinc-500">Aucune boutique pour le moment</p>
@@ -137,7 +132,7 @@ export default async function SuperAdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(allShops ?? []).map((shop: any) => {
+                    {allShops.map((shop: any) => {
                       const sub = subMap.get(shop.id) as any;
                       return (
                         <SubscriptionRow
@@ -159,7 +154,7 @@ export default async function SuperAdminPage() {
           <div className="flex items-center gap-2 mb-5">
             <Users className="size-5 text-zinc-700" />
             <h2 className="text-base lg:text-lg font-heading font-semibold">
-              Utilisateurs ({allShopUsers?.length ?? 0})
+              Utilisateurs ({allShopUsers.length})
             </h2>
           </div>
           <div className="bg-white rounded-xl border border-zinc-200/80 shadow-sm overflow-x-auto">
@@ -173,13 +168,13 @@ export default async function SuperAdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {(allShopUsers ?? []).length === 0 ? (
+                {allShopUsers.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-4 py-12 text-center text-zinc-400 text-sm">
                       Aucun utilisateur
                     </td>
                   </tr>
-                ) : (allShopUsers ?? []).map((u: any) => (
+                ) : allShopUsers.map((u: any) => (
                   <tr key={u.id} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-colors">
                     <td className="px-4 py-3.5">
                       <span className="font-medium text-zinc-900">{u.display_name}</span>

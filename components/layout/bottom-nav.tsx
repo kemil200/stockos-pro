@@ -3,17 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
   FileText,
   Package,
   Receipt,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Accueil', icon: LayoutDashboard },
   { href: '/invoices', label: 'Factures', icon: FileText },
   { href: '/products', label: 'Produits', icon: Package },
+  { href: '/cash-register', label: 'Caisse', icon: Wallet },
   { href: '/payments', label: 'Paiements', icon: Receipt },
 ];
 

@@ -25,20 +25,13 @@ export default async function CashRegisterPage() {
   const { shop } = await getCurrentShop();
   const admin = createAdminClient();
 
-  const { data: balanceRows } = await admin
-    .from('cash_movements')
-    .select('amount')
-    .eq('shop_id', shop.id);
+  const [balanceResult, movementsResult] = await Promise.all([
+    admin.from('cash_movements').select('amount').eq('shop_id', shop.id),
+    admin.from('cash_movements').select('*').eq('shop_id', shop.id).neq('movement_type', 'EXPENSE').order('created_at', { ascending: false }).limit(100),
+  ]);
 
-  const total = (balanceRows ?? []).reduce((sum, m) => sum + Number(m.amount), 0);
-
-  const { data: movements } = await admin
-    .from('cash_movements')
-    .select('*')
-    .eq('shop_id', shop.id)
-    .neq('movement_type', 'EXPENSE')
-    .order('created_at', { ascending: false })
-    .limit(100);
+  const total = (balanceResult.data ?? []).reduce((sum, m) => sum + Number(m.amount), 0);
+  const movements = movementsResult.data ?? [];
 
   return (
     <div className="space-y-6">

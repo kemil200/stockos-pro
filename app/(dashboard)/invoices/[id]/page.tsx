@@ -26,16 +26,13 @@ export default async function InvoiceDetailPage({
   const invoice = invoices?.[0] ?? null;
   if (!invoice) notFound();
 
-  const { data: lines } = await admin
-    .from('invoice_lines')
-    .select('*')
-    .eq('invoice_id', id)
-    .order('sort_order', { ascending: true });
+  const [linesResult, paymentsResult] = await Promise.all([
+    admin.from('invoice_lines').select('*').eq('invoice_id', id).order('sort_order', { ascending: true }),
+    admin.from('payments').select('*').eq('invoice_id', id),
+  ]);
 
-  const { data: invoicePayments } = await admin
-    .from('payments')
-    .select('*')
-    .eq('invoice_id', id);
+  const lines = linesResult.data ?? [];
+  const invoicePayments = paymentsResult.data ?? [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

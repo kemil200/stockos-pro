@@ -56,7 +56,6 @@ export default async function InvoiceDetailPage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <InvoiceActions
-            invoiceId={id}
             clientName={invoice.client_name}
             clientPhone={invoice.client_phone}
             balanceDue={invoice.balance_due}

@@ -65,32 +65,27 @@ export function InvoiceForm({ products, settings }: Props) {
   const onSubmit = useCallback(async (data: InvoiceFormData) => {
     setSubmitting(true);
     setSubmitError(null);
-    try {
-      const linesWithDecimalDiscount = data.lines.map((l) => ({
-        ...l,
-        discountRate: l.discountRate ? l.discountRate / 100 : 0,
-      }));
+    const linesWithDecimalDiscount = data.lines.map((l) => ({
+      ...l,
+      discountRate: l.discountRate ? l.discountRate / 100 : 0,
+    }));
 
-      const formData = new FormData();
-      formData.append('clientName', data.clientName);
-      if (data.clientPhone) formData.append('clientPhone', data.clientPhone);
-      formData.append('lines', JSON.stringify(linesWithDecimalDiscount));
-      if (data.globalDiscountRate && data.globalDiscountRate > 0) formData.append('globalDiscountRate', String(data.globalDiscountRate / 100));
-      if (data.shippingFee && data.shippingFee > 0) formData.append('shippingFee', String(data.shippingFee));
+    const formData = new FormData();
+    formData.append('clientName', data.clientName);
+    if (data.clientPhone) formData.append('clientPhone', data.clientPhone);
+    formData.append('lines', JSON.stringify(linesWithDecimalDiscount));
+    if (data.globalDiscountRate && data.globalDiscountRate > 0) formData.append('globalDiscountRate', String(data.globalDiscountRate / 100));
+    if (data.shippingFee && data.shippingFee > 0) formData.append('shippingFee', String(data.shippingFee));
 
-      const result = await createInvoice(formData);
+    const result = await createInvoice(formData);
 
-      if (!result.success) {
-        setSubmitError(result.error);
-        return;
-      }
-
-      router.replace(`/invoices/${result.invoice.id}?print=true`);
-    } catch {
-      setSubmitError('Une erreur inattendue est survenue');
-    } finally {
+    if (!result.success) {
+      setSubmitError(result.error);
       setSubmitting(false);
+      return;
     }
+
+    router.replace(`/invoices/${result.invoice.id}?print=true`);
   }, [router]);
 
   submitRef.current = handleSubmit(onSubmit);
@@ -111,171 +106,160 @@ export function InvoiceForm({ products, settings }: Props) {
 
   return (
     <>
-      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-6 pb-36 md:pb-6">
-        <div className="bg-white rounded-xl border p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Client</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Client *</label>
-              <input
-                {...register('clientName', { required: true })}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                placeholder="Nom du client"
-              />
-              {errors.clientName && <p className="text-red-500 text-xs mt-1">Requis</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Téléphone</label>
-              <input
-                {...register('clientPhone')}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                placeholder="+228 XX XX XX XX"
-              />
-            </div>
-          </div>
+      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="pb-40 md:pb-8">
+        {/* Client — minimal, sans titre */}
+        <div className="bg-white rounded-2xl border border-zinc-200/80 p-5 sm:p-6 mb-4">
+          <input
+            {...register('clientName', { required: true })}
+            className="w-full text-lg font-semibold py-3 border-b-2 border-zinc-200 focus:border-zinc-900 outline-none transition-colors placeholder:text-zinc-300 placeholder:font-normal"
+            placeholder="Nom du client"
+            autoFocus
+          />
+          {errors.clientName && <p className="text-red-500 text-xs mt-1.5 ml-1">Nom requis</p>}
+          <input
+            {...register('clientPhone')}
+            className="w-full text-sm py-2.5 border-b border-zinc-100 focus:border-zinc-400 outline-none transition-colors placeholder:text-zinc-300 mt-2"
+            placeholder="+228 90 00 00 00"
+          />
         </div>
 
-        <div className="bg-white rounded-xl border p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Articles</h2>
-            <div className="flex items-center gap-2">
-              {(settings?.enable_line_discount) && (
-                <button
-                  type="button"
-                  onClick={() => setShowDiscount(!showDiscount)}
-                  className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${showDiscount ? 'bg-zinc-900 text-white border-zinc-900' : 'hover:bg-zinc-50'}`}
-                >
-                  -%
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => append({ description: '', quantity: 1, unitPrice: 0 })}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded-lg hover:bg-zinc-50"
-              >
-                <Plus className="w-4 h-4" /> Ajouter
-              </button>
-            </div>
-          </div>
+        {/* Lignes articles */}
+        {fields.map((field, index) => {
+          const selectedId = watchedLines[index]?.productId;
+          const stock = selectedId ? stockLevels[selectedId] : undefined;
+          const qty = watchedLines[index]?.quantity || 0;
+          const overstock = stock !== undefined && qty > stock;
 
-          {fields.map((field, index) => {
-            const selectedId = watchedLines[index]?.productId;
-            const stock = selectedId ? stockLevels[selectedId] : undefined;
-            const qty = watchedLines[index]?.quantity || 0;
-            const overstock = stock !== undefined && qty > stock;
-
-            return (
-              <div key={field.id} className="flex gap-2 items-start p-3 border rounded-lg flex-wrap">
+          return (
+            <div key={field.id} className="bg-white rounded-2xl border border-zinc-200/80 p-4 sm:p-5 mb-3">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-medium text-zinc-400 w-5">{index + 1}</span>
                 <select
-                  className="w-full sm:w-40 px-3 py-2 border rounded-lg text-sm"
+                  className="flex-1 text-sm py-2.5 border-b border-zinc-200 focus:border-zinc-900 outline-none transition-colors bg-transparent"
                   onChange={(e) => selectProduct(index, e.target.value)}
                   defaultValue=""
                 >
-                  <option value="" disabled>Sélectionner</option>
+                  <option value="" disabled>Produit</option>
                   {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
+                    <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  disabled={fields.length === 1}
+                  className="p-2 text-zinc-300 hover:text-red-500 disabled:opacity-20 transition-colors"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
 
-                <input
-                  {...register(`lines.${index}.description`, { required: true })}
-                  className="flex-1 min-w-[120px] px-3 py-2 border rounded-lg text-sm"
-                  placeholder="Description"
-                />
+              <input
+                {...register(`lines.${index}.description`, { required: true })}
+                className="w-full text-sm py-2.5 border-b border-zinc-100 focus:border-zinc-400 outline-none transition-colors placeholder:text-zinc-300"
+                placeholder="Description"
+              />
 
-                <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-4 mt-3">
+                <div className="flex items-center gap-1.5">
                   <input
                     type="number"
                     step="1"
                     min="1"
                     {...register(`lines.${index}.quantity`, { valueAsNumber: true, required: true, min: 1 })}
-                    className="w-16 px-3 py-2 border rounded-lg text-sm"
-                    placeholder="Qté"
+                    className="w-16 text-center text-sm py-2.5 border rounded-xl focus:ring-2 focus:ring-zinc-900 outline-none"
                   />
-                  {stock !== undefined && (
-                    <span className={`text-[11px] ${overstock ? 'text-orange-500 font-medium' : 'text-zinc-400'}`}>
-                      Stock: {stock}
-                    </span>
-                  )}
-                  {errors.lines?.[index]?.quantity && (
-                    <p className="text-red-500 text-[11px]">Quantité &gt; 0 requise</p>
-                  )}
+                  <span className="text-xs text-zinc-400">×</span>
+                  <input
+                    type="number"
+                    step="1"
+                    {...register(`lines.${index}.unitPrice`, { valueAsNumber: true, required: true })}
+                    className="w-24 text-center text-sm py-2.5 border rounded-xl focus:ring-2 focus:ring-zinc-900 outline-none"
+                    placeholder="Prix"
+                  />
+                  <span className="text-xs text-zinc-400">FCFA</span>
                 </div>
 
-                <input
-                  type="number"
-                  step="1"
-                  {...register(`lines.${index}.unitPrice`, { valueAsNumber: true, required: true })}
-                  className="w-24 px-3 py-2 border rounded-lg text-sm"
-                  placeholder="Prix"
-                />
-
                 {showDiscount && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 ml-auto">
+                    <span className="text-xs text-zinc-400">−</span>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       max="100"
                       {...register(`lines.${index}.discountRate`, { valueAsNumber: true })}
-                      className="w-14 px-2 py-2 border rounded-lg text-sm"
+                      className="w-14 text-center text-sm py-2.5 border rounded-xl focus:ring-2 focus:ring-zinc-900 outline-none"
                       placeholder="%"
                     />
                     <span className="text-xs text-zinc-400">%</span>
                   </div>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => remove(index)}
-                  disabled={fields.length === 1}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-30"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
-            );
-          })}
+
+              {stock !== undefined && (
+                <p className={`text-[11px] mt-2 ${overstock ? 'text-orange-500 font-medium' : 'text-zinc-400'}`}>
+                  Stock: {stock} {overstock ? '⚠️ insuffisant' : ''}
+                </p>
+              )}
+              {errors.lines?.[index]?.quantity && (
+                <p className="text-red-500 text-[11px] mt-1">Quantité &gt; 0 requise</p>
+              )}
+            </div>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={() => append({ description: '', quantity: 1, unitPrice: 0 })}
+          className="w-full py-3 text-sm text-zinc-400 border-2 border-dashed border-zinc-200 rounded-2xl hover:border-zinc-400 hover:text-zinc-600 transition-colors flex items-center justify-center gap-1.5"
+        >
+          <Plus className="size-4" /> Ajouter un article
+        </button>
+
+        {/* Options */}
+        <div className="flex items-center gap-3 mt-4 flex-wrap">
+          {(settings?.enable_global_discount) && (
+            <div className="flex items-center gap-1.5 bg-white rounded-xl border px-3 py-2">
+              <span className="text-xs text-zinc-500">Remise</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                {...register('globalDiscountRate', { valueAsNumber: true })}
+                className="w-14 text-center text-sm py-1 outline-none"
+                placeholder="%"
+              />
+              <span className="text-xs text-zinc-400">%</span>
+            </div>
+          )}
+          {(settings?.enable_shipping) && (
+            <div className="flex items-center gap-1.5 bg-white rounded-xl border px-3 py-2">
+              <span className="text-xs text-zinc-500">Livraison</span>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                {...register('shippingFee', { valueAsNumber: true })}
+                className="w-20 text-center text-sm py-1 outline-none"
+                placeholder="FCFA"
+              />
+            </div>
+          )}
+          {(settings?.enable_line_discount) && (
+            <button
+              type="button"
+              onClick={() => setShowDiscount(!showDiscount)}
+              className={`text-xs px-3 py-2 rounded-xl border transition-colors ${showDiscount ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white hover:bg-zinc-50'}`}
+            >
+              {showDiscount ? 'Masquer rabais' : 'Rabais par ligne'}
+            </button>
+          )}
         </div>
 
-        <div className="bg-white rounded-xl border p-6 space-y-3">
-          <div className="flex items-center gap-4 flex-wrap">
-            {(settings?.enable_global_discount) && (
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-zinc-600 whitespace-nowrap">Remise globale</label>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    {...register('globalDiscountRate', { valueAsNumber: true })}
-                    className="w-16 px-2 py-2 border rounded-lg text-sm"
-                    placeholder="%"
-                  />
-                  <span className="text-xs text-zinc-400">%</span>
-                </div>
-              </div>
-            )}
-            {(settings?.enable_shipping) && (
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-zinc-600 whitespace-nowrap">Frais de port</label>
-                <input
-                  type="number"
-                  step="1"
-                  min="0"
-                  {...register('shippingFee', { valueAsNumber: true })}
-                  className="w-20 px-2 py-2 border rounded-lg text-sm"
-                  placeholder="Montant"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="hidden md:block">
+        {/* Aperçu desktop */}
+        <div className="hidden md:block mt-6">
           <InvoicePreview
             lines={watchedLines as any}
             settings={settings}
@@ -285,23 +269,24 @@ export function InvoiceForm({ products, settings }: Props) {
         </div>
 
         {submitError && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mt-4">
             {submitError}
           </div>
         )}
 
-        <div className="hidden md:flex justify-end gap-3">
+        {/* Desktop submit */}
+        <div className="hidden md:flex justify-end gap-3 mt-6">
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2 border rounded-lg text-sm hover:bg-zinc-50"
+            className="px-6 py-3 border rounded-xl text-sm font-medium hover:bg-zinc-50 transition-colors"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="px-6 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 disabled:opacity-50"
+            className="px-8 py-3 bg-zinc-900 text-white rounded-xl text-sm font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-all shadow-sm"
           >
             {submitting ? 'Création...' : 'Créer la facture'}
           </button>
@@ -309,18 +294,16 @@ export function InvoiceForm({ products, settings }: Props) {
       </form>
 
       {/* Mobile sticky footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50 md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-zinc-200/80 z-50 md:hidden safe-area-bottom">
         <button
           type="button"
           onClick={() => setMobilePreviewOpen(!mobilePreviewOpen)}
           className="w-full flex items-center justify-between px-4 py-3"
         >
+          <span className="text-sm text-zinc-500">{totalItems} article(s)</span>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-zinc-500">{totalItems} article(s)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-base">{formatCurrency(previewCalc)}</span>
-            {mobilePreviewOpen ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
+            <span className="font-bold text-base tabular-nums">{formatCurrency(previewCalc)}</span>
+            {mobilePreviewOpen ? <ChevronDown className="size-4 text-zinc-400" /> : <ChevronUp className="size-4 text-zinc-400" />}
           </div>
         </button>
         {mobilePreviewOpen && (
@@ -333,11 +316,11 @@ export function InvoiceForm({ products, settings }: Props) {
             />
           </div>
         )}
-        <div className="flex gap-3 px-4 pb-4">
+        <div className="flex gap-3 px-4 pb-4 pt-1">
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 px-4 py-2.5 border rounded-lg text-sm font-medium hover:bg-zinc-50"
+            className="flex-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm font-medium hover:bg-zinc-50 transition-colors"
           >
             Annuler
           </button>
@@ -345,7 +328,7 @@ export function InvoiceForm({ products, settings }: Props) {
             type="button"
             disabled={submitting}
             onClick={() => submitRef.current?.()}
-            className="flex-1 px-4 py-2.5 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 disabled:opacity-50"
+            className="flex-1 px-4 py-3 bg-zinc-900 text-white rounded-xl text-sm font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-all"
           >
             {submitting ? 'Création...' : 'Créer'}
           </button>

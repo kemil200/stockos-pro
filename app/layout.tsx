@@ -1,16 +1,18 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const heading = Plus_Jakarta_Sans({
   subsets: ['latin'],
+  variable: '--font-heading',
+  display: 'swap',
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const body = Inter({
   subsets: ['latin'],
+  variable: '--font-body',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -26,9 +28,9 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${heading.variable} ${body.variable} h-full antialiased`}
     >
-      <body className="min-h-full">
+      <body className="min-h-full font-body">
         {children}
         <Toaster position="top-right" richColors />
       </body>

@@ -11,8 +11,16 @@ import {
   Wallet,
   BarChart3,
   Settings,
+  Menu,
+  Store,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Tableau de bord', icon: LayoutDashboard },
@@ -25,15 +33,19 @@ const NAV_ITEMS = [
   { href: '/settings', label: 'Paramètres', icon: Settings },
 ];
 
-export function Sidebar() {
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-60 border-r bg-white h-screen flex flex-col">
-      <div className="px-5 h-14 flex items-center border-b">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="size-7 rounded-lg bg-zinc-900 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">S</span>
+    <>
+      <div className="px-5 h-14 flex items-center border-b shrink-0">
+        <Link
+          href="/"
+          className="flex items-center gap-2.5"
+          onClick={onNavigate}
+        >
+          <div className="size-8 rounded-xl bg-zinc-900 flex items-center justify-center">
+            <Store className="size-4 text-white" />
           </div>
           <div>
             <h1 className="text-sm font-bold tracking-tight leading-tight">StockOS Pro</h1>
@@ -41,7 +53,7 @@ export function Sidebar() {
           </div>
         </Link>
       </div>
-      <nav className="flex-1 px-2.5 py-3 space-y-0.5">
+      <nav className="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const isActive = href === '/'
             ? pathname === '/'
@@ -50,22 +62,46 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={onNavigate}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all',
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150',
                 isActive
                   ? 'bg-zinc-900 text-white font-medium shadow-sm'
                   : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100',
               )}
             >
-              <Icon className={cn('size-4', isActive ? 'text-white' : 'text-zinc-400')} />
+              <Icon className={cn('size-4.5 shrink-0', isActive ? 'text-white' : 'text-zinc-400')} />
               {label}
             </Link>
           );
         })}
       </nav>
-      <div className="px-5 py-3 border-t">
+      <div className="px-5 py-3 border-t shrink-0">
         <p className="text-[10px] text-zinc-400 text-center">StockOS Pro v1.0</p>
       </div>
+    </>
+  );
+}
+
+export function Sidebar({ className }: { className?: string }) {
+  return (
+    <aside className={cn('w-60 border-r bg-white h-screen flex flex-col shrink-0 max-lg:hidden', className)}>
+      <SidebarContent />
     </aside>
+  );
+}
+
+export function MobileSidebar() {
+  return (
+    <Sheet>
+      <SheetTrigger render={<Button variant="ghost" size="icon" className="lg:hidden" aria-label="Menu" />}>
+        <Menu className="size-5" />
+      </SheetTrigger>
+      <SheetContent side="left" className="w-60 p-0" showCloseButton={false}>
+        <SidebarContent onNavigate={() => {
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        }} />
+      </SheetContent>
+    </Sheet>
   );
 }

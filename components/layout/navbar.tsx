@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/client';
 import { Button } from '@/components/ui/button';
+import { MobileSidebar } from './sidebar';
 
 export function Navbar() {
   const router = useRouter();
@@ -26,11 +27,15 @@ export function Navbar() {
     : user?.email?.charAt(0).toUpperCase() || '?';
 
   return (
-    <header className="h-14 border-b bg-white flex items-center justify-between px-6">
-      <div className="flex items-center gap-4" />
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-zinc-500 hidden sm:inline">{user?.email}</span>
-        <div className="size-8 rounded-full bg-zinc-800 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
+    <header className="h-14 border-b bg-white/80 backdrop-blur-md flex items-center justify-between px-4 lg:px-6 sticky top-0 z-40">
+      <div className="flex items-center gap-2">
+        <MobileSidebar />
+      </div>
+      <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+        <span className="text-sm text-zinc-500 hidden sm:inline truncate max-w-[180px]">
+          {user?.email}
+        </span>
+        <div className="size-8 rounded-full bg-zinc-800 flex items-center justify-center text-white text-xs font-semibold shadow-sm shrink-0">
           {initials}
         </div>
         <Button variant="ghost" size="icon" onClick={handleSignOut} title="Déconnexion" className="text-zinc-400 hover:text-zinc-900">

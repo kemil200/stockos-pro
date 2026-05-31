@@ -13,14 +13,22 @@ export function SettingsForm({ shopSettings, invoiceSettings }: Props) {
 
   const handleShopSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await updateShopSettings(new FormData(e.currentTarget));
-    router.refresh();
+    const result = await updateShopSettings(new FormData(e.currentTarget));
+    if (result.success) {
+      router.refresh();
+    } else {
+      alert(result.error);
+    }
   };
 
   const handleInvoiceSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await updateInvoiceSettings(new FormData(e.currentTarget));
-    router.refresh();
+    const result = await updateInvoiceSettings(new FormData(e.currentTarget));
+    if (result.success) {
+      router.refresh();
+    } else {
+      alert(result.error);
+    }
   };
 
   return (

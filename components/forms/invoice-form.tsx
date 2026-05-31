@@ -23,7 +23,7 @@ interface FormLine {
   discountRate?: number;
 }
 
-interface FormData {
+interface InvoiceFormData {
   clientName: string;
   clientPhone: string;
   lines: FormLine[];
@@ -45,7 +45,7 @@ export function InvoiceForm({ products, settings }: Props) {
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [stockLevels, setStockLevels] = useState<Record<string, number>>({});
 
-  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
+  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<InvoiceFormData>({
     defaultValues: {
       clientName: '',
       clientPhone: '',
@@ -62,7 +62,7 @@ export function InvoiceForm({ products, settings }: Props) {
   const globalDiscountRate = watch('globalDiscountRate');
   const shippingFee = watch('shippingFee');
 
-  const onSubmit = useCallback(async (data: FormData) => {
+  const onSubmit = useCallback(async (data: InvoiceFormData) => {
     setSubmitting(true);
     setSubmitError(null);
     try {

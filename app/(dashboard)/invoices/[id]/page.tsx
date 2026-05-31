@@ -6,7 +6,7 @@ import { InvoiceActions } from '@/components/invoices/invoice-actions';
 import { PaymentForm } from '@/components/forms/payment-form';
 import { AutoPrint } from '@/components/invoices/auto-print';
 import { formatCurrency } from '@/lib/utils/currency';
-import { validateInvoice, cancelInvoice } from '@/lib/actions/invoices';
+import { validateInvoiceAction, cancelInvoiceAction } from '@/lib/actions/invoices';
 
 export default async function InvoiceDetailPage({
   params,
@@ -56,7 +56,7 @@ export default async function InvoiceDetailPage({
         <div className="flex flex-wrap items-center gap-2">
           <InvoiceActions invoiceId={id} />
           {invoice.status === 'DRAFT' && (
-            <form action={validateInvoice.bind(null, id)}>
+            <form action={validateInvoiceAction.bind(null, id)}>
               <button
                 type="submit"
                 className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-sm font-medium hover:bg-zinc-800 transition-all shadow-sm"
@@ -66,7 +66,7 @@ export default async function InvoiceDetailPage({
             </form>
           )}
           {invoice.status === 'DRAFT' && (
-            <form action={cancelInvoice.bind(null, id)}>
+            <form action={cancelInvoiceAction.bind(null, id)}>
               <button
                 type="submit"
                 className="px-4 py-2 border border-zinc-200 text-zinc-600 rounded-xl text-sm font-medium hover:bg-zinc-50 transition-all"

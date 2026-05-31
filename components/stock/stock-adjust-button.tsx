@@ -43,9 +43,13 @@ export function StockAdjustButton({ productId, productName, currentQty }: Props)
       formData.append('productId', productId);
       formData.append('newQuantity', String(qty));
       formData.append('reason', 'Ajustement manuel');
-      await adjustStock(formData);
-      setOpen(false);
-      router.refresh();
+      const result = await adjustStock(formData);
+      if (result.success) {
+        setOpen(false);
+        router.refresh();
+      } else {
+        alert(result.error);
+      }
     } finally {
       setSubmitting(false);
     }

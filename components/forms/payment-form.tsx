@@ -13,23 +13,26 @@ interface Props {
 export function PaymentForm({ invoiceId, balance }: Props) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [amount, setAmount] = useState(Number(balance));
   const [method, setMethod] = useState('CASH');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setSubmitError(null);
 
-    try {
-      const formData = new FormData();
-      formData.append('invoiceId', invoiceId);
-      formData.append('amount', String(amount));
-      formData.append('method', method);
-      await recordPayment(formData);
+    const formData = new FormData();
+    formData.append('invoiceId', invoiceId);
+    formData.append('amount', String(amount));
+    formData.append('method', method);
+    const result = await recordPayment(formData);
+    if (result.success) {
       router.refresh();
-    } finally {
-      setSubmitting(false);
+    } else {
+      setSubmitError(result.error);
     }
+    setSubmitting(false);
   };
 
   return (
@@ -65,6 +68,12 @@ export function PaymentForm({ invoiceId, balance }: Props) {
           <option value="CHECK">Chèque</option>
         </select>
       </div>
+
+      {submitError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          {submitError}
+        </div>
+      )}
 
       <button
         type="submit"

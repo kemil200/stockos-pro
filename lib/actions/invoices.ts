@@ -147,123 +147,148 @@ export async function createInvoice(formData: FormData) {
 }
 
 export async function validateInvoice(invoiceId: string) {
-  const { shop, user } = await getCurrentShop();
-  const admin = createAdminClient();
+  try {
+    const { shop, user } = await getCurrentShop();
+    const admin = createAdminClient();
 
-  const { data: invoice } = await admin
-    .from('invoices')
-    .select('*')
-    .eq('id', invoiceId)
-    .eq('shop_id', shop.id)
-    .single();
+    const { data: invoice } = await admin
+      .from('invoices')
+      .select('*')
+      .eq('id', invoiceId)
+      .eq('shop_id', shop.id)
+      .single();
 
-  if (!invoice) throw new Error('Facture introuvable');
-  if (invoice.status !== 'DRAFT') throw new Error('Facture déjà validée ou annulée');
+    if (!invoice) return { success: false, error: 'Facture introuvable' } as const;
+    if (invoice.status !== 'DRAFT') return { success: false, error: 'Facture déjà validée ou annulée' } as const;
 
-  const { data: lines } = await admin
-    .from('invoice_lines')
-    .select('*')
-    .eq('invoice_id', invoiceId);
+    const { data: lines } = await admin
+      .from('invoice_lines')
+      .select('*')
+      .eq('invoice_id', invoiceId);
 
-  const settings = await ensureInvoiceSettings(shop.id);
+    const settings = await ensureInvoiceSettings(shop.id);
 
-  const calc = calculateInvoice(
-    (lines ?? []).map((l: any) => ({
-      quantity: Number(l.quantity),
-      unitPrice: Number(l.unit_price),
-      discountRate: Number(l.discount_rate),
-    })),
-    {
-      enableTax: settings.enable_tax ?? false,
-      taxRate: settings.tax_rate,
-      enableGlobalDiscount: settings.enable_global_discount ?? false,
-      enableLineDiscount: settings.enable_line_discount ?? false,
-      enableShipping: settings.enable_shipping ?? false,
-      enableRounding: settings.enable_rounding ?? false,
-      roundingPrecision: settings.rounding_precision,
-    },
-  );
+    const calc = calculateInvoice(
+      (lines ?? []).map((l: any) => ({
+        quantity: Number(l.quantity),
+        unitPrice: Number(l.unit_price),
+        discountRate: Number(l.discount_rate),
+      })),
+      {
+        enableTax: settings.enable_tax ?? false,
+        taxRate: settings.tax_rate,
+        enableGlobalDiscount: settings.enable_global_discount ?? false,
+        enableLineDiscount: settings.enable_line_discount ?? false,
+        enableShipping: settings.enable_shipping ?? false,
+        enableRounding: settings.enable_rounding ?? false,
+        roundingPrecision: settings.rounding_precision,
+      },
+    );
 
-  const productIds = (lines ?? []).filter(l => l.product_id).map(l => l.product_id);
+    const productIds = (lines ?? []).filter(l => l.product_id).map(l => l.product_id);
 
-  const { data: stockItems } = productIds.length > 0
-    ? await admin.from('stock_items').select('*').in('product_id', productIds).eq('shop_id', shop.id)
-    : { data: [] };
+    const { data: stockItems } = productIds.length > 0
+      ? await admin.from('stock_items').select('*').in('product_id', productIds).eq('shop_id', shop.id)
+      : { data: [] };
 
-  const stockMap = new Map((stockItems ?? []).map((s: any) => [s.product_id, s]));
+    const stockMap = new Map((stockItems ?? []).map((s: any) => [s.product_id, s]));
 
-  for (const line of (lines ?? [])) {
-    if (line.product_id) {
-      const stockItem = stockMap.get(line.product_id);
-      if (stockItem && Number(stockItem.quantity) - Number(line.quantity) < 0) {
-        throw new Error(`Stock insuffisant pour ${line.description}`);
+    for (const line of (lines ?? [])) {
+      if (line.product_id) {
+        const stockItem = stockMap.get(line.product_id);
+        if (stockItem && Number(stockItem.quantity) - Number(line.quantity) < 0) {
+          return { success: false, error: `Stock insuffisant pour ${line.description}` } as const;
+        }
       }
     }
-  }
 
-  const { error: updateError } = await admin
-    .from('invoices')
-    .update({
-      status: 'VALIDATED',
-      validated_at: new Date().toISOString(),
-      validated_by: user.id,
-      subtotal: String(calc.subtotal),
-      line_discount_total: String(calc.lineDiscountTotal),
-      global_discount: String(calc.globalDiscount),
-      shipping_fee: String(calc.shippingFee),
-      tax_amount: String(calc.taxAmount),
-      rounding_adjustment: String(calc.roundingAdjustment),
-      total: String(calc.total),
-      balance_due: String(calc.total),
-    })
-    .eq('id', invoiceId);
+    const { error: updateError } = await admin
+      .from('invoices')
+      .update({
+        status: 'VALIDATED',
+        validated_at: new Date().toISOString(),
+        validated_by: user.id,
+        subtotal: String(calc.subtotal),
+        line_discount_total: String(calc.lineDiscountTotal),
+        global_discount: String(calc.globalDiscount),
+        shipping_fee: String(calc.shippingFee),
+        tax_amount: String(calc.taxAmount),
+        rounding_adjustment: String(calc.roundingAdjustment),
+        total: String(calc.total),
+        balance_due: String(calc.total),
+      })
+      .eq('id', invoiceId);
 
-  if (updateError) throw new Error(`Failed to validate invoice: ${updateError.message}`);
+    if (updateError) return { success: false, error: `Erreur validation: ${updateError.message}` } as const;
 
-  for (const line of (lines ?? [])) {
-    if (line.product_id) {
-      const stockItem = stockMap.get(line.product_id);
-      if (stockItem) {
-        await admin.from('stock_movements').insert({
-          shop_id: shop.id,
-          product_id: line.product_id,
-          stock_item_id: stockItem.id,
-          movement_type: 'SALE',
-          quantity: String(-Number(line.quantity)),
-          unit_price: line.unit_price,
-          reference_id: invoiceId,
-          reference_type: 'invoice',
-          created_by: user.id,
-        });
+    for (const line of (lines ?? [])) {
+      if (line.product_id) {
+        const stockItem = stockMap.get(line.product_id);
+        if (stockItem) {
+          const { error: movementError } = await admin.from('stock_movements').insert({
+            shop_id: shop.id,
+            product_id: line.product_id,
+            stock_item_id: stockItem.id,
+            movement_type: 'SALE',
+            quantity: String(-Number(line.quantity)),
+            unit_price: line.unit_price,
+            reference_id: invoiceId,
+            reference_type: 'invoice',
+            created_by: user.id,
+          });
+          if (movementError) {
+            console.error(`Failed to insert stock movement for product ${line.product_id}:`, movementError);
+          }
+        }
       }
     }
-  }
 
-  revalidatePath(`/invoices/${invoiceId}`);
-  revalidatePath('/invoices');
+    revalidatePath(`/invoices/${invoiceId}`);
+    revalidatePath('/invoices');
+    return { success: true } as const;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erreur inattendue';
+    return { success: false, error: message } as const;
+  }
 }
 
 export async function cancelInvoice(invoiceId: string) {
-  const { shop } = await getCurrentShop();
-  const admin = createAdminClient();
+  try {
+    const { shop } = await getCurrentShop();
+    const admin = createAdminClient();
 
-  const { data: invoice } = await admin
-    .from('invoices')
-    .select('*')
-    .eq('id', invoiceId)
-    .eq('shop_id', shop.id)
-    .single();
+    const { data: invoice } = await admin
+      .from('invoices')
+      .select('*')
+      .eq('id', invoiceId)
+      .eq('shop_id', shop.id)
+      .single();
 
-  if (!invoice) throw new Error('Facture introuvable');
-  if (invoice.status === 'PAID') throw new Error('Une facture payée ne peut pas être annulée');
-  if (invoice.status === 'CANCELLED') throw new Error('Facture déjà annulée');
+    if (!invoice) return { success: false, error: 'Facture introuvable' } as const;
+    if (invoice.status === 'PAID') return { success: false, error: 'Une facture payée ne peut pas être annulée' } as const;
+    if (invoice.status === 'CANCELLED') return { success: false, error: 'Facture déjà annulée' } as const;
 
-  const { error } = await admin
-    .from('invoices')
-    .update({ status: 'CANCELLED' })
-    .eq('id', invoiceId);
+    const { error: cancelError } = await admin
+      .from('invoices')
+      .update({ status: 'CANCELLED' })
+      .eq('id', invoiceId);
 
-  if (error) throw new Error(`Failed to cancel invoice: ${error.message}`);
+    if (cancelError) return { success: false, error: `Erreur annulation: ${cancelError.message}` } as const;
 
-  revalidatePath('/invoices');
+    revalidatePath('/invoices');
+    return { success: true } as const;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erreur inattendue';
+    return { success: false, error: message } as const;
+  }
+}
+
+export async function validateInvoiceAction(invoiceId: string) {
+  const result = await validateInvoice(invoiceId);
+  if (!result.success) throw new Error(result.error);
+}
+
+export async function cancelInvoiceAction(invoiceId: string) {
+  const result = await cancelInvoice(invoiceId);
+  if (!result.success) throw new Error(result.error);
 }

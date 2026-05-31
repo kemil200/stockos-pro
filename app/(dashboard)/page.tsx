@@ -72,13 +72,13 @@ export default async function DashboardPage() {
     .limit(5);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
-        <p className="text-muted-foreground text-sm">Bienvenue sur StockOS Pro</p>
+        <p className="text-zinc-500 text-sm mt-1">Bienvenue sur StockOS Pro</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="CA Aujourd&apos;hui"
           value={formatCurrency(todayStats.revenue)}
@@ -101,26 +101,31 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <Card>
+      <Card className="border-zinc-200 shadow-sm">
         <CardHeader>
-          <CardTitle>Dernières factures</CardTitle>
+          <CardTitle className="text-lg">Dernières factures</CardTitle>
         </CardHeader>
         <CardContent>
           {recentInvoices.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">Aucune facture récente</p>
+            <div className="text-center py-12">
+              <FileText className="size-10 text-zinc-300 mx-auto mb-3" />
+              <p className="text-sm text-zinc-500">Aucune facture récente</p>
+            </div>
           ) : (
-            <div className="space-y-3">
+            <div className="divide-y">
               {recentInvoices.map((inv) => (
                 <div
                   key={inv.id}
-                  className="flex items-center justify-between py-2 border-b last:border-0"
+                  className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
                 >
-                  <div>
-                    <p className="font-medium text-sm">{inv.invoiceNumber}</p>
-                    <p className="text-sm text-muted-foreground">{inv.clientName}</p>
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm text-zinc-900">{inv.invoiceNumber}</p>
+                    <p className="text-sm text-zinc-500 truncate">{inv.clientName}</p>
                   </div>
-                  <div className="text-right flex items-center gap-3">
-                    <p className="font-medium text-sm">{formatCurrency(Number(inv.total))}</p>
+                  <div className="flex items-center gap-3 shrink-0 ml-4">
+                    <p className="font-medium text-sm text-zinc-900 tabular-nums">
+                      {formatCurrency(Number(inv.total))}
+                    </p>
                     <Badge variant={STATUS_VARIANTS[inv.status] || 'outline'}>
                       {STATUS_LABELS[inv.status] || inv.status}
                     </Badge>

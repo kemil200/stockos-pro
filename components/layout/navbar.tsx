@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, User } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -29,11 +29,11 @@ export function Navbar() {
     <header className="h-14 border-b bg-white flex items-center justify-between px-6">
       <div className="flex items-center gap-4" />
       <div className="flex items-center gap-3">
-        <span className="text-sm text-zinc-500">{user?.email}</span>
-        <div className="size-8 rounded-full bg-zinc-800 flex items-center justify-center text-white text-xs font-semibold">
+        <span className="text-sm text-zinc-500 hidden sm:inline">{user?.email}</span>
+        <div className="size-8 rounded-full bg-zinc-800 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
           {initials}
         </div>
-        <Button variant="ghost" size="icon" onClick={handleSignOut} title="Déconnexion">
+        <Button variant="ghost" size="icon" onClick={handleSignOut} title="Déconnexion" className="text-zinc-400 hover:text-zinc-900">
           <LogOut className="size-4" />
         </Button>
       </div>

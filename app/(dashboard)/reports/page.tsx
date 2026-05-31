@@ -3,6 +3,24 @@ import { db } from '@/lib/db';
 import { invoices, cashMovements } from '@/lib/db/schema';
 import { eq, sql, and, gte } from 'drizzle-orm';
 import { formatCurrency } from '@/lib/utils/currency';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: 'Brouillon',
+  VALIDATED: 'Validée',
+  PAID: 'Payée',
+  PARTIALLY_PAID: 'Partielle',
+  CANCELLED: 'Annulée',
+};
+
+const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  PAID: 'default',
+  VALIDATED: 'secondary',
+  DRAFT: 'outline',
+  PARTIALLY_PAID: 'secondary',
+  CANCELLED: 'destructive',
+};
 
 export default async function ReportsPage() {
   const { shop } = await getCurrentShop();
@@ -42,45 +60,67 @@ export default async function ReportsPage() {
     .where(eq(invoices.shopId, shop.id))
     .groupBy(invoices.status);
 
+  const netResult = monthlyRevenue.revenue - monthlyExpenses.total;
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Rapports</h1>
-        <p className="text-zinc-500 text-sm">Statistiques des 30 derniers jours</p>
+        <h1 className="text-2xl font-bold tracking-tight">Rapports</h1>
+        <p className="text-sm text-muted-foreground">Statistiques des 30 derniers jours</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border p-6">
-          <p className="text-sm text-zinc-500">Revenus</p>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(monthlyRevenue.revenue)}</p>
-          <p className="text-xs text-zinc-400">{monthlyRevenue.count} facture(s)</p>
-        </div>
-        <div className="bg-white rounded-xl border p-6">
-          <p className="text-sm text-zinc-500">Dépenses</p>
-          <p className="text-2xl font-bold text-red-600">{formatCurrency(monthlyExpenses.total)}</p>
-        </div>
-        <div className="bg-white rounded-xl border p-6">
-          <p className="text-sm text-zinc-500">Résultat net</p>
-          <p className={`text-2xl font-bold ${monthlyRevenue.revenue - monthlyExpenses.total >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {formatCurrency(monthlyRevenue.revenue - monthlyExpenses.total)}
-          </p>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenus</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600 tabular-nums">{formatCurrency(monthlyRevenue.revenue)}</p>
+            <p className="text-sm text-muted-foreground">{monthlyRevenue.count} facture(s) payée(s)</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Dépenses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-destructive tabular-nums">{formatCurrency(monthlyExpenses.total)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Résultat net</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-2xl font-bold tabular-nums ${netResult >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+              {formatCurrency(netResult)}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="bg-white rounded-xl border p-6">
-        <h2 className="font-semibold mb-4">Factures par statut</h2>
-        <div className="space-y-3">
-          {invoiceByStatus.map(({ status, count }) => (
-            <div key={status} className="flex items-center justify-between">
-              <span className="text-sm">{status}</span>
-              <span className="font-medium">{count}</span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Factures par statut</CardTitle>
+          <CardDescription>Répartition de toutes les factures</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {invoiceByStatus.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucune donnée</p>
+          ) : (
+            <div className="space-y-3">
+              {invoiceByStatus.map(({ status, count }) => (
+                <div key={status} className="flex items-center justify-between">
+                  <Badge variant={STATUS_VARIANTS[status] || 'outline'}>
+                    {STATUS_LABELS[status] || status}
+                  </Badge>
+                  <span className="font-medium tabular-nums">{count}</span>
+                </div>
+              ))}
             </div>
-          ))}
-          {invoiceByStatus.length === 0 && (
-            <p className="text-sm text-zinc-400">Aucune donnée</p>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

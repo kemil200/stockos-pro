@@ -3,6 +3,9 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Store } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 export function OnboardingCreateShop() {
   const [name, setName] = useState('');
@@ -43,41 +46,35 @@ export function OnboardingCreateShop() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-6">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="size-16 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-4">
-            <Store className="size-8 text-white" />
+        <div className="text-center mb-6">
+          <div className="size-12 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Store className="size-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold">Créez votre boutique</h1>
-          <p className="text-zinc-500 mt-2">
-            Donnez un nom à votre commerce pour commencer
-          </p>
         </div>
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl border p-6 space-y-4">
-          <div>
-            <label htmlFor="shop-name" className="block text-sm font-medium mb-1.5">
-              Nom de la boutique
-            </label>
-            <input
-              id="shop-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="ex: Boutique de Kémil"
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-              required
-            />
-          </div>
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full px-4 py-2.5 text-sm font-medium bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 disabled:opacity-50 transition-colors"
-          >
-            {loading ? 'Création en cours...' : 'Créer ma boutique'}
-          </button>
-        </form>
+        <Card>
+          <CardHeader>
+            <CardTitle>Créez votre boutique</CardTitle>
+            <CardDescription>Donnez un nom à votre commerce pour commencer</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="shop-name" className="text-sm font-medium">Nom de la boutique</label>
+                <Input
+                  id="shop-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="ex: Boutique de Kémil"
+                  required
+                />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? 'Création en cours...' : 'Créer ma boutique'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

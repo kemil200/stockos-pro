@@ -1,8 +1,18 @@
 import { getCurrentShop } from '@/lib/tenant';
 import { db } from '@/lib/db';
-import { payments, invoices } from '@/lib/db/schema';
+import { payments } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { formatCurrency } from '@/lib/utils/currency';
+import { Receipt } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 export default async function PaymentsPage() {
   const { shop } = await getCurrentShop();
@@ -15,42 +25,52 @@ export default async function PaymentsPage() {
     .limit(50);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Paiements</h1>
-        <p className="text-zinc-500 text-sm">Historique des paiements</p>
+        <h1 className="text-2xl font-bold tracking-tight">Paiements</h1>
+        <p className="text-sm text-muted-foreground">Historique des paiements</p>
       </div>
 
-      <div className="bg-white rounded-xl border overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b bg-zinc-50">
-              <th className="text-left px-4 py-3 text-sm font-medium text-zinc-500">Date</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-zinc-500">Méthode</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-zinc-500">Référence</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-zinc-500">Montant</th>
-            </tr>
-          </thead>
-          <tbody>
-            {allPayments.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="text-center py-8 text-zinc-400">Aucun paiement</td>
-              </tr>
-            ) : (
-              allPayments.map((p) => (
-                <tr key={p.id} className="border-b last:border-0 hover:bg-zinc-50">
-                  <td className="px-4 py-3 text-sm">{new Date(p.paymentDate).toLocaleDateString('fr-FR')}</td>
-                  <td className="px-4 py-3 text-sm">{p.method}</td>
-                  <td className="px-4 py-3 text-sm text-zinc-500">{p.reference || '-'}</td>
-                  <td className="px-4 py-3 text-right font-medium text-green-600">
-                    {formatCurrency(Number(p.amount))}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Historique</CardTitle>
+        </CardHeader>
+        <CardContent className="px-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Méthode</TableHead>
+                <TableHead>Référence</TableHead>
+                <TableHead className="text-right">Montant</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {allPayments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    <Receipt className="size-8 mx-auto mb-2 text-zinc-300" />
+                    Aucun paiement
+                  </TableCell>
+                </TableRow>
+              ) : (
+                allPayments.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="text-muted-foreground">
+                      {new Date(p.paymentDate).toLocaleDateString('fr-FR')}
+                    </TableCell>
+                    <TableCell>{p.method}</TableCell>
+                    <TableCell className="text-muted-foreground">{p.reference || '-'}</TableCell>
+                    <TableCell className="text-right font-medium text-green-600 tabular-nums">
+                      {formatCurrency(Number(p.amount))}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

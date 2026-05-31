@@ -1,4 +1,5 @@
 import { type LucideIcon } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 export function StatsCard({
   title,
@@ -12,13 +13,17 @@ export function StatsCard({
   subtitle?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border p-6 space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500">{title}</p>
-        <Icon className="w-5 h-5 text-zinc-400" />
-      </div>
-      <p className="text-2xl font-bold">{value}</p>
-      {subtitle && <p className="text-xs text-zinc-400">{subtitle}</p>}
-    </div>
+    <Card>
+      <CardContent className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold tracking-tight">{value}</p>
+          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+        </div>
+        <div className="size-9 rounded-lg bg-zinc-100 flex items-center justify-center shrink-0">
+          <Icon className="size-5 text-zinc-600" />
+        </div>
+      </CardContent>
+    </Card>
   );
 }

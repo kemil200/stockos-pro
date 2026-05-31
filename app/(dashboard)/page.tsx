@@ -1,15 +1,33 @@
 import { getCurrentShop } from '@/lib/tenant';
 import { db } from '@/lib/db';
-import { invoices, cashMovements, invoiceLines } from '@/lib/db/schema';
+import { invoices, cashMovements } from '@/lib/db/schema';
 import { eq, sql, and, gte } from 'drizzle-orm';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import {
   TrendingUp,
   FileText,
   Wallet,
-  Package,
+  Landmark,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/currency';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: 'Brouillon',
+  VALIDATED: 'Validée',
+  PAID: 'Payée',
+  PARTIALLY_PAID: 'Partielle',
+  CANCELLED: 'Annulée',
+};
+
+const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  PAID: 'default',
+  VALIDATED: 'secondary',
+  DRAFT: 'outline',
+  PARTIALLY_PAID: 'secondary',
+  CANCELLED: 'destructive',
+};
 
 export default async function DashboardPage() {
   const { shop } = await getCurrentShop();
@@ -56,18 +74,18 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Tableau de bord</h1>
-        <p className="text-zinc-500">Bienvenue sur StockOS Pro</p>
+        <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
+        <p className="text-muted-foreground text-sm">Bienvenue sur StockOS Pro</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatsCard
-          title="CA Aujourd'hui"
+          title="CA Aujourd&apos;hui"
           value={formatCurrency(todayStats.revenue)}
           icon={TrendingUp}
         />
         <StatsCard
-          title="Factures aujourd'hui"
+          title="Factures aujourd&apos;hui"
           value={String(todayStats.count)}
           icon={FileText}
         />
@@ -79,36 +97,40 @@ export default async function DashboardPage() {
         <StatsCard
           title="Solde caisse"
           value={formatCurrency(cashBalance.balance)}
-          icon={Package}
+          icon={Landmark}
         />
       </div>
 
-      <div className="bg-white rounded-xl border p-6">
-        <h2 className="text-lg font-semibold mb-4">Dernières factures</h2>
-        {recentInvoices.length === 0 ? (
-          <p className="text-zinc-500 text-sm">Aucune facture récente</p>
-        ) : (
-          <div className="space-y-3">
-            {recentInvoices.map((inv) => (
-              <div
-                key={inv.id}
-                className="flex items-center justify-between py-2 border-b last:border-0"
-              >
-                <div>
-                  <p className="font-medium">{inv.invoiceNumber}</p>
-                  <p className="text-sm text-zinc-500">{inv.clientName}</p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Dernières factures</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentInvoices.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Aucune facture récente</p>
+          ) : (
+            <div className="space-y-3">
+              {recentInvoices.map((inv) => (
+                <div
+                  key={inv.id}
+                  className="flex items-center justify-between py-2 border-b last:border-0"
+                >
+                  <div>
+                    <p className="font-medium text-sm">{inv.invoiceNumber}</p>
+                    <p className="text-sm text-muted-foreground">{inv.clientName}</p>
+                  </div>
+                  <div className="text-right flex items-center gap-3">
+                    <p className="font-medium text-sm">{formatCurrency(Number(inv.total))}</p>
+                    <Badge variant={STATUS_VARIANTS[inv.status] || 'outline'}>
+                      {STATUS_LABELS[inv.status] || inv.status}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-medium">{formatCurrency(Number(inv.total))}</p>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100">
-                    {inv.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

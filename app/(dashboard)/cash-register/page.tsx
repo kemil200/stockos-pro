@@ -3,6 +3,17 @@ import { db } from '@/lib/db';
 import { cashMovements } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { formatCurrency } from '@/lib/utils/currency';
+import { Landmark } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 const MOVEMENT_LABELS: Record<string, string> = {
   PAYMENT_IN: 'Paiement reçu',
@@ -31,53 +42,74 @@ export default async function CashRegisterPage() {
     .limit(100);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Caisse</h1>
-          <p className="text-zinc-500 text-sm">Journal des flux financiers</p>
+          <h1 className="text-2xl font-bold tracking-tight">Caisse</h1>
+          <p className="text-sm text-muted-foreground">Journal des flux financiers</p>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-zinc-500">Solde actuel</p>
-          <p className={`text-xl font-bold ${balance.total >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {formatCurrency(balance.total)}
-          </p>
-        </div>
+        <Card className="w-auto">
+          <CardContent className="flex items-center gap-3 py-3">
+            <div className="size-9 rounded-lg bg-zinc-100 flex items-center justify-center">
+              <Landmark className="size-5 text-zinc-600" />
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Solde actuel</p>
+              <p className={`text-lg font-bold tabular-nums ${balance.total >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                {formatCurrency(balance.total)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="bg-white rounded-xl border overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b bg-zinc-50">
-              <th className="text-left px-4 py-3 text-sm font-medium text-zinc-500">Date</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-zinc-500">Type</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-zinc-500">Description</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-zinc-500">Montant</th>
-            </tr>
-          </thead>
-          <tbody>
-            {movements.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="text-center py-8 text-zinc-400">Aucun mouvement</td>
-              </tr>
-            ) : (
-              movements.map((m) => {
-                const amount = Number(m.amount);
-                return (
-                  <tr key={m.id} className="border-b last:border-0 hover:bg-zinc-50">
-                    <td className="px-4 py-3 text-sm">{new Date(m.createdAt).toLocaleDateString('fr-FR')}</td>
-                    <td className="px-4 py-3 text-sm">{MOVEMENT_LABELS[m.movementType] || m.movementType}</td>
-                    <td className="px-4 py-3 text-sm text-zinc-500">{m.description || '-'}</td>
-                    <td className={`px-4 py-3 text-right font-medium ${amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Mouvements</CardTitle>
+        </CardHeader>
+        <CardContent className="px-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-right">Montant</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {movements.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    <Landmark className="size-8 mx-auto mb-2 text-zinc-300" />
+                    Aucun mouvement
+                  </TableCell>
+                </TableRow>
+              ) : (
+                movements.map((m) => {
+                  const amount = Number(m.amount);
+                  return (
+                    <TableRow key={m.id}>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(m.createdAt).toLocaleDateString('fr-FR')}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={amount >= 0 ? 'default' : 'destructive'}>
+                          {MOVEMENT_LABELS[m.movementType] || m.movementType}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{m.description || '-'}</TableCell>
+                      <TableCell className={`text-right font-medium tabular-nums ${amount >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

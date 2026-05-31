@@ -4,6 +4,7 @@ import { LogOut, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/button';
 
 export function Navbar() {
   const router = useRouter();
@@ -20,20 +21,21 @@ export function Navbar() {
     router.push('/');
   };
 
+  const initials = user?.name
+    ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+    : user?.email?.charAt(0).toUpperCase() || '?';
+
   return (
-    <header className="h-16 border-b bg-white flex items-center justify-between px-6">
+    <header className="h-14 border-b bg-white flex items-center justify-between px-6">
       <div className="flex items-center gap-4" />
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-zinc-500">
-          {user?.email}
-        </span>
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-100 transition-colors"
-        >
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-zinc-500">{user?.email}</span>
+        <div className="size-8 rounded-full bg-zinc-800 flex items-center justify-center text-white text-xs font-semibold">
+          {initials}
+        </div>
+        <Button variant="ghost" size="icon" onClick={handleSignOut} title="Déconnexion">
           <LogOut className="size-4" />
-          Déconnexion
-        </button>
+        </Button>
       </div>
     </header>
   );

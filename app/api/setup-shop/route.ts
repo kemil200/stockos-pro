@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/server';
 import { db } from '@/lib/db';
 import { shops, shopSettings, invoiceSettings, subscriptions, users } from '@/lib/db/schema';
 
 export async function POST(request: Request) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: 'Non connecté' }, { status: 401 });

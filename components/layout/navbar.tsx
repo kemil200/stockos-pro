@@ -3,7 +3,7 @@
 import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/client';
 import { Button } from '@/components/ui/button';
 
 export function Navbar() {
@@ -11,12 +11,12 @@ export function Navbar() {
   const [user, setUser] = useState<{ name?: string; email?: string } | null>(null);
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
+    const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => setUser(data.user?.user_metadata ?? null));
   }, []);
 
   const handleSignOut = async () => {
-    const supabase = createSupabaseBrowserClient();
+    const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/');
   };

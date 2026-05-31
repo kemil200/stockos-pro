@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/server';
 import { db } from '@/lib/db';
 import { shops, users } from '@/lib/db/schema';
 
 export default async function SuperAdminPage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 

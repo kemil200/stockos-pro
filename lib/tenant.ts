@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/server';
 import { db } from '@/lib/db';
 import { shops, users } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -13,7 +13,7 @@ export class TenantError extends Error {
 }
 
 export async function getCurrentShop() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new TenantError('Unauthorized');
 

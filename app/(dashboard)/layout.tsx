@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/server';
 import { db } from '@/lib/db';
 import { shops } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -11,7 +11,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 

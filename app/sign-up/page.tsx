@@ -1,6 +1,6 @@
 'use client';
 
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/client';
 import { Store, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -22,7 +22,7 @@ export default function SignUpPage() {
     setLoading(true);
     setError(null);
 
-    const supabase = createSupabaseBrowserClient();
+    const supabase = createClient();
     const { error: signUpError } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
     if (signUpError) {
       setError(signUpError.message);

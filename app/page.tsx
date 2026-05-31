@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { createClient, createAdminClient } from '@/lib/server';
 import {
   Store, FileText, Package, Wallet, TrendingUp,
   Shield, Receipt, CreditCard, ArrowRight, Check,
@@ -9,12 +8,12 @@ import {
 } from 'lucide-react';
 
 export default async function Home() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
     try {
-      const admin = createSupabaseAdminClient();
+      const admin = createAdminClient();
       const { data: shops } = await admin.from('shops').select('id').eq('user_id', user.id).limit(1);
       if (shops?.length) redirect('/invoices');
       redirect('/onboarding');

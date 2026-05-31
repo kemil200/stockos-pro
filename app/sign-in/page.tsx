@@ -1,6 +1,6 @@
 'use client';
 
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/client';
 import { Store, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -21,7 +21,7 @@ export default function SignInPage() {
     setLoading(true);
     setError(null);
 
-    const supabase = createSupabaseBrowserClient();
+    const supabase = createClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     if (signInError) {
       setError(signInError.message);

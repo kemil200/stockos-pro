@@ -1,6 +1,6 @@
 'use client';
 
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/client';
 import { Store } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ export function OnboardingCreateShop() {
     setError(null);
 
     try {
-      const supabase = createSupabaseBrowserClient();
+      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non connecté');
 

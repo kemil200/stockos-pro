@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { Trash2, Plus, ChevronDown, ChevronUp } from 'lucide-react';
@@ -38,6 +38,7 @@ interface Props {
 
 export function InvoiceForm({ products, settings }: Props) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showDiscount, setShowDiscount] = useState(false);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
@@ -52,6 +53,9 @@ export function InvoiceForm({ products, settings }: Props) {
       shippingFee: 0,
     },
   });
+
+  const submitRef = useRef<(() => Promise<void>) | null>(null);
+  submitRef.current = handleSubmit(onSubmit);
 
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' });
   const watchedLines = watch('lines');
@@ -96,7 +100,7 @@ export function InvoiceForm({ products, settings }: Props) {
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pb-24 md:pb-6">
+      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-6 pb-36 md:pb-6">
         <div className="bg-white rounded-xl border p-6 space-y-4">
           <h2 className="text-lg font-semibold">Client</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -303,32 +307,32 @@ export function InvoiceForm({ products, settings }: Props) {
           </div>
         </button>
         {mobilePreviewOpen && (
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-2">
             <InvoicePreview
               lines={watchedLines as any}
               settings={settings}
               globalDiscountRate={globalDiscountRate}
               shippingFee={shippingFee}
             />
-            <div className="flex gap-3 mt-3">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="flex-1 px-4 py-2.5 border rounded-lg text-sm font-medium hover:bg-zinc-50"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                onClick={handleSubmit(onSubmit)}
-                className="flex-1 px-4 py-2.5 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 disabled:opacity-50"
-              >
-                {submitting ? 'Création...' : 'Créer'}
-              </button>
-            </div>
           </div>
         )}
+        <div className="flex gap-3 px-4 pb-4">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex-1 px-4 py-2.5 border rounded-lg text-sm font-medium hover:bg-zinc-50"
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => submitRef.current?.()}
+            className="flex-1 px-4 py-2.5 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 disabled:opacity-50"
+          >
+            {submitting ? 'Création...' : 'Créer'}
+          </button>
+        </div>
       </div>
     </>
   );

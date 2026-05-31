@@ -55,7 +55,6 @@ export function InvoiceForm({ products, settings }: Props) {
   });
 
   const submitRef = useRef<(() => Promise<void>) | null>(null);
-  submitRef.current = handleSubmit(onSubmit);
 
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' });
   const watchedLines = watch('lines');
@@ -83,6 +82,8 @@ export function InvoiceForm({ products, settings }: Props) {
       setSubmitting(false);
     }
   }, [router]);
+
+  submitRef.current = handleSubmit(onSubmit);
 
   const selectProduct = useCallback(async (index: number, productId: string) => {
     const product = products.find((p) => p.id === productId);

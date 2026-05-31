@@ -38,15 +38,6 @@ export default async function ReportsPage() {
   const monthlyRevenue = (paidInvoices ?? []).reduce((sum, inv) => sum + Number(inv.total), 0);
   const invoiceCount = paidInvoices?.length ?? 0;
 
-  const { data: expenseMovements } = await admin
-    .from('cash_movements')
-    .select('amount')
-    .eq('shop_id', shop.id)
-    .eq('movement_type', 'EXPENSE')
-    .gte('created_at', thirtyDaysAgoStr);
-
-  const monthlyExpenses = (expenseMovements ?? []).reduce((sum, m) => sum + Number(m.amount), 0);
-
   const { data: allInvoices } = await admin
     .from('invoices')
     .select('status')
@@ -58,61 +49,41 @@ export default async function ReportsPage() {
   }
   const invoiceByStatus = Array.from(invoiceByStatusMap.entries()).map(([status, count]) => ({ status, count }));
 
-  const netResult = monthlyRevenue - monthlyExpenses;
-
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Rapports</h1>
-        <p className="text-sm text-muted-foreground">Statistiques des 30 derniers jours</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenus</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-600 tabular-nums">{formatCurrency(monthlyRevenue)}</p>
-            <p className="text-sm text-muted-foreground">{invoiceCount} facture(s) payée(s)</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Dépenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-destructive tabular-nums">{formatCurrency(monthlyExpenses)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Résultat net</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={`text-2xl font-bold tabular-nums ${netResult >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-              {formatCurrency(netResult)}
-            </p>
-          </CardContent>
-        </Card>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold tracking-tight">Rapports</h1>
+        <p className="text-sm text-zinc-500 mt-1.5">Statistiques des 30 derniers jours</p>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Factures par statut</CardTitle>
+        <CardHeader className="px-5 lg:px-6 py-4 lg:py-5">
+          <CardTitle className="text-base lg:text-lg font-heading font-semibold">Revenus</CardTitle>
+        </CardHeader>
+        <CardContent className="px-5 lg:px-6 pb-5 lg:pb-6">
+          <p className="text-2xl lg:text-3xl font-bold font-heading tracking-tight text-emerald-600 tabular-nums">
+            {formatCurrency(monthlyRevenue)}
+          </p>
+          <p className="text-sm text-zinc-500 mt-1.5">{invoiceCount} facture(s) payée(s)</p>
+        </CardContent>
+      </Card>
+
+      <Card className="border-zinc-200/80 shadow-sm">
+        <CardHeader className="px-5 lg:px-6 py-4 lg:py-5">
+          <CardTitle className="text-base lg:text-lg font-heading font-semibold">Factures par statut</CardTitle>
           <CardDescription>Répartition de toutes les factures</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-5 lg:px-6 pb-5 lg:pb-6">
           {invoiceByStatus.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune donnée</p>
+            <p className="text-sm text-zinc-500">Aucune donnée</p>
           ) : (
             <div className="space-y-3">
               {invoiceByStatus.map(({ status, count }) => (
-                <div key={status} className="flex items-center justify-between">
+                <div key={status} className="flex items-center justify-between py-1">
                   <Badge variant={STATUS_VARIANTS[status] || 'outline'}>
                     {STATUS_LABELS[status] || status}
                   </Badge>
-                  <span className="font-medium tabular-nums">{count}</span>
+                  <span className="font-medium tabular-nums text-zinc-900">{count}</span>
                 </div>
               ))}
             </div>

@@ -16,7 +16,6 @@ import {
 const MOVEMENT_LABELS: Record<string, string> = {
   PAYMENT_IN: 'Paiement reçu',
   REFUND_OUT: 'Remboursement',
-  EXPENSE: 'Dépense',
   WITHDRAWAL: 'Retrait',
   DEPOSIT: 'Dépôt',
   OPENING_BALANCE: 'Solde initial',
@@ -37,6 +36,7 @@ export default async function CashRegisterPage() {
     .from('cash_movements')
     .select('*')
     .eq('shop_id', shop.id)
+    .neq('movement_type', 'EXPENSE')
     .order('created_at', { ascending: false })
     .limit(100);
 
@@ -44,8 +44,8 @@ export default async function CashRegisterPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Caisse</h1>
-          <p className="text-sm text-muted-foreground">Journal des flux financiers</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold tracking-tight">Caisse</h1>
+          <p className="text-sm text-zinc-500 mt-1.5">Journal des flux financiers</p>
         </div>
         <Card className="w-auto">
           <CardContent className="flex items-center gap-3 py-3">

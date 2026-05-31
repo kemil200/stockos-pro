@@ -2,6 +2,7 @@ import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { notFound } from 'next/navigation';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
+import { InvoiceActions } from '@/components/invoices/invoice-actions';
 import { PaymentForm } from '@/components/forms/payment-form';
 import { formatCurrency } from '@/lib/utils/currency';
 import { validateInvoice, cancelInvoice } from '@/lib/actions/invoices';
@@ -38,22 +39,25 @@ export default async function InvoiceDetailPage({
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{invoice.invoice_number}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold tracking-tight">
+              {invoice.invoice_number}
+            </h1>
             <InvoiceStatusBadge status={invoice.status} />
           </div>
-          <p className="text-zinc-500 mt-1">{invoice.client_name}</p>
+          <p className="text-zinc-500 mt-1.5">{invoice.client_name}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <InvoiceActions invoiceId={id} />
           {invoice.status === 'DRAFT' && (
             <form action={validateInvoice.bind(null, id)}>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-sm font-medium hover:bg-zinc-800 transition-all shadow-sm"
               >
-                Valider la facture
+                Valider
               </button>
             </form>
           )}
@@ -61,7 +65,7 @@ export default async function InvoiceDetailPage({
             <form action={cancelInvoice.bind(null, id)}>
               <button
                 type="submit"
-                className="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50"
+                className="px-4 py-2 border border-zinc-200 text-zinc-600 rounded-xl text-sm font-medium hover:bg-zinc-50 transition-all"
               >
                 Annuler
               </button>

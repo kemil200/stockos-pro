@@ -23,6 +23,9 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
+    if (user.app_metadata?.role === 'SUPERADMIN') {
+      redirect('/superadmin');
+    }
     try {
       const admin = createAdminClient();
       const { data: shops } = await admin
@@ -223,7 +226,12 @@ export default async function Home() {
                 </Link>
                 <p className="text-xs text-zinc-400 mt-4">
                   Contactez notre service client au{' '}
-                  <a href="tel:+22892294858" className="text-zinc-700 font-semibold hover:text-zinc-900 transition-colors">
+                  <a
+                    href="https://wa.me/22892294858"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-zinc-700 font-semibold hover:text-zinc-900 transition-colors underline underline-offset-2"
+                  >
                     +228 92 29 48 58
                   </a>
                   {' '}pour toute question

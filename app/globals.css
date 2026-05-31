@@ -153,3 +153,19 @@
   @media (width >= 64rem) { padding-inline: 2rem; }
   @media (width >= 80rem) { padding-inline: 2.5rem; }
 }
+
+@layer base {
+  @media print {
+    body * { visibility: hidden; }
+    body > .print-area,
+    body > .print-area * { visibility: visible; }
+    .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+    @page { margin: 1.5cm; size: A4; }
+  }
+}
+
+@layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}

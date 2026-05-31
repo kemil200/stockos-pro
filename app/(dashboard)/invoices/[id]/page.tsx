@@ -6,7 +6,8 @@ import { InvoiceActions } from '@/components/invoices/invoice-actions';
 import { PaymentForm } from '@/components/forms/payment-form';
 import { AutoPrint } from '@/components/invoices/auto-print';
 import { formatCurrency } from '@/lib/utils/currency';
-import { validateInvoiceAction, cancelInvoiceAction } from '@/lib/actions/invoices';
+import { validateInvoiceAction } from '@/lib/actions/invoices';
+import { CancelInvoiceButton } from '@/components/invoices/cancel-invoice-button';
 
 export default async function InvoiceDetailPage({
   params,
@@ -66,14 +67,7 @@ export default async function InvoiceDetailPage({
             </form>
           )}
           {invoice.status === 'DRAFT' && (
-            <form action={cancelInvoiceAction.bind(null, id)}>
-              <button
-                type="submit"
-                className="px-4 py-2 border border-zinc-200 text-zinc-600 rounded-xl text-sm font-medium hover:bg-zinc-50 transition-all"
-              >
-                Annuler
-              </button>
-            </form>
+            <CancelInvoiceButton invoiceId={id} />
           )}
         </div>
       </div>

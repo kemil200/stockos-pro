@@ -7,6 +7,7 @@ import { calculateInvoice } from '@/lib/services/invoice-calculator';
 import { revalidatePath } from 'next/cache';
 import { CreateInvoiceSchema, InvoiceLineSchema } from '@/lib/validations/invoice';
 import { ensureInvoiceSettings } from '@/lib/utils/invoice-settings';
+import { auditLog, AuditAction } from '@/lib/audit';
 
 export async function createInvoice(formData: FormData) {
   try {
@@ -111,6 +112,7 @@ export async function createInvoice(formData: FormData) {
         total: String(calc.total),
         amount_paid: '0',
         balance_due: String(calc.total),
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         created_by: user.id,
       })
       .select()
@@ -137,6 +139,19 @@ export async function createInvoice(formData: FormData) {
 
     const { error: linesError } = await admin.from('invoice_lines').insert(linesData);
     if (linesError) return { success: false, error: `Erreur sur les lignes: ${linesError.message}` } as const;
+
+    try {
+      await auditLog({
+        shopId: shop.id,
+        userId: user.id,
+        action: AuditAction.INVOICE_CREATED,
+        entityType: 'invoice',
+        entityId: invoice.id,
+        metadata: { number, total: calc.total, client: parsed.clientName },
+      });
+    } catch {
+      // audit non-bloquant
+    }
 
     revalidatePath('/invoices');
     return { success: true, invoice, invoiceNumber: number } as const;
@@ -243,6 +258,19 @@ export async function validateInvoice(invoiceId: string) {
       }
     }
 
+    try {
+      await auditLog({
+        shopId: shop.id,
+        userId: user.id,
+        action: AuditAction.INVOICE_VALIDATED,
+        entityType: 'invoice',
+        entityId: invoiceId,
+        metadata: { total: String(calc.total) },
+      });
+    } catch {
+      // audit non-bloquant
+    }
+
     revalidatePath(`/invoices/${invoiceId}`);
     revalidatePath('/invoices');
     return { success: true } as const;
@@ -252,9 +280,9 @@ export async function validateInvoice(invoiceId: string) {
   }
 }
 
-export async function cancelInvoice(invoiceId: string) {
+export async function cancelInvoice(invoiceId: string, reason?: string) {
   try {
-    const { shop } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
     const admin = createAdminClient();
 
     const { data: invoice } = await admin
@@ -268,14 +296,72 @@ export async function cancelInvoice(invoiceId: string) {
     if (invoice.status === 'PAID') return { success: false, error: 'Une facture payée ne peut pas être annulée' } as const;
     if (invoice.status === 'CANCELLED') return { success: false, error: 'Facture déjà annulée' } as const;
 
+    if (!reason || reason.trim().length === 0) {
+      return { success: false, error: 'Un motif d\'annulation est requis' } as const;
+    }
+
+    if (invoice.status === 'VALIDATED') {
+      const { data: lines } = await admin
+        .from('invoice_lines')
+        .select('*')
+        .eq('invoice_id', invoiceId);
+
+      if (lines) {
+        const productIds = lines.filter((l: any) => l.product_id).map((l: any) => l.product_id);
+
+        const { data: stockItems } = productIds.length > 0
+          ? await admin.from('stock_items').select('*').in('product_id', productIds).eq('shop_id', shop.id)
+          : { data: [] };
+
+        const stockMap = new Map((stockItems ?? []).map((s: any) => [s.product_id, s]));
+
+        for (const line of lines) {
+          if (line.product_id) {
+            const stockItem = stockMap.get(line.product_id);
+            if (stockItem) {
+              await admin.from('stock_movements').insert({
+                shop_id: shop.id,
+                product_id: line.product_id,
+                stock_item_id: stockItem.id,
+                movement_type: 'CANCELLATION',
+                quantity: String(Number(line.quantity)),
+                unit_price: line.unit_price,
+                reference_id: invoiceId,
+                reference_type: 'invoice',
+                reason: `Annulation facture: ${reason}`,
+                created_by: user.id,
+              });
+            }
+          }
+        }
+      }
+    }
+
     const { error: cancelError } = await admin
       .from('invoices')
-      .update({ status: 'CANCELLED' })
+      .update({
+        status: 'CANCELLED',
+        cancel_reason: reason,
+      })
       .eq('id', invoiceId);
 
     if (cancelError) return { success: false, error: `Erreur annulation: ${cancelError.message}` } as const;
 
+    try {
+      await auditLog({
+        shopId: shop.id,
+        userId: user.id,
+        action: AuditAction.INVOICE_CANCELLED,
+        entityType: 'invoice',
+        entityId: invoiceId,
+        metadata: { reason, wasValidated: invoice.status === 'VALIDATED' },
+      });
+    } catch {
+      // audit non-bloquant
+    }
+
     revalidatePath('/invoices');
+    revalidatePath(`/invoices/${invoiceId}`);
     return { success: true } as const;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erreur inattendue';
@@ -288,7 +374,9 @@ export async function validateInvoiceAction(invoiceId: string) {
   if (!result.success) throw new Error(result.error);
 }
 
-export async function cancelInvoiceAction(invoiceId: string) {
-  const result = await cancelInvoice(invoiceId);
+export async function cancelInvoiceAction(formData: FormData) {
+  const invoiceId = formData.get('invoiceId') as string;
+  const reason = formData.get('reason') as string;
+  const result = await cancelInvoice(invoiceId, reason || 'Non spécifié');
   if (!result.success) throw new Error(result.error);
 }

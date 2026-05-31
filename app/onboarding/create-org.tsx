@@ -1,11 +1,10 @@
 'use client';
 
-import { useClerk } from '@clerk/nextjs';
+import { authClient } from '@/lib/auth-client';
 import { Store } from 'lucide-react';
 import { useState } from 'react';
 
 export function OnboardingCreateOrg() {
-  const clerk = useClerk();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +16,8 @@ export function OnboardingCreateOrg() {
     setError(null);
 
     try {
-      await clerk.createOrganization({ name: name.trim() });
+      const slug = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      await authClient.organization.create({ name: name.trim(), slug });
       window.location.href = '/onboarding';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création');

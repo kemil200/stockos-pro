@@ -1,5 +1,6 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { db } from '@/lib/db';
 import { shops } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -11,9 +12,12 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId, orgId } = await auth();
-  if (!userId) redirect('/sign-in');
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) redirect('/sign-in');
+
+  const orgId = session.session.activeOrganizationId;
   if (!orgId) redirect('/onboarding');
+
   const [shop] = await db.select().from(shops).where(eq(shops.clerkOrgId, orgId));
   if (!shop) redirect('/onboarding');
 

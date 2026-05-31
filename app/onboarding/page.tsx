@@ -1,14 +1,17 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { db } from '@/lib/db';
 import { shops, shopSettings, invoiceSettings, subscriptions, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { OnboardingCreateOrg } from './create-org';
 
 export default async function OnboardingPage() {
-  const { userId, orgId, orgSlug } = await auth();
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) redirect('/sign-in');
 
-  if (!userId) redirect('/sign-in');
+  const { user: authUser } = session;
+  const orgId = session.session.activeOrganizationId;
 
   if (orgId) {
     const [existing] = await db
@@ -17,9 +20,11 @@ export default async function OnboardingPage() {
       .where(eq(shops.clerkOrgId, orgId));
 
     if (!existing) {
+      const org = await auth.api.getFullOrganization({ headers: await headers() });
+
       const [shop] = await db
         .insert(shops)
-        .values({ name: orgSlug || 'Ma boutique', slug: orgSlug || orgId, clerkOrgId: orgId })
+        .values({ name: org?.name || 'Ma boutique', slug: org?.slug || orgId, clerkOrgId: orgId })
         .returning();
 
       await db.insert(shopSettings).values({ shopId: shop.id, legalName: shop.name, email: '', phone: '' });
@@ -30,10 +35,10 @@ export default async function OnboardingPage() {
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       });
 
-      const [user] = await db.select().from(users).where(eq(users.clerkUserId, userId));
+      const [user] = await db.select().from(users).where(eq(users.clerkUserId, authUser.id));
       if (!user) {
         await db.insert(users).values({
-          clerkUserId: userId, shopId: shop.id, role: 'owner', displayName: 'Utilisateur', email: '',
+          clerkUserId: authUser.id, shopId: shop.id, role: 'owner', displayName: authUser.name || 'Utilisateur', email: authUser.email || '',
         });
       }
     }

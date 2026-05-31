@@ -1,15 +1,18 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { SignInButton, SignUpButton } from '@clerk/nextjs';
+import Link from 'next/link';
 import { db } from '@/lib/db';
 import { shops } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { headers } from 'next/headers';
 import { Store, FileText, Package, Wallet, TrendingUp, Shield, Receipt, CreditCard } from 'lucide-react';
 
 export default async function Home() {
-  const { userId, orgId } = await auth();
+  const session = await auth.api.getSession({ headers: await headers() });
+  const user = session?.user;
+  const orgId = session?.session.activeOrganizationId;
 
-  if (userId) {
+  if (user) {
     if (!orgId) redirect('/onboarding');
     const [shop] = await db.select().from(shops).where(eq(shops.clerkOrgId, orgId));
     if (!shop) redirect('/onboarding');
@@ -27,16 +30,12 @@ export default async function Home() {
             StockOS Pro
           </div>
           <div className="flex items-center gap-3">
-            <SignInButton mode="modal">
-              <button className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-                Connexion
-              </button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <button className="px-4 py-2 text-sm font-medium bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors">
-                Créer un compte
-              </button>
-            </SignUpButton>
+            <Link href="/sign-in" className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+              Connexion
+            </Link>
+            <Link href="/sign-up" className="px-4 py-2 text-sm font-medium bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors">
+              Créer un compte
+            </Link>
           </div>
         </div>
       </header>
@@ -57,16 +56,18 @@ export default async function Home() {
               Une solution complète conçue pour les PME et commerces en Afrique de l&apos;Ouest.
             </p>
             <div className="flex items-center justify-center gap-4">
-              <SignUpButton mode="modal">
-                <button className="px-8 py-3.5 text-sm font-medium bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl">
-                  Commencer maintenant
-                </button>
-              </SignUpButton>
-              <SignInButton mode="modal">
-                <button className="px-8 py-3.5 text-sm font-medium border rounded-xl hover:bg-white transition-colors">
-                  Se connecter
-                </button>
-              </SignInButton>
+              <Link
+                href="/sign-up"
+                className="px-8 py-3.5 text-sm font-medium bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl"
+              >
+                Commencer maintenant
+              </Link>
+              <Link
+                href="/sign-in"
+                className="px-8 py-3.5 text-sm font-medium border rounded-xl hover:bg-white transition-colors"
+              >
+                Se connecter
+              </Link>
             </div>
           </div>
         </section>
@@ -144,11 +145,12 @@ export default async function Home() {
             <p className="text-zinc-400 mb-8 max-w-lg mx-auto">
               Créez votre boutique en quelques secondes. Aucune carte bancaire requise.
             </p>
-            <SignUpButton mode="modal">
-              <button className="px-8 py-3.5 text-sm font-medium bg-white text-zinc-900 rounded-xl hover:bg-zinc-100 transition-colors shadow-lg">
-                Créer ma boutique gratuitement
-              </button>
-            </SignUpButton>
+            <Link
+              href="/sign-up"
+              className="inline-block px-8 py-3.5 text-sm font-medium bg-white text-zinc-900 rounded-xl hover:bg-zinc-100 transition-colors shadow-lg"
+            >
+              Créer ma boutique gratuitement
+            </Link>
           </div>
         </section>
       </main>

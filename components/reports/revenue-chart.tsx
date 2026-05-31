@@ -24,7 +24,7 @@ export function RevenueChart({ data }: { data: DataPoint[] }) {
           <YAxis tick={{ fontSize: 11 }} tickFormatter={(val: number) => `${Math.round(val / 1000)}k`} />
           <Tooltip
             formatter={(value: any) => [formatCurrency(value), 'Revenu']}
-            labelFormatter={(label: string) => new Date(label).toLocaleDateString('fr-FR')}
+            labelFormatter={(label: any) => new Date(label).toLocaleDateString('fr-FR')}
           />
           <Bar dataKey="revenue" fill="#059669" radius={[4, 4, 0, 0]} />
         </BarChart>

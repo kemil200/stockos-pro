@@ -49,10 +49,18 @@ export default async function InvoicesPage({
             {count ?? 0} facture{(count ?? 0) !== 1 ? 's' : ''}
           </p>
         </div>
-        <Link href="/invoices/new" className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-zinc-900 text-white rounded-xl text-sm font-medium hover:bg-zinc-800 transition-all shadow-sm">
+        <Link
+          href="/invoices/new"
+          className="fixed bottom-20 right-4 z-50 lg:hidden flex items-center justify-center size-14 bg-zinc-900 text-white rounded-2xl shadow-lg shadow-zinc-900/20 hover:bg-zinc-800 active:scale-95 transition-all"
+        >
+          <Plus className="size-6" />
+        </Link>
+        <Link
+          href="/invoices/new"
+          className="hidden lg:inline-flex items-center gap-1.5 px-4 py-2.5 bg-zinc-900 text-white rounded-xl text-sm font-medium hover:bg-zinc-800 transition-colors shadow-sm"
+        >
           <Plus className="size-4" />
-          <span className="hidden sm:inline">Nouvelle facture</span>
-          <span className="sm:hidden">Créer</span>
+          Nouvelle facture
         </Link>
       </div>
 

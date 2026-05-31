@@ -1,55 +1,15 @@
 'use server';
 
 import { z } from 'zod';
-import { db } from '@/lib/db';
-import {
-  invoices,
-  invoiceLines,
-  invoiceSettings,
-  stockItems,
-} from '@/lib/db/schema';
 import { getCurrentShop } from '@/lib/tenant';
+import { createAdminClient } from '@/lib/server';
 import { calculateInvoice } from '@/lib/services/invoice-calculator';
-import { createStockMovement } from '@/lib/services/stock-manager';
-import { emitEvent } from '@/lib/services/event-bus';
-import { auditLog, AuditAction } from '@/lib/audit';
-import { eq, and, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { CreateInvoiceSchema, InvoiceLineSchema } from '@/lib/validations/invoice';
 
-async function getInvoiceSettings(shopId: string) {
-  const [settings] = await db
-    .select()
-    .from(invoiceSettings)
-    .where(eq(invoiceSettings.shopId, shopId));
-
-  if (!settings) throw new Error('Invoice settings not found');
-  return settings;
-}
-
-async function generateInvoiceNumber(shopId: string): Promise<string> {
-  const [settings] = await db
-    .select()
-    .from(invoiceSettings)
-    .where(eq(invoiceSettings.shopId, shopId))
-
-  if (!settings) throw new Error('Invoice settings not found');
-
-  const year = new Date().getFullYear();
-  const prefix = settings.invoicePrefix || 'FACT-';
-  const nextNum = parseInt(settings.nextInvoiceNumber || '1');
-  const number = `${prefix}${year}-${String(nextNum).padStart(4, '0')}`;
-
-  await db
-    .update(invoiceSettings)
-    .set({ nextInvoiceNumber: String(nextNum + 1) })
-    .where(eq(invoiceSettings.id, settings.id));
-
-  return number;
-}
-
 export async function createInvoice(formData: FormData) {
   const { shop, user } = await getCurrentShop();
+  const admin = createAdminClient();
 
   const rawData = {
     clientName: formData.get('clientName') as string,
@@ -58,76 +18,93 @@ export async function createInvoice(formData: FormData) {
   };
 
   const parsed = CreateInvoiceSchema.parse(rawData);
-  const settings = await getInvoiceSettings(shop.id);
+
+  const { data: settingsRows } = await admin
+    .from('invoice_settings')
+    .select('*')
+    .eq('shop_id', shop.id)
+    .limit(1);
+
+  const settings = settingsRows?.[0];
+  if (!settings) throw new Error('Invoice settings not found');
+
+  const { data: shopSettingsRows } = await admin
+    .from('shop_settings')
+    .select('currency')
+    .eq('shop_id', shop.id)
+    .limit(1);
+
+  const shopCurrency = shopSettingsRows?.[0]?.currency || 'XOF';
 
   const calc = calculateInvoice(
     parsed.lines,
-    settings,
-    0,
-    0,
+    {
+      enableTax: settings.enable_tax ?? false,
+      taxRate: settings.tax_rate,
+      enableGlobalDiscount: settings.enable_global_discount ?? false,
+      enableLineDiscount: settings.enable_line_discount ?? false,
+      enableShipping: settings.enable_shipping ?? false,
+      enableRounding: settings.enable_rounding ?? false,
+      roundingPrecision: settings.rounding_precision,
+    },
+    parsed.globalDiscountRate ?? 0,
+    parsed.shippingFee ?? 0,
   );
 
-  const number = await generateInvoiceNumber(shop.id);
+  const year = new Date().getFullYear();
+  const prefix = settings.invoice_prefix || 'FACT-';
+  const nextNum = parseInt(settings.next_invoice_number || '1');
+  const number = `${prefix}${year}-${String(nextNum).padStart(4, '0')}`;
 
-  const [invoice] = await db
-    .insert(invoices)
-    .values({
-      shopId: shop.id,
-      invoiceNumber: number,
-      clientName: parsed.clientName,
-      clientPhone: parsed.clientPhone || null,
+  const { data: invoice, error: invoiceError } = await admin
+    .from('invoices')
+    .insert({
+      shop_id: shop.id,
+      invoice_number: number,
+      client_name: parsed.clientName,
+      client_phone: parsed.clientPhone || null,
       status: 'DRAFT',
-      currency: 'XOF',
+      currency: shopCurrency,
       subtotal: String(calc.subtotal),
-      lineDiscountTotal: String(calc.lineDiscountTotal),
-      globalDiscount: String(calc.globalDiscount),
-      shippingFee: String(calc.shippingFee),
-      taxAmount: String(calc.taxAmount),
-      roundingAdjustment: String(calc.roundingAdjustment),
+      line_discount_total: String(calc.lineDiscountTotal),
+      global_discount: String(calc.globalDiscount),
+      shipping_fee: String(calc.shippingFee),
+      tax_amount: String(calc.taxAmount),
+      rounding_adjustment: String(calc.roundingAdjustment),
       total: String(calc.total),
-      amountPaid: '0',
-      balanceDue: String(calc.total),
-      createdBy: user.id,
+      amount_paid: '0',
+      balance_due: String(calc.total),
+      created_by: user.id,
     })
-    .returning();
+    .select()
+    .single();
 
-  for (let i = 0; i < parsed.lines.length; i++) {
-    const line = parsed.lines[i];
+  if (invoiceError) throw new Error(`Failed to create invoice: ${invoiceError.message}`);
+  if (!invoice) throw new Error('Invoice creation returned no data');
+
+  const linesData = parsed.lines.map((line: z.infer<typeof InvoiceLineSchema>, i: number) => {
     const lineSubtotal = line.quantity * line.unitPrice;
-    const discountAmount = line.discountRate
-      ? lineSubtotal * line.discountRate
-      : 0;
-
-    await db.insert(invoiceLines).values({
-      invoiceId: invoice.id,
-      productId: line.productId as any,
+    const discountAmount = line.discountRate ? lineSubtotal * line.discountRate : 0;
+    return {
+      invoice_id: invoice.id,
+      product_id: line.productId || null,
       description: line.description,
       quantity: String(line.quantity),
-      unitPrice: String(line.unitPrice),
-      discountRate: String(line.discountRate || 0),
-      discountAmount: String(discountAmount),
-      lineTotal: String(lineSubtotal - discountAmount),
-      sortOrder: String(i),
-    });
-  }
-
-  await emitEvent({
-    shopId: shop.id,
-    eventType: 'INVOICE_CREATED',
-    aggregateType: 'invoice',
-    aggregateId: invoice.id,
-    data: { invoiceNumber: number },
-    userId: user.id,
+      unit_price: String(line.unitPrice),
+      discount_rate: String(line.discountRate || 0),
+      discount_amount: String(discountAmount),
+      line_total: String(lineSubtotal - discountAmount),
+      sort_order: String(i),
+    };
   });
 
-  await auditLog({
-    shopId: shop.id,
-    userId: user.id,
-    action: AuditAction.INVOICE_CREATED,
-    entityType: 'invoice',
-    entityId: invoice.id,
-    metadata: { invoiceNumber: number },
-  });
+  const { error: linesError } = await admin.from('invoice_lines').insert(linesData);
+  if (linesError) throw new Error(`Failed to create invoice lines: ${linesError.message}`);
+
+  await admin
+    .from('invoice_settings')
+    .update({ next_invoice_number: String(nextNum + 1) })
+    .eq('id', settings.id);
 
   revalidatePath('/invoices');
   return { invoice, invoiceNumber: number };
@@ -135,122 +112,126 @@ export async function createInvoice(formData: FormData) {
 
 export async function validateInvoice(invoiceId: string) {
   const { shop, user } = await getCurrentShop();
+  const admin = createAdminClient();
 
-  const [invoice] = await db
-    .select()
-    .from(invoices)
-    .where(and(
-      eq(invoices.id, invoiceId),
-      eq(invoices.shopId, shop.id),
-      eq(invoices.status, 'DRAFT'),
-    ));
+  const { data: invoice } = await admin
+    .from('invoices')
+    .select('*')
+    .eq('id', invoiceId)
+    .eq('shop_id', shop.id)
+    .single();
 
-  if (!invoice) throw new Error('Facture introuvable ou déjà validée');
+  if (!invoice) throw new Error('Facture introuvable');
+  if (invoice.status !== 'DRAFT') throw new Error('Facture déjà validée ou annulée');
 
-  const lines = await db
-    .select()
-    .from(invoiceLines)
-    .where(eq(invoiceLines.invoiceId, invoiceId));
+  const { data: lines } = await admin
+    .from('invoice_lines')
+    .select('*')
+    .eq('invoice_id', invoiceId);
 
-  const settings = await getInvoiceSettings(shop.id);
+  const { data: settingsRows } = await admin
+    .from('invoice_settings')
+    .select('*')
+    .eq('shop_id', shop.id)
+    .limit(1);
+
+  const settings = settingsRows?.[0];
+  if (!settings) throw new Error('Invoice settings not found');
 
   const calc = calculateInvoice(
-    lines.map((l) => ({
+    (lines ?? []).map((l: any) => ({
       quantity: Number(l.quantity),
-      unitPrice: Number(l.unitPrice),
-      discountRate: Number(l.discountRate),
+      unitPrice: Number(l.unit_price),
+      discountRate: Number(l.discount_rate),
     })),
-    settings,
+    {
+      enableTax: settings.enable_tax ?? false,
+      taxRate: settings.tax_rate,
+      enableGlobalDiscount: settings.enable_global_discount ?? false,
+      enableLineDiscount: settings.enable_line_discount ?? false,
+      enableShipping: settings.enable_shipping ?? false,
+      enableRounding: settings.enable_rounding ?? false,
+      roundingPrecision: settings.rounding_precision,
+    },
   );
 
-  await db
-    .update(invoices)
-    .set({
+  const { error: updateError } = await admin
+    .from('invoices')
+    .update({
       status: 'VALIDATED',
-      validatedAt: new Date(),
-      validatedBy: user.id,
+      validated_at: new Date().toISOString(),
+      validated_by: user.id,
       subtotal: String(calc.subtotal),
-      lineDiscountTotal: String(calc.lineDiscountTotal),
-      globalDiscount: String(calc.globalDiscount),
-      shippingFee: String(calc.shippingFee),
-      taxAmount: String(calc.taxAmount),
-      roundingAdjustment: String(calc.roundingAdjustment),
+      line_discount_total: String(calc.lineDiscountTotal),
+      global_discount: String(calc.globalDiscount),
+      shipping_fee: String(calc.shippingFee),
+      tax_amount: String(calc.taxAmount),
+      rounding_adjustment: String(calc.roundingAdjustment),
       total: String(calc.total),
-      balanceDue: String(calc.total),
+      balance_due: String(calc.total),
     })
-    .where(eq(invoices.id, invoiceId));
+    .eq('id', invoiceId);
 
-  for (const line of lines) {
-    if (line.productId) {
-      try {
-        await createStockMovement({
-          shopId: shop.id,
-          productId: line.productId,
-          movementType: 'SALE',
-          quantity: -Number(line.quantity),
-          unitPrice: Number(line.unitPrice),
-          referenceId: invoiceId,
-          referenceType: 'invoice',
-          createdBy: user.id,
+  if (updateError) throw new Error(`Failed to validate invoice: ${updateError.message}`);
+
+  for (const line of (lines ?? [])) {
+    if (line.product_id) {
+      const { data: stockItem } = await admin
+        .from('stock_items')
+        .select('*')
+        .eq('shop_id', shop.id)
+        .eq('product_id', line.product_id)
+        .single();
+
+      if (stockItem) {
+        const newQty = Number(stockItem.quantity) - Number(line.quantity);
+        if (newQty < 0) throw new Error(`Stock insuffisant pour le produit ${line.description}`);
+
+        await admin
+          .from('stock_items')
+          .update({ quantity: String(newQty) })
+          .eq('id', stockItem.id);
+
+        await admin.from('stock_movements').insert({
+          shop_id: shop.id,
+          product_id: line.product_id,
+          stock_item_id: stockItem.id,
+          movement_type: 'SALE',
+          quantity: String(-Number(line.quantity)),
+          unit_price: line.unit_price,
+          reference_id: invoiceId,
+          reference_type: 'invoice',
+          created_by: user.id,
         });
-      } catch (e) {
-        if (e instanceof Error && e.message === 'Stock insuffisant') {
-          throw new Error(`Stock insuffisant pour le produit ${line.description}`);
-        }
-        throw e;
       }
     }
   }
-
-  await emitEvent({
-    shopId: shop.id,
-    eventType: 'INVOICE_VALIDATED',
-    aggregateType: 'invoice',
-    aggregateId: invoiceId,
-    data: { invoiceNumber: invoice.invoiceNumber, total: calc.total },
-    userId: user.id,
-  });
-
-  await auditLog({
-    shopId: shop.id,
-    userId: user.id,
-    action: AuditAction.INVOICE_VALIDATED,
-    entityType: 'invoice',
-    entityId: invoiceId,
-    metadata: { invoiceNumber: invoice.invoiceNumber },
-  });
 
   revalidatePath(`/invoices/${invoiceId}`);
   revalidatePath('/invoices');
 }
 
 export async function cancelInvoice(invoiceId: string) {
-  const { shop, user } = await getCurrentShop();
+  const { shop } = await getCurrentShop();
+  const admin = createAdminClient();
 
-  const [invoice] = await db
-    .select()
-    .from(invoices)
-    .where(and(
-      eq(invoices.id, invoiceId),
-      eq(invoices.shopId, shop.id),
-    ));
+  const { data: invoice } = await admin
+    .from('invoices')
+    .select('*')
+    .eq('id', invoiceId)
+    .eq('shop_id', shop.id)
+    .single();
 
   if (!invoice) throw new Error('Facture introuvable');
   if (invoice.status === 'PAID') throw new Error('Une facture payée ne peut pas être annulée');
   if (invoice.status === 'CANCELLED') throw new Error('Facture déjà annulée');
 
-  await db
-    .update(invoices)
-    .set({ status: 'CANCELLED' })
-    .where(eq(invoices.id, invoiceId));
+  const { error } = await admin
+    .from('invoices')
+    .update({ status: 'CANCELLED' })
+    .eq('id', invoiceId);
 
-  await auditLog({
-    shopId: shop.id,
-    userId: user.id,
-    action: AuditAction.INVOICE_CANCELLED,
-    entityType: 'invoice',
-    entityId: invoiceId,
-  });
+  if (error) throw new Error(`Failed to cancel invoice: ${error.message}`);
 
   revalidatePath('/invoices');
 }

@@ -31,11 +31,11 @@ export function SettingsForm({ shopSettings, invoiceSettings }: Props) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">Nom légal</label>
-            <input name="legalName" defaultValue={shopSettings?.legalName} className="w-full px-3 py-2 border rounded-lg text-sm" />
+            <input name="legalName" defaultValue={shopSettings?.legal_name} className="w-full px-3 py-2 border rounded-lg text-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">Nom commercial</label>
-            <input name="tradingName" defaultValue={shopSettings?.tradingName || ''} className="w-full px-3 py-2 border rounded-lg text-sm" />
+            <input name="tradingName" defaultValue={shopSettings?.trading_name || ''} className="w-full px-3 py-2 border rounded-lg text-sm" />
           </div>
         </div>
 
@@ -81,12 +81,14 @@ export function SettingsForm({ shopSettings, invoiceSettings }: Props) {
 
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">Mentions légales (pied de facture)</label>
-          <textarea name="invoiceFooter" defaultValue={shopSettings?.invoiceFooter || ''} className="w-full px-3 py-2 border rounded-lg text-sm" rows={2} />
+          <textarea name="invoiceFooter" defaultValue={shopSettings?.invoice_footer || ''} className="w-full px-3 py-2 border rounded-lg text-sm" rows={2} />
         </div>
 
-        <button type="submit" className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800">
-          Enregistrer
-        </button>
+        <div className="flex gap-3">
+          <button type="submit" className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800">
+            Enregistrer
+          </button>
+        </div>
       </form>
 
       <form onSubmit={handleInvoiceSubmit} className="bg-white rounded-xl border p-6 space-y-4">
@@ -98,38 +100,41 @@ export function SettingsForm({ shopSettings, invoiceSettings }: Props) {
               <p className="font-medium text-sm">TVA</p>
               <p className="text-xs text-zinc-500">Activer le calcul de la TVA</p>
             </div>
-            <input name="enableTax" type="checkbox" defaultChecked={invoiceSettings?.enableTax} className="w-4 h-4" />
+            <input name="enableTax" type="checkbox" defaultChecked={invoiceSettings?.enable_tax} className="w-4 h-4" />
           </label>
 
-          {invoiceSettings?.enableTax && (
-            <div className="ml-6">
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Taux TVA (%)</label>
-              <input name="taxRate" type="number" step="0.1" defaultValue={invoiceSettings?.taxRate ? Number(invoiceSettings.taxRate) * 100 : 19} className="w-32 px-3 py-2 border rounded-lg text-sm" />
-            </div>
-          )}
+          <div className="ml-6 space-y-2">
+            <label className="block text-sm font-medium text-zinc-700 mb-1">Taux TVA (%)</label>
+            <input name="taxRate" type="number" step="0.1" min="0" max="100"
+              defaultValue={invoiceSettings?.tax_rate ? Number(invoiceSettings.tax_rate) * 100 : 19}
+              className="w-32 px-3 py-2 border rounded-lg text-sm"
+            />
+            <label className="block text-sm font-medium text-zinc-700 mb-1">Libellé TVA</label>
+            <input name="taxLabel" defaultValue={invoiceSettings?.tax_label || 'TVA'} className="w-32 px-3 py-2 border rounded-lg text-sm" />
+          </div>
 
           <label className="flex items-center justify-between p-3 border rounded-lg">
             <div>
               <p className="font-medium text-sm">Rabais par ligne</p>
-              <p className="text-xs text-zinc-500">Activer le rabais sur chaque article</p>
+              <p className="text-xs text-zinc-500">Permet d'ajouter un % de réduction sur chaque article</p>
             </div>
-            <input name="enableLineDiscount" type="checkbox" defaultChecked={invoiceSettings?.enableLineDiscount} className="w-4 h-4" />
+            <input name="enableLineDiscount" type="checkbox" defaultChecked={invoiceSettings?.enable_line_discount} className="w-4 h-4" />
           </label>
 
           <label className="flex items-center justify-between p-3 border rounded-lg">
             <div>
               <p className="font-medium text-sm">Remise globale</p>
-              <p className="text-xs text-zinc-500">Activer la remise sur le total</p>
+              <p className="text-xs text-zinc-500">Remise en % sur le total (hors TVA)</p>
             </div>
-            <input name="enableGlobalDiscount" type="checkbox" defaultChecked={invoiceSettings?.enableGlobalDiscount} className="w-4 h-4" />
+            <input name="enableGlobalDiscount" type="checkbox" defaultChecked={invoiceSettings?.enable_global_discount} className="w-4 h-4" />
           </label>
 
           <label className="flex items-center justify-between p-3 border rounded-lg">
             <div>
               <p className="font-medium text-sm">Frais de port</p>
-              <p className="text-xs text-zinc-500">Activer les frais de livraison</p>
+              <p className="text-xs text-zinc-500">Ajouter des frais de livraison</p>
             </div>
-            <input name="enableShipping" type="checkbox" defaultChecked={invoiceSettings?.enableShipping} className="w-4 h-4" />
+            <input name="enableShipping" type="checkbox" defaultChecked={invoiceSettings?.enable_shipping} className="w-4 h-4" />
           </label>
 
           <label className="flex items-center justify-between p-3 border rounded-lg">
@@ -137,12 +142,12 @@ export function SettingsForm({ shopSettings, invoiceSettings }: Props) {
               <p className="font-medium text-sm">Arrondi automatique</p>
               <p className="text-xs text-zinc-500">Arrondir le total à la dizaine/centaine</p>
             </div>
-            <input name="enableRounding" type="checkbox" defaultChecked={invoiceSettings?.enableRounding} className="w-4 h-4" />
+            <input name="enableRounding" type="checkbox" defaultChecked={invoiceSettings?.enable_rounding} className="w-4 h-4" />
           </label>
 
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">Préfixe facture</label>
-            <input name="invoicePrefix" defaultValue={invoiceSettings?.invoicePrefix || 'FACT-'} className="w-32 px-3 py-2 border rounded-lg text-sm" />
+            <input name="invoicePrefix" defaultValue={invoiceSettings?.invoice_prefix || 'FACT-'} className="w-32 px-3 py-2 border rounded-lg text-sm" />
           </div>
         </div>
 

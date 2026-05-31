@@ -1,17 +1,13 @@
 'use server';
 
-import { db } from '@/lib/db';
-import { payments, invoices } from '@/lib/db/schema';
 import { getCurrentShop } from '@/lib/tenant';
-import { recordCashMovement } from '@/lib/services/cash-register';
-import { emitEvent } from '@/lib/services/event-bus';
-import { auditLog, AuditAction } from '@/lib/audit';
-import { eq, and } from 'drizzle-orm';
+import { createAdminClient } from '@/lib/server';
 import { revalidatePath } from 'next/cache';
 import { PaymentSchema } from '@/lib/validations/invoice';
 
 export async function recordPayment(formData: FormData) {
   const { shop, user } = await getCurrentShop();
+  const admin = createAdminClient();
 
   const parsed = PaymentSchema.parse({
     invoiceId: formData.get('invoiceId'),
@@ -21,20 +17,19 @@ export async function recordPayment(formData: FormData) {
     notes: formData.get('notes'),
   });
 
-  const [invoice] = await db
-    .select()
-    .from(invoices)
-    .where(and(
-      eq(invoices.id, parsed.invoiceId),
-      eq(invoices.shopId, shop.id),
-    ));
+  const { data: invoice } = await admin
+    .from('invoices')
+    .select('*')
+    .eq('id', parsed.invoiceId)
+    .eq('shop_id', shop.id)
+    .single();
 
   if (!invoice) throw new Error('Facture introuvable');
   if (!['VALIDATED', 'PARTIALLY_PAID'].includes(invoice.status)) {
     throw new Error('Cette facture ne peut pas recevoir de paiement');
   }
 
-  const currentPaid = Number(invoice.amountPaid);
+  const currentPaid = Number(invoice.amount_paid);
   const total = Number(invoice.total);
   const newPaid = currentPaid + parsed.amount;
 
@@ -42,65 +37,43 @@ export async function recordPayment(formData: FormData) {
     throw new Error('Le paiement dépasse le solde restant');
   }
 
-  const [payment] = await db
-    .insert(payments)
-    .values({
-      shopId: shop.id,
-      invoiceId: parsed.invoiceId,
+  const { data: payment, error: paymentError } = await admin
+    .from('payments')
+    .insert({
+      shop_id: shop.id,
+      invoice_id: parsed.invoiceId,
       amount: String(parsed.amount),
       method: parsed.method,
       reference: parsed.reference || null,
       notes: parsed.notes || null,
-      receivedBy: user.id,
+      received_by: user.id,
     })
-    .returning();
+    .select()
+    .single();
+
+  if (paymentError) throw new Error(`Failed to record payment: ${paymentError.message}`);
 
   const newStatus = newPaid >= total ? 'PAID' : 'PARTIALLY_PAID';
 
-  await db
-    .update(invoices)
-    .set({
-      amountPaid: String(newPaid),
-      balanceDue: String(total - newPaid),
+  const { error: updateError } = await admin
+    .from('invoices')
+    .update({
+      amount_paid: String(newPaid),
+      balance_due: String(total - newPaid),
       status: newStatus,
     })
-    .where(eq(invoices.id, parsed.invoiceId));
+    .eq('id', parsed.invoiceId);
 
-  await recordCashMovement({
-    shopId: shop.id,
-    movementType: 'PAYMENT_IN',
-    amount: parsed.amount,
-    referenceType: 'payment',
-    referenceId: payment.id,
-    description: `Paiement facture ${invoice.invoiceNumber}`,
-    createdBy: user.id,
-  });
+  if (updateError) throw new Error(`Failed to update invoice: ${updateError.message}`);
 
-  await emitEvent({
-    shopId: shop.id,
-    eventType: 'PAYMENT_RECEIVED',
-    aggregateType: 'payment',
-    aggregateId: payment.id,
-    data: {
-      invoiceId: parsed.invoiceId,
-      amount: parsed.amount,
-      method: parsed.method,
-      invoiceNumber: invoice.invoiceNumber,
-    },
-    userId: user.id,
-  });
-
-  await auditLog({
-    shopId: shop.id,
-    userId: user.id,
-    action: AuditAction.PAYMENT_RECEIVED,
-    entityType: 'payment',
-    entityId: payment.id,
-    metadata: {
-      invoiceId: parsed.invoiceId,
-      amount: parsed.amount,
-      invoiceNumber: invoice.invoiceNumber,
-    },
+  await admin.from('cash_movements').insert({
+    shop_id: shop.id,
+    movement_type: 'PAYMENT_IN',
+    amount: String(parsed.amount),
+    reference_type: 'payment',
+    reference_id: payment.id,
+    description: `Paiement facture ${invoice.invoice_number}`,
+    created_by: user.id,
   });
 
   revalidatePath(`/invoices/${parsed.invoiceId}`);

@@ -1,59 +1,55 @@
 'use server';
 
-import { db } from '@/lib/db';
-import { shopSettings, invoiceSettings } from '@/lib/db/schema';
 import { getCurrentShop } from '@/lib/tenant';
-import { auditLog, AuditAction } from '@/lib/audit';
-import { eq } from 'drizzle-orm';
+import { createAdminClient } from '@/lib/server';
 import { revalidatePath } from 'next/cache';
 
 export async function updateShopSettings(formData: FormData) {
   const { shop, user } = await getCurrentShop();
+  const admin = createAdminClient();
 
   const data = {
-    legalName: formData.get('legalName') as string,
-    tradingName: formData.get('tradingName') as string,
-    address: formData.get('address') as string,
+    legal_name: formData.get('legalName') as string,
+    trading_name: formData.get('tradingName') as string || null,
+    address: formData.get('address') as string || null,
     email: formData.get('email') as string,
     phone: formData.get('phone') as string,
     currency: formData.get('currency') as string,
-    invoiceFooter: formData.get('invoiceFooter') as string,
+    invoice_footer: formData.get('invoiceFooter') as string || null,
+    country: formData.get('country') as string || 'TG',
   };
 
-  await db
-    .update(shopSettings)
-    .set({ ...data, updatedAt: new Date() })
-    .where(eq(shopSettings.shopId, shop.id));
+  const { error } = await admin
+    .from('shop_settings')
+    .update(data)
+    .eq('shop_id', shop.id);
 
-  await auditLog({
-    shopId: shop.id,
-    userId: user.id,
-    action: AuditAction.SHOP_UPDATED,
-    entityType: 'shop_settings',
-    entityId: shop.id,
-  });
+  if (error) throw new Error(`Failed to update shop settings: ${error.message}`);
 
   revalidatePath('/settings');
 }
 
 export async function updateInvoiceSettings(formData: FormData) {
-  const { shop, user } = await getCurrentShop();
+  const { shop } = await getCurrentShop();
+  const admin = createAdminClient();
 
-  const data = {
-    enableTax: formData.get('enableTax') === 'on',
-    taxRate: formData.get('taxRate') ? String(formData.get('taxRate')) : null,
-    enableGlobalDiscount: formData.get('enableGlobalDiscount') === 'on',
-    enableLineDiscount: formData.get('enableLineDiscount') === 'on',
-    enableShipping: formData.get('enableShipping') === 'on',
-    enableRounding: formData.get('enableRounding') === 'on',
-    invoicePrefix: formData.get('invoicePrefix') as string,
-    taxLabel: formData.get('taxLabel') as string,
+  const data: Record<string, unknown> = {
+    enable_tax: formData.get('enableTax') === 'on',
+    tax_rate: formData.get('taxRate') ? String(Number(formData.get('taxRate' as string)) / 100) : null,
+    enable_global_discount: formData.get('enableGlobalDiscount') === 'on',
+    enable_line_discount: formData.get('enableLineDiscount') === 'on',
+    enable_shipping: formData.get('enableShipping') === 'on',
+    enable_rounding: formData.get('enableRounding') === 'on',
+    invoice_prefix: formData.get('invoicePrefix') as string || 'FACT-',
+    tax_label: formData.get('taxLabel') as string || 'TVA',
   };
 
-  await db
-    .update(invoiceSettings)
-    .set({ ...data, updatedAt: new Date() })
-    .where(eq(invoiceSettings.shopId, shop.id));
+  const { error } = await admin
+    .from('invoice_settings')
+    .update(data)
+    .eq('shop_id', shop.id);
+
+  if (error) throw new Error(`Failed to update invoice settings: ${error.message}`);
 
   revalidatePath('/settings');
 }

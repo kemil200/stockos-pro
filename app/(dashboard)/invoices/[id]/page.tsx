@@ -4,15 +4,19 @@ import { notFound } from 'next/navigation';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 import { InvoiceActions } from '@/components/invoices/invoice-actions';
 import { PaymentForm } from '@/components/forms/payment-form';
+import { AutoPrint } from '@/components/invoices/auto-print';
 import { formatCurrency } from '@/lib/utils/currency';
 import { validateInvoice, cancelInvoice } from '@/lib/actions/invoices';
 
 export default async function InvoiceDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ print?: string }>;
 }) {
   const { id } = await params;
+  const { print } = await searchParams;
   const { shop, user } = await getCurrentShop();
   const admin = createAdminClient();
 
@@ -36,6 +40,7 @@ export default async function InvoiceDetailPage({
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {print === 'true' && <AutoPrint />}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 flex-wrap">

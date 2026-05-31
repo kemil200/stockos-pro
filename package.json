@@ -10,11 +10,9 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
-    "@better-auth/drizzle-adapter": "^1.6.12",
-    "@better-auth/infra": "^0.2.11",
     "@hookform/resolvers": "^5.4.0",
+    "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
-    "better-auth": "^1.6.12",
     "class-variance-authority": "^0.7.1",
     "client-only": "^0.0.1",
     "clsx": "^2.1.1",

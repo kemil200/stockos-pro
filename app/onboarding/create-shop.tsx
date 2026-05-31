@@ -1,10 +1,10 @@
 'use client';
 
-import { authClient } from '@/lib/auth-client';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Store } from 'lucide-react';
 import { useState } from 'react';
 
-export function OnboardingCreateOrg() {
+export function OnboardingCreateShop() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,9 +16,24 @@ export function OnboardingCreateOrg() {
     setError(null);
 
     try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Non connecté');
+
       const slug = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      await authClient.organization.create({ name: name.trim(), slug });
-      window.location.href = '/onboarding';
+
+      const res = await fetch('/api/setup-shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), slug, userId: user.id }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erreur lors de la création');
+      }
+
+      window.location.href = '/invoices';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création');
       setLoading(false);

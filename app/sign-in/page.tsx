@@ -1,6 +1,6 @@
 'use client';
 
-import { authClient } from '@/lib/auth-client';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Store } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -18,9 +18,10 @@ export default function SignInPage() {
     setLoading(true);
     setError(null);
 
-    const { error: signInError } = await authClient.signIn.email({ email, password });
+    const supabase = createSupabaseBrowserClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     if (signInError) {
-      setError(signInError.message || 'Erreur de connexion');
+      setError(signInError.message);
       setLoading(false);
       return;
     }

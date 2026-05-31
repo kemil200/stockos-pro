@@ -1,6 +1,5 @@
-import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
 import { shops } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -12,13 +11,11 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) redirect('/sign-in');
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/sign-in');
 
-  const orgId = session.session.activeOrganizationId;
-  if (!orgId) redirect('/onboarding');
-
-  const [shop] = await db.select().from(shops).where(eq(shops.clerkOrgId, orgId));
+  const [shop] = await db.select().from(shops).where(eq(shops.userId, user.id));
   if (!shop) redirect('/onboarding');
 
   return (

@@ -1,20 +1,22 @@
 'use client';
 
-import { authClient } from '@/lib/auth-client';
 import { LogOut, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export function Navbar() {
   const router = useRouter();
-  const [session, setSession] = useState<{ user: { name?: string; email?: string } } | null>(null);
+  const [user, setUser] = useState<{ name?: string; email?: string } | null>(null);
 
   useEffect(() => {
-    authClient.getSession().then((res) => setSession(res.data));
+    const supabase = createSupabaseBrowserClient();
+    supabase.auth.getUser().then(({ data }) => setUser(data.user?.user_metadata ?? null));
   }, []);
 
   const handleSignOut = async () => {
-    await authClient.signOut();
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
     router.push('/');
   };
 
@@ -23,7 +25,7 @@ export function Navbar() {
       <div className="flex items-center gap-4" />
       <div className="flex items-center gap-4">
         <span className="text-sm text-zinc-500">
-          {session?.user?.email}
+          {user?.email}
         </span>
         <button
           onClick={handleSignOut}

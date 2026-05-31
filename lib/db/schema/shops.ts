@@ -4,7 +4,7 @@ export const shops = pgTable('shops', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
-  clerkOrgId: text('clerk_org_id').notNull().unique(),
+  userId: text('user_id').notNull().unique(),
   status: text('status').notNull().default('ACTIVE'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

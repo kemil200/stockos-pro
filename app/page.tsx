@@ -1,22 +1,19 @@
-import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
 import { shops } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { headers } from 'next/headers';
 import { Store, FileText, Package, Wallet, TrendingUp, Shield, Receipt, CreditCard } from 'lucide-react';
 
 export default async function Home() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const user = session?.user;
-  const orgId = session?.session.activeOrganizationId;
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
-    if (!orgId) redirect('/onboarding');
-    const [shop] = await db.select().from(shops).where(eq(shops.clerkOrgId, orgId));
-    if (!shop) redirect('/onboarding');
-    redirect('/invoices');
+    const [shop] = await db.select().from(shops).where(eq(shops.userId, user.id));
+    if (shop) redirect('/invoices');
+    redirect('/onboarding');
   }
 
   return (

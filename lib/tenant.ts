@@ -1,10 +1,9 @@
 import 'server-only';
 
-import { auth } from '@/lib/auth';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';
 import { shops, users } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { headers } from 'next/headers';
 
 export class TenantError extends Error {
   constructor(message: string) {
@@ -14,30 +13,25 @@ export class TenantError extends Error {
 }
 
 export async function getCurrentShop() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user || !session.session.activeOrganizationId) {
-    throw new TenantError('Unauthorized');
-  }
-
-  const { user: authUser, session: authSession } = session;
-  const orgId = authSession.activeOrganizationId;
-  if (!orgId) throw new TenantError('No organization');
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new TenantError('Unauthorized');
 
   const [shop] = await db
     .select()
     .from(shops)
-    .where(eq(shops.clerkOrgId, orgId));
+    .where(eq(shops.userId, user.id));
 
   if (!shop) throw new TenantError('Shop not found');
 
-  const [user] = await db
+  const [shopUser] = await db
     .select()
     .from(users)
-    .where(and(eq(users.clerkUserId, authUser.id), eq(users.shopId, shop.id)));
+    .where(and(eq(users.authUserId, user.id), eq(users.shopId, shop.id)));
 
-  if (!user) throw new TenantError('User not found in shop');
+  if (!shopUser) throw new TenantError('User not found in shop');
 
-  return { shop, user };
+  return { shop, user: shopUser };
 }
 
 export async function getShopById(shopId: string) {

@@ -1,9 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { db } from '@/lib/db';
-import { shops } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { Store, FileText, Package, Wallet, TrendingUp, Shield, Receipt, CreditCard } from 'lucide-react';
 
 export default async function Home() {
@@ -12,11 +10,12 @@ export default async function Home() {
 
   if (user) {
     try {
-      const [shop] = await db.select().from(shops).where(eq(shops.userId, user.id));
-      if (shop) redirect('/invoices');
+      const admin = createSupabaseAdminClient();
+      const { data: shops } = await admin.from('shops').select('id').eq('user_id', user.id).limit(1);
+      if (shops?.length) redirect('/invoices');
       redirect('/onboarding');
     } catch {
-      // DB not available (env var missing on Vercel) — show landing page
+      // fallback: show landing page
     }
   }
 

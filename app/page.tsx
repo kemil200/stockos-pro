@@ -1,6 +1,9 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { SignInButton, SignUpButton } from '@clerk/nextjs';
+import { db } from '@/lib/db';
+import { shops } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { Store, FileText, Package, Wallet, TrendingUp, Shield, Receipt, CreditCard } from 'lucide-react';
 
 export default async function Home() {
@@ -8,6 +11,8 @@ export default async function Home() {
 
   if (userId) {
     if (!orgId) redirect('/onboarding');
+    const [shop] = await db.select().from(shops).where(eq(shops.clerkOrgId, orgId));
+    if (!shop) redirect('/onboarding');
     redirect('/invoices');
   }
 

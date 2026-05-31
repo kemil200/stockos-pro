@@ -8,6 +8,13 @@
       "when": 1780181802300,
       "tag": "0000_unusual_songbird",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1780182000000,
+      "tag": "0001_stock_trigger",
+      "breakpoints": true
     }
   ]
 }

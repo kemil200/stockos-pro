@@ -15,8 +15,10 @@ export async function createInvoice(formData: FormData) {
 
     const rawData = {
       clientName: formData.get('clientName') as string,
-      clientPhone: formData.get('clientPhone') as string,
+      clientPhone: (formData.get('clientPhone') as string) || undefined,
       lines: JSON.parse(formData.get('lines') as string) as z.infer<typeof InvoiceLineSchema>[],
+      globalDiscountRate: formData.has('globalDiscountRate') ? Number(formData.get('globalDiscountRate')) : undefined,
+      shippingFee: formData.has('shippingFee') ? Number(formData.get('shippingFee')) : undefined,
     };
 
     let parsed: z.infer<typeof CreateInvoiceSchema>;

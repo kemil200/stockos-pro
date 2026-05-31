@@ -122,7 +122,4 @@ export async function getStockLevel(productId: string) {
   return item ? Number(item.quantity) : 0;
 }
 
-export function marginRate(salePrice: number, purchasePrice: number): number | null {
-  if (!purchasePrice) return null;
-  return ((salePrice - purchasePrice) / purchasePrice) * 100;
-}
+

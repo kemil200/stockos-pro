@@ -20,3 +20,8 @@ export function formatCurrency(amount: number | string, currency = 'XOF'): strin
     currency,
   }).format(num);
 }
+
+export function marginRate(salePrice: number, purchasePrice: number): number | null {
+  if (!purchasePrice) return null;
+  return ((salePrice - purchasePrice) / purchasePrice) * 100;
+}

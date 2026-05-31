@@ -1,23 +1,18 @@
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { InvoiceForm } from '@/components/forms/invoice-form';
+import { ensureInvoiceSettings } from '@/lib/utils/invoice-settings';
 
 export default async function NewInvoicePage() {
   const { shop } = await getCurrentShop();
   const admin = createAdminClient();
 
-  const { data: settingsRows } = await admin
-    .from('invoice_settings')
-    .select('*')
-    .eq('shop_id', shop.id)
-    .limit(1);
+  const settings = await ensureInvoiceSettings(shop.id);
 
   const { data: shopProducts } = await admin
     .from('products')
     .select('*')
     .eq('shop_id', shop.id);
-
-  const settings = settingsRows?.[0] ?? null;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

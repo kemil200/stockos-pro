@@ -6,113 +6,142 @@ import { createAdminClient } from '@/lib/server';
 import { calculateInvoice } from '@/lib/services/invoice-calculator';
 import { revalidatePath } from 'next/cache';
 import { CreateInvoiceSchema, InvoiceLineSchema } from '@/lib/validations/invoice';
+import { ensureInvoiceSettings } from '@/lib/utils/invoice-settings';
 
 export async function createInvoice(formData: FormData) {
-  const { shop, user } = await getCurrentShop();
-  const admin = createAdminClient();
+  try {
+    const { shop, user } = await getCurrentShop();
+    const admin = createAdminClient();
 
-  const rawData = {
-    clientName: formData.get('clientName') as string,
-    clientPhone: formData.get('clientPhone') as string,
-    lines: JSON.parse(formData.get('lines') as string) as z.infer<typeof InvoiceLineSchema>[],
-  };
-
-  const parsed = CreateInvoiceSchema.parse(rawData);
-
-  const { data: settingsRows } = await admin
-    .from('invoice_settings')
-    .select('*')
-    .eq('shop_id', shop.id)
-    .limit(1);
-
-  const settings = settingsRows?.[0];
-  if (!settings) throw new Error('Invoice settings not found');
-
-  const { data: shopSettingsRows } = await admin
-    .from('shop_settings')
-    .select('currency')
-    .eq('shop_id', shop.id)
-    .limit(1);
-
-  const shopCurrency = shopSettingsRows?.[0]?.currency || 'XOF';
-
-  const calc = calculateInvoice(
-    parsed.lines,
-    {
-      enableTax: settings.enable_tax ?? false,
-      taxRate: settings.tax_rate,
-      enableGlobalDiscount: settings.enable_global_discount ?? false,
-      enableLineDiscount: settings.enable_line_discount ?? false,
-      enableShipping: settings.enable_shipping ?? false,
-      enableRounding: settings.enable_rounding ?? false,
-      roundingPrecision: settings.rounding_precision,
-    },
-    parsed.globalDiscountRate ?? 0,
-    parsed.shippingFee ?? 0,
-  );
-
-  const year = new Date().getFullYear();
-  const prefix = settings.invoice_prefix || 'FACT-';
-  const nextNum = parseInt(settings.next_invoice_number || '1');
-  const number = `${prefix}${year}-${String(nextNum).padStart(4, '0')}`;
-
-  const { data: invoice, error: invoiceError } = await admin
-    .from('invoices')
-    .insert({
-      shop_id: shop.id,
-      invoice_number: number,
-      client_name: parsed.clientName,
-      client_phone: parsed.clientPhone || null,
-      status: 'DRAFT',
-      currency: shopCurrency,
-      subtotal: String(calc.subtotal),
-      line_discount_total: String(calc.lineDiscountTotal),
-      global_discount: String(calc.globalDiscount),
-      shipping_fee: String(calc.shippingFee),
-      tax_amount: String(calc.taxAmount),
-      rounding_adjustment: String(calc.roundingAdjustment),
-      total: String(calc.total),
-      amount_paid: '0',
-      balance_due: String(calc.total),
-      created_by: user.id,
-    })
-    .select()
-    .single();
-
-  if (invoiceError) throw new Error(`Failed to create invoice: ${invoiceError.message}`);
-  if (!invoice) throw new Error('Invoice creation returned no data');
-
-  const linesData = parsed.lines.map((line: z.infer<typeof InvoiceLineSchema>, i: number) => {
-    const lineSubtotal = line.quantity * line.unitPrice;
-    const discountAmount = line.discountRate ? lineSubtotal * line.discountRate : 0;
-    return {
-      invoice_id: invoice.id,
-      product_id: line.productId || null,
-      description: line.description,
-      quantity: String(line.quantity),
-      unit_price: String(line.unitPrice),
-      discount_rate: String(line.discountRate || 0),
-      discount_amount: String(discountAmount),
-      line_total: String(lineSubtotal - discountAmount),
-      sort_order: String(i),
+    const rawData = {
+      clientName: formData.get('clientName') as string,
+      clientPhone: formData.get('clientPhone') as string,
+      lines: JSON.parse(formData.get('lines') as string) as z.infer<typeof InvoiceLineSchema>[],
     };
-  });
 
-  const { error: linesError } = await admin.from('invoice_lines').insert(linesData);
-  if (linesError) throw new Error(`Failed to create invoice lines: ${linesError.message}`);
+    let parsed: z.infer<typeof CreateInvoiceSchema>;
+    try {
+      parsed = CreateInvoiceSchema.parse(rawData);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const messages = err.issues.map((e) => e.message).join(', ');
+        return { success: false, error: messages } as const;
+      }
+      throw err;
+    }
 
-  const { data: updated } = await admin
-    .from('invoice_settings')
-    .update({ next_invoice_number: String(nextNum + 1) })
-    .eq('id', settings.id)
-    .eq('next_invoice_number', String(nextNum))
-    .select('next_invoice_number')
-    .single();
+    const settings = await ensureInvoiceSettings(shop.id);
 
-  if (!updated) throw new Error('Conflit de numérotation, réessayez');
+    const { data: shopSettingsRows } = await admin
+      .from('shop_settings')
+      .select('currency')
+      .eq('shop_id', shop.id)
+      .limit(1);
 
-  revalidatePath('/invoices');
-  return { invoice, invoiceNumber: number };
+    const shopCurrency = shopSettingsRows?.[0]?.currency || 'XOF';
+
+    const calc = calculateInvoice(
+      parsed.lines,
+      {
+        enableTax: settings.enable_tax ?? false,
+        taxRate: settings.tax_rate,
+        enableGlobalDiscount: settings.enable_global_discount ?? false,
+        enableLineDiscount: settings.enable_line_discount ?? false,
+        enableShipping: settings.enable_shipping ?? false,
+        enableRounding: settings.enable_rounding ?? false,
+        roundingPrecision: settings.rounding_precision,
+      },
+      parsed.globalDiscountRate ?? 0,
+      parsed.shippingFee ?? 0,
+    );
+
+    const year = new Date().getFullYear();
+    const prefix = settings.invoice_prefix || 'FACT-';
+
+    let nextNum = parseInt(settings.next_invoice_number || '1');
+    let number = '';
+
+    const MAX_RETRIES = 3;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const currentSettings = attempt === 0
+        ? settings
+        : await ensureInvoiceSettings(shop.id);
+
+      nextNum = parseInt(currentSettings.next_invoice_number || '1');
+      number = `${prefix}${year}-${String(nextNum).padStart(4, '0')}`;
+
+      const { data: updated } = await admin
+        .from('invoice_settings')
+        .update({ next_invoice_number: String(nextNum + 1) })
+        .eq('id', currentSettings.id)
+        .eq('next_invoice_number', String(nextNum))
+        .select('next_invoice_number')
+        .single();
+
+      if (updated) {
+        break;
+      }
+
+      if (attempt === MAX_RETRIES - 1) {
+        return { success: false, error: 'Conflit de numérotation, veuillez réessayer' } as const;
+      }
+    }
+
+    if (!number) {
+      return { success: false, error: 'Impossible de générer le numéro de facture' } as const;
+    }
+
+    const { data: invoice, error: invoiceError } = await admin
+      .from('invoices')
+      .insert({
+        shop_id: shop.id,
+        invoice_number: number,
+        client_name: parsed.clientName,
+        client_phone: parsed.clientPhone || null,
+        status: 'DRAFT',
+        currency: shopCurrency,
+        subtotal: String(calc.subtotal),
+        line_discount_total: String(calc.lineDiscountTotal),
+        global_discount: String(calc.globalDiscount),
+        shipping_fee: String(calc.shippingFee),
+        tax_amount: String(calc.taxAmount),
+        rounding_adjustment: String(calc.roundingAdjustment),
+        total: String(calc.total),
+        amount_paid: '0',
+        balance_due: String(calc.total),
+        created_by: user.id,
+      })
+      .select()
+      .single();
+
+    if (invoiceError) return { success: false, error: `Erreur lors de la création: ${invoiceError.message}` } as const;
+    if (!invoice) return { success: false, error: 'La création n\'a retourné aucune donnée' } as const;
+
+    const linesData = parsed.lines.map((line: z.infer<typeof InvoiceLineSchema>, i: number) => {
+      const lineSubtotal = line.quantity * line.unitPrice;
+      const discountAmount = line.discountRate ? lineSubtotal * line.discountRate : 0;
+      return {
+        invoice_id: invoice.id,
+        product_id: line.productId || null,
+        description: line.description,
+        quantity: String(line.quantity),
+        unit_price: String(line.unitPrice),
+        discount_rate: String(line.discountRate || 0),
+        discount_amount: String(discountAmount),
+        line_total: String(lineSubtotal - discountAmount),
+        sort_order: String(i),
+      };
+    });
+
+    const { error: linesError } = await admin.from('invoice_lines').insert(linesData);
+    if (linesError) return { success: false, error: `Erreur sur les lignes: ${linesError.message}` } as const;
+
+    revalidatePath('/invoices');
+    return { success: true, invoice, invoiceNumber: number } as const;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erreur inattendue';
+    return { success: false, error: message } as const;
+  }
 }
 
 export async function validateInvoice(invoiceId: string) {
@@ -134,14 +163,7 @@ export async function validateInvoice(invoiceId: string) {
     .select('*')
     .eq('invoice_id', invoiceId);
 
-  const { data: settingsRows } = await admin
-    .from('invoice_settings')
-    .select('*')
-    .eq('shop_id', shop.id)
-    .limit(1);
-
-  const settings = settingsRows?.[0];
-  if (!settings) throw new Error('Invoice settings not found');
+  const settings = await ensureInvoiceSettings(shop.id);
 
   const calc = calculateInvoice(
     (lines ?? []).map((l: any) => ({

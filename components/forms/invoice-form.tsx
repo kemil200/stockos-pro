@@ -40,6 +40,7 @@ export function InvoiceForm({ products, settings }: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showDiscount, setShowDiscount] = useState(false);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [stockLevels, setStockLevels] = useState<Record<string, number>>({});
@@ -63,6 +64,7 @@ export function InvoiceForm({ products, settings }: Props) {
 
   const onSubmit = useCallback(async (data: FormData) => {
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const linesWithDecimalDiscount = data.lines.map((l) => ({
         ...l,
@@ -77,7 +79,15 @@ export function InvoiceForm({ products, settings }: Props) {
       if (data.shippingFee && data.shippingFee > 0) formData.append('shippingFee', String(data.shippingFee));
 
       const result = await createInvoice(formData);
+
+      if (!result.success) {
+        setSubmitError(result.error);
+        return;
+      }
+
       router.replace(`/invoices/${result.invoice.id}?print=true`);
+    } catch {
+      setSubmitError('Une erreur inattendue est survenue');
     } finally {
       setSubmitting(false);
     }
@@ -273,6 +283,12 @@ export function InvoiceForm({ products, settings }: Props) {
             shippingFee={shippingFee}
           />
         </div>
+
+        {submitError && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            {submitError}
+          </div>
+        )}
 
         <div className="hidden md:flex justify-end gap-3">
           <button

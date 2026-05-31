@@ -65,9 +65,15 @@ export default function NewProductPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Prix unitaire *</label>
+                <label className="text-sm font-medium">Prix de vente *</label>
                 <Input name="unitPrice" type="number" step="1" required />
               </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Prix d'achat</label>
+                <Input name="purchasePrice" type="number" step="1" placeholder="Coût de revient" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Unité</label>
                 <Select value={unitType} onValueChange={(v) => v && setUnitType(v)}>

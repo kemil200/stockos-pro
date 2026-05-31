@@ -71,7 +71,7 @@ export function InvoiceForm({ products, settings }: Props) {
       if (data.shippingFee && data.shippingFee > 0) formData.append('shippingFee', String(data.shippingFee));
 
       const result = await createInvoice(formData);
-      router.push(`/invoices/${result.invoice.id}?print=true`);
+      router.replace(`/invoices/${result.invoice.id}?print=true`);
     } finally {
       setSubmitting(false);
     }

@@ -156,12 +156,55 @@
 
 @layer base {
   @media print {
-    body * { visibility: hidden; }
-    body > .print-area,
-    body > .print-area * { visibility: visible; }
-    .print-area { position: absolute; left: 0; top: 0; width: 100%; }
-    @page { margin: 1.5cm; size: A4; }
+    @page { margin: 0.8cm; size: A4; }
+    html, body {
+      background: white !important;
+      color: black !important;
+      font-size: 11px !important;
+      line-height: 1.4 !important;
+    }
+    .print-area { display: block !important; }
+    .print-area, .print-area * { visibility: visible !important; }
+    .print-area {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      background: white !important;
+      padding: 0;
+    }
+    .print-area table { width: 100%; border-collapse: collapse; }
+    .print-area th {
+      text-align: left;
+      padding: 5px 4px;
+      font-size: 10px;
+      font-weight: 600;
+      border-bottom: 2px solid #000;
+    }
+    .print-area td {
+      padding: 4px;
+      font-size: 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    .print-area .text-right { text-align: right !important; }
+    .print-area .font-bold { font-weight: 700 !important; }
+    .print-area .border-t { border-top: 2px solid #000 !important; }
+    .print-area .pt-2 { padding-top: 6px !important; }
+    .print-area .mb-6 { margin-bottom: 1.5rem !important; }
+    .print-area .text-center { text-align: center !important; }
+    .print-area .text-xs { font-size: 10px !important; }
+    .print-area .text-lg { font-size: 14px !important; }
+    .print-area .text-base { font-size: 12px !important; }
+    .print-only { display: block !important; }
+    .print-hide { display: none !important; }
+
+    nav, .btn, button, form,
+    .sidebar, .bottom-nav,
+    .fixed { display: none !important; }
+
+    body > *:not(.print-area) { visibility: hidden !important; }
   }
+  .print-only { display: none; }
 }
 
 @layer utilities {

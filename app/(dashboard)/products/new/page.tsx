@@ -21,8 +21,7 @@ export default function NewProductPage() {
       const formData = new FormData(e.currentTarget);
       formData.set('unitType', unitType);
       await createProduct(formData);
-      router.push('/products');
-      router.refresh();
+      router.replace('/products');
     } finally {
       setSubmitting(false);
     }

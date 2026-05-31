@@ -17,21 +17,26 @@ export async function getCurrentShop() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new TenantError('Unauthorized');
 
-  const [shop] = await db
-    .select()
-    .from(shops)
-    .where(eq(shops.userId, user.id));
+  try {
+    const [shop] = await db
+      .select()
+      .from(shops)
+      .where(eq(shops.userId, user.id));
 
-  if (!shop) throw new TenantError('Shop not found');
+    if (!shop) throw new TenantError('Shop not found');
 
-  const [shopUser] = await db
-    .select()
-    .from(users)
-    .where(and(eq(users.authUserId, user.id), eq(users.shopId, shop.id)));
+    const [shopUser] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.authUserId, user.id), eq(users.shopId, shop.id)));
 
-  if (!shopUser) throw new TenantError('User not found in shop');
+    if (!shopUser) throw new TenantError('User not found in shop');
 
-  return { shop, user: shopUser };
+    return { shop, user: shopUser };
+  } catch (e) {
+    if (e instanceof TenantError) throw e;
+    throw new TenantError('Database unavailable');
+  }
 }
 
 export async function getShopById(shopId: string) {

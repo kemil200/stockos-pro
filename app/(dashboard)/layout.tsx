@@ -15,7 +15,13 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
-  const [shop] = await db.select().from(shops).where(eq(shops.userId, user.id));
+  let shop;
+  try {
+    [shop] = await db.select().from(shops).where(eq(shops.userId, user.id));
+  } catch {
+    redirect('/sign-in');
+  }
+
   if (!shop) redirect('/onboarding');
 
   return (

@@ -4,25 +4,41 @@ import { InvoiceFilters } from '@/components/invoices/invoice-filters';
 import { InvoiceTable } from '@/components/invoices/invoice-table';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
+
+const PAGE_SIZE = 50;
+
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { status, q, page } = await searchParams;
+  const currentPage = Math.max(1, parseInt(page || '1', 10) || 1);
   const { shop } = await getCurrentShop();
   const admin = createAdminClient();
 
   let query = admin
     .from('invoices')
-    .select('*')
+    .select('*', { count: 'exact', head: false })
     .eq('shop_id', shop.id);
 
   if (status && status !== '') {
     query = query.eq('status', status);
   }
 
-  const { data: allInvoices } = await query.order('created_at', { ascending: false });
+  if (q && q.trim() !== '') {
+    query = query.or(`client_name.ilike.%${q}%,invoice_number.ilike.%${q}%`);
+  }
+
+  const from = (currentPage - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data: allInvoices, count } = await query
+    .order('created_at', { ascending: false })
+    .range(from, to)
+    .limit(PAGE_SIZE);
+
+  const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -30,7 +46,7 @@ export default async function InvoicesPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Factures</h1>
           <p className="text-sm text-muted-foreground">
-            {allInvoices?.length ?? 0} facture{(allInvoices?.length ?? 0) !== 1 ? 's' : ''}
+            {count ?? 0} facture{(count ?? 0) !== 1 ? 's' : ''}
           </p>
         </div>
         <Link href="/invoices/new" className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/80 transition-colors">
@@ -39,8 +55,8 @@ export default async function InvoicesPage({
         </Link>
       </div>
 
-      <InvoiceFilters currentStatus={status} />
-      <InvoiceTable invoices={allInvoices ?? []} />
+      <InvoiceFilters currentStatus={status} currentQ={q} />
+      <InvoiceTable invoices={allInvoices ?? []} currentPage={currentPage} totalPages={totalPages} currentStatus={status} currentQ={q} />
     </div>
   );
 }

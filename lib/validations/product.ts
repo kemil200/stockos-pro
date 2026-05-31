@@ -6,6 +6,7 @@ export const CreateProductSchema = z.object({
   barcode: z.string().optional(),
   description: z.string().optional(),
   unitPrice: z.coerce.number().min(0, 'Prix ≥ 0'),
+  purchasePrice: z.coerce.number().min(0).optional(),
   unitType: z.enum(['UNITY', 'KG', 'LITER', 'METER', 'BOX', 'PACK']).default('UNITY'),
   category: z.string().optional(),
 });

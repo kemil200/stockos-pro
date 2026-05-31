@@ -16,21 +16,13 @@ export async function getCurrentShop() {
 
   const admin = createAdminClient();
 
-  const { data: shops } = await admin
-    .from('shops')
-    .select('*')
-    .eq('user_id', user.id)
-    .limit(1);
+  const [{ data: shops }, { data: shopUsers }] = await Promise.all([
+    admin.from('shops').select('*').eq('user_id', user.id).limit(1),
+    admin.from('users').select('*').eq('auth_user_id', user.id),
+  ]);
 
   const shop = shops?.[0] ?? null;
   if (!shop) throw new TenantError('Shop not found');
-
-  const { data: shopUsers } = await admin
-    .from('users')
-    .select('*')
-    .eq('auth_user_id', user.id)
-    .eq('shop_id', shop.id)
-    .limit(1);
 
   const shopUser = shopUsers?.[0] ?? null;
   if (!shopUser) throw new TenantError('User not found in shop');

@@ -1,0 +1,34 @@
+'use client';
+
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { formatCurrency } from '@/lib/utils/currency';
+
+interface DataPoint {
+  date: string;
+  revenue: number;
+}
+
+export function RevenueChart({ data }: { data: DataPoint[] }) {
+  return (
+    <div className="h-64 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 11 }}
+            tickFormatter={(val: string) => {
+              const d = new Date(val);
+              return `${d.getDate()}/${d.getMonth() + 1}`;
+            }}
+          />
+          <YAxis tick={{ fontSize: 11 }} tickFormatter={(val: number) => `${Math.round(val / 1000)}k`} />
+          <Tooltip
+            formatter={(value: number) => [formatCurrency(value), 'Revenu']}
+            labelFormatter={(label: string) => new Date(label).toLocaleDateString('fr-FR')}
+          />
+          <Bar dataKey="revenue" fill="#059669" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

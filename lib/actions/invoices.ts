@@ -101,10 +101,15 @@ export async function createInvoice(formData: FormData) {
   const { error: linesError } = await admin.from('invoice_lines').insert(linesData);
   if (linesError) throw new Error(`Failed to create invoice lines: ${linesError.message}`);
 
-  await admin
+  const { data: updated } = await admin
     .from('invoice_settings')
     .update({ next_invoice_number: String(nextNum + 1) })
-    .eq('id', settings.id);
+    .eq('id', settings.id)
+    .eq('next_invoice_number', String(nextNum))
+    .select('next_invoice_number')
+    .single();
+
+  if (!updated) throw new Error('Conflit de numérotation, réessayez');
 
   revalidatePath('/invoices');
   return { invoice, invoiceNumber: number };
@@ -155,6 +160,23 @@ export async function validateInvoice(invoiceId: string) {
     },
   );
 
+  const productIds = (lines ?? []).filter(l => l.product_id).map(l => l.product_id);
+
+  const { data: stockItems } = productIds.length > 0
+    ? await admin.from('stock_items').select('*').in('product_id', productIds).eq('shop_id', shop.id)
+    : { data: [] };
+
+  const stockMap = new Map((stockItems ?? []).map((s: any) => [s.product_id, s]));
+
+  for (const line of (lines ?? [])) {
+    if (line.product_id) {
+      const stockItem = stockMap.get(line.product_id);
+      if (stockItem && Number(stockItem.quantity) - Number(line.quantity) < 0) {
+        throw new Error(`Stock insuffisant pour ${line.description}`);
+      }
+    }
+  }
+
   const { error: updateError } = await admin
     .from('invoices')
     .update({
@@ -176,22 +198,8 @@ export async function validateInvoice(invoiceId: string) {
 
   for (const line of (lines ?? [])) {
     if (line.product_id) {
-      const { data: stockItem } = await admin
-        .from('stock_items')
-        .select('*')
-        .eq('shop_id', shop.id)
-        .eq('product_id', line.product_id)
-        .single();
-
+      const stockItem = stockMap.get(line.product_id);
       if (stockItem) {
-        const newQty = Number(stockItem.quantity) - Number(line.quantity);
-        if (newQty < 0) throw new Error(`Stock insuffisant pour le produit ${line.description}`);
-
-        await admin
-          .from('stock_items')
-          .update({ quantity: String(newQty) })
-          .eq('id', stockItem.id);
-
         await admin.from('stock_movements').insert({
           shop_id: shop.id,
           product_id: line.product_id,

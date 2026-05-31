@@ -15,6 +15,7 @@ export async function createProduct(formData: FormData) {
     barcode: formData.get('barcode'),
     description: formData.get('description'),
     unitPrice: formData.get('unitPrice'),
+    purchasePrice: formData.get('purchasePrice'),
     unitType: formData.get('unitType'),
     category: formData.get('category'),
   });
@@ -28,6 +29,7 @@ export async function createProduct(formData: FormData) {
       barcode: parsed.barcode || null,
       description: parsed.description || null,
       unit_price: String(parsed.unitPrice),
+      purchase_price: parsed.purchasePrice != null ? String(parsed.purchasePrice) : '0',
       unit_type: parsed.unitType,
       category: parsed.category || null,
     })
@@ -71,17 +73,15 @@ export async function adjustStock(formData: FormData) {
 
   if (!stockItem) throw new Error('Stock item not found');
 
-  const currentQty = Number(stockItem.quantity);
-  const diff = parsed.newQuantity - currentQty;
-
-  if (diff !== 0) {
+  if (parsed.newQuantity !== Number(stockItem.quantity)) {
     const { error: movementError } = await admin
       .from('stock_movements')
       .insert({
         shop_id: shop.id,
         product_id: parsed.productId,
+        stock_item_id: stockItem.id,
         movement_type: 'ADJUSTMENT',
-        quantity: diff,
+        quantity: String(parsed.newQuantity),
         reason: parsed.reason || 'Ajustement manuel',
         created_by: user.id,
       });
@@ -91,4 +91,38 @@ export async function adjustStock(formData: FormData) {
 
   revalidatePath('/stock');
   return { success: true };
+}
+
+export async function getStockHistory(productId: string) {
+  const { shop } = await getCurrentShop();
+  const admin = createAdminClient();
+
+  const { data: movements } = await admin
+    .from('stock_movements')
+    .select('*')
+    .eq('shop_id', shop.id)
+    .eq('product_id', productId)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  return movements ?? [];
+}
+
+export async function getStockLevel(productId: string) {
+  const { shop } = await getCurrentShop();
+  const admin = createAdminClient();
+
+  const { data: item } = await admin
+    .from('stock_items')
+    .select('quantity')
+    .eq('shop_id', shop.id)
+    .eq('product_id', productId)
+    .single();
+
+  return item ? Number(item.quantity) : 0;
+}
+
+export function marginRate(salePrice: number, purchasePrice: number): number | null {
+  if (!purchasePrice) return null;
+  return ((salePrice - purchasePrice) / purchasePrice) * 100;
 }

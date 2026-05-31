@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { InvoiceStatusBadge } from './invoice-status-badge';
 import { formatCurrency } from '@/lib/utils/currency';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface InvoiceRow {
   id: string;
@@ -11,7 +12,18 @@ interface InvoiceRow {
   created_at: string;
 }
 
-export function InvoiceTable({ invoices }: { invoices: InvoiceRow[] }) {
+function buildPageUrl(page: number, currentStatus?: string, currentQ?: string) {
+  const params = new URLSearchParams();
+  if (page > 1) params.set('page', String(page));
+  if (currentStatus) params.set('status', currentStatus);
+  if (currentQ) params.set('q', currentQ);
+  const qs = params.toString();
+  return `/invoices${qs ? `?${qs}` : ''}`;
+}
+
+export function InvoiceTable({ invoices, currentPage, totalPages, currentStatus, currentQ }: { invoices: InvoiceRow[]; currentPage: number; totalPages: number; currentStatus?: string; currentQ?: string }) {
+  const btnClass = 'inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded-lg hover:bg-zinc-50 transition-colors';
+
   return (
     <div className="bg-white rounded-xl border overflow-hidden">
       <table className="w-full">
@@ -60,6 +72,26 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceRow[] }) {
           )}
         </tbody>
       </table>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 border-t">
+          <span className="text-sm text-zinc-500">
+            Page {currentPage} / {totalPages}
+          </span>
+          <div className="flex gap-2">
+            {currentPage > 1 && (
+              <Link href={buildPageUrl(currentPage - 1, currentStatus, currentQ)} className={btnClass}>
+                <ChevronLeft className="size-4" /> Précédent
+              </Link>
+            )}
+            {currentPage < totalPages && (
+              <Link href={buildPageUrl(currentPage + 1, currentStatus, currentQ)} className={btnClass}>
+                Suivant <ChevronRight className="size-4" />
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

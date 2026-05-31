@@ -1,8 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { adjustStock } from '@/lib/actions/products';
+import { adjustStock, getStockHistory } from '@/lib/actions/products';
+
+interface StockMovementRow {
+  id: string;
+  movement_type: string;
+  quantity: string;
+  reason: string | null;
+  created_at: string;
+}
 
 interface Props {
   productId: string;
@@ -15,6 +23,17 @@ export function StockAdjustButton({ productId, productName, currentQty }: Props)
   const [open, setOpen] = useState(false);
   const [qty, setQty] = useState(currentQty);
   const [submitting, setSubmitting] = useState(false);
+  const [history, setHistory] = useState<StockMovementRow[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    if (open && productId) {
+      setLoadingHistory(true);
+      getStockHistory(productId)
+        .then(setHistory)
+        .finally(() => setLoadingHistory(false));
+    }
+  }, [open, productId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +51,11 @@ export function StockAdjustButton({ productId, productName, currentQty }: Props)
     }
   };
 
+  const typeLabel = (t: string) => {
+    const labels: Record<string, string> = { IN: 'Entrée', OUT: 'Sortie', SALE: 'Vente', ADJUSTMENT: 'Ajustement' };
+    return labels[t] || t;
+  };
+
   return (
     <>
       <button
@@ -44,10 +68,11 @@ export function StockAdjustButton({ productId, productName, currentQty }: Props)
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-semibold text-base mb-1">{productName}</h3>
             <p className="text-sm text-zinc-500 mb-4">Stock actuel : <span className="font-medium">{currentQty}</span></p>
-            <form onSubmit={handleSubmit} className="space-y-4">
+
+            <form onSubmit={handleSubmit} className="space-y-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-1">Nouvelle quantité</label>
                 <input
@@ -77,6 +102,26 @@ export function StockAdjustButton({ productId, productName, currentQty }: Props)
                 </button>
               </div>
             </form>
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-semibold text-zinc-700 mb-2">Derniers mouvements</h4>
+              {loadingHistory ? (
+                <p className="text-xs text-zinc-400">Chargement...</p>
+              ) : history.length === 0 ? (
+                <p className="text-xs text-zinc-400">Aucun mouvement</p>
+              ) : (
+                <div className="space-y-2">
+                  {history.map((m) => (
+                    <div key={m.id} className="flex items-center justify-between text-xs">
+                      <span className="text-zinc-500">{new Date(m.created_at).toLocaleDateString('fr-FR')}</span>
+                      <span className="font-medium">{typeLabel(m.movement_type)}</span>
+                      <span className="tabular-nums">{m.quantity}</span>
+                      <span className="text-zinc-400 truncate max-w-[80px]">{m.reason || '-'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

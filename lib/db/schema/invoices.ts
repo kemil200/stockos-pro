@@ -51,6 +51,7 @@ export const invoices = pgTable('invoices', {
   validations: jsonb('validations').default([]),
   validatedAt: timestamp('validated_at', { withTimezone: true }),
   validatedBy: uuid('validated_by').references(() => users.id),
+  paidAt: timestamp('paid_at', { withTimezone: true }),
   createdBy: uuid('created_by').notNull().references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

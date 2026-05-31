@@ -9,6 +9,7 @@ export const products = pgTable('products', {
   barcode: text('barcode'),
   description: text('description'),
   unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull(),
+  purchasePrice: numeric('purchase_price', { precision: 12, scale: 2 }).default('0'),
   unitType: text('unit_type').notNull().default('UNITY'),
   category: text('category'),
   isActive: boolean('is_active').notNull().default(true),

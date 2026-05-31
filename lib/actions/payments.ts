@@ -4,6 +4,7 @@ import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { revalidatePath } from 'next/cache';
 import { PaymentSchema } from '@/lib/validations/invoice';
+import { auditLog, AuditAction } from '@/lib/audit';
 
 export async function recordPayment(formData: FormData) {
   const { shop, user } = await getCurrentShop();
@@ -55,13 +56,18 @@ export async function recordPayment(formData: FormData) {
 
   const newStatus = newPaid >= total ? 'PAID' : 'PARTIALLY_PAID';
 
+  const updateFields: Record<string, string> = {
+    amount_paid: String(newPaid),
+    balance_due: String(total - newPaid),
+    status: newStatus,
+  };
+  if (newStatus === 'PAID') {
+    updateFields.paid_at = new Date().toISOString();
+  }
+
   const { error: updateError } = await admin
     .from('invoices')
-    .update({
-      amount_paid: String(newPaid),
-      balance_due: String(total - newPaid),
-      status: newStatus,
-    })
+    .update(updateFields)
     .eq('id', parsed.invoiceId);
 
   if (updateError) throw new Error(`Failed to update invoice: ${updateError.message}`);
@@ -74,6 +80,15 @@ export async function recordPayment(formData: FormData) {
     reference_id: payment.id,
     description: `Paiement facture ${invoice.invoice_number}`,
     created_by: user.id,
+  });
+
+  await auditLog({
+    shopId: shop.id,
+    userId: user.id,
+    action: AuditAction.PAYMENT_RECEIVED,
+    entityType: 'payment',
+    entityId: payment.id,
+    metadata: { amount: parsed.amount, method: parsed.method, invoiceId: parsed.invoiceId },
   });
 
   revalidatePath(`/invoices/${parsed.invoiceId}`);

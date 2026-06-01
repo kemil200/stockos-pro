@@ -55,8 +55,6 @@ export function InvoiceForm({ products, settings }: Props) {
     },
   });
 
-  const submitRef = useRef<(() => Promise<void>) | null>(null);
-
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' });
   const watchedLines = watch('lines');
   const globalDiscountRate = watch('globalDiscountRate');
@@ -98,8 +96,6 @@ export function InvoiceForm({ products, settings }: Props) {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
-  submitRef.current = handleSubmit(onSubmit, handleFormError);
-
   const selectProduct = useCallback(async (index: number, productId: string) => {
     const product = products.find((p) => p.id === productId);
     if (product) {
@@ -116,7 +112,7 @@ export function InvoiceForm({ products, settings }: Props) {
 
   return (
     <>
-      <form ref={formRef} onSubmit={handleSubmit(onSubmit, handleFormError)} className="pb-40 md:pb-8">
+      <form ref={formRef} id="invoice-form" onSubmit={handleSubmit(onSubmit, handleFormError)} className="pb-40 md:pb-8">
         {/* Client — minimal, sans titre */}
         <div className="bg-white rounded-2xl border border-zinc-200/80 p-5 sm:p-6 mb-4">
           <input
@@ -335,9 +331,9 @@ export function InvoiceForm({ products, settings }: Props) {
             Annuler
           </button>
           <button
-            type="button"
+            type="submit"
+            form="invoice-form"
             disabled={submitting}
-            onClick={() => submitRef.current?.()}
             className="flex-1 px-4 py-3 bg-zinc-900 text-white rounded-xl text-sm font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-all"
           >
             {submitting ? 'Création...' : 'Créer'}

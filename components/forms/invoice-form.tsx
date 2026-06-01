@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
-import { Trash2, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
 import { createInvoice } from '@/lib/actions/invoices';
 import { getStockLevel } from '@/lib/actions/products';
 import { InvoicePreview } from '@/components/invoices/invoice-preview';
@@ -42,7 +42,6 @@ export function InvoiceForm({ products, settings }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showDiscount, setShowDiscount] = useState(false);
-  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [stockLevels, setStockLevels] = useState<Record<string, number>>({});
 
   const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<InvoiceFormData>({
@@ -264,8 +263,12 @@ export function InvoiceForm({ products, settings }: Props) {
           )}
         </div>
 
-        {/* Aperçu desktop */}
-        <div className="hidden md:block mt-6">
+        {/* Aperçu mobile */}
+        <div className="md:hidden mt-4 bg-white rounded-2xl border border-zinc-200/80 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm text-zinc-500">{totalItems} article(s)</span>
+            <span className="font-bold text-lg tabular-nums">{formatCurrency(previewCalc)}</span>
+          </div>
           <InvoicePreview
             lines={watchedLines as any}
             settings={settings}
@@ -280,7 +283,7 @@ export function InvoiceForm({ products, settings }: Props) {
           </div>
         )}
 
-        {/* Desktop submit */}
+        {/* Boutons desktop */}
         <div className="hidden md:flex justify-end gap-3 mt-6">
           <button
             type="button"
@@ -297,49 +300,25 @@ export function InvoiceForm({ products, settings }: Props) {
             {submitting ? 'Création...' : 'Créer la facture'}
           </button>
         </div>
-      </form>
 
-      {/* Mobile sticky footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-zinc-200/80 z-50 md:hidden safe-area-bottom">
-        <button
-          type="button"
-          onClick={() => setMobilePreviewOpen(!mobilePreviewOpen)}
-          className="w-full flex items-center justify-between px-4 py-3"
-        >
-          <span className="text-sm text-zinc-500">{totalItems} article(s)</span>
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-base tabular-nums">{formatCurrency(previewCalc)}</span>
-            {mobilePreviewOpen ? <ChevronDown className="size-4 text-zinc-400" /> : <ChevronUp className="size-4 text-zinc-400" />}
-          </div>
-        </button>
-        {mobilePreviewOpen && (
-          <div className="px-4 pb-2">
-            <InvoicePreview
-              lines={watchedLines as any}
-              settings={settings}
-              globalDiscountRate={globalDiscountRate}
-              shippingFee={shippingFee}
-            />
-          </div>
-        )}
-        <div className="flex gap-3 px-4 pb-4 pt-1">
+        {/* Boutons mobile — inline dans le flux */}
+        <div className="md:hidden mt-4 space-y-3 pb-4">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full py-3.5 bg-zinc-900 text-white rounded-2xl text-base font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-all shadow-sm active:scale-[0.98]"
+          >
+            {submitting ? 'Création de la facture...' : 'Créer la facture'}
+          </button>
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm font-medium hover:bg-zinc-50 transition-colors"
+            className="w-full py-3 border border-zinc-200 rounded-2xl text-sm font-medium text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 transition-colors"
           >
             Annuler
           </button>
-          <button
-            type="submit"
-            form="invoice-form"
-            disabled={submitting}
-            className="flex-1 px-4 py-3 bg-zinc-900 text-white rounded-xl text-sm font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-all"
-          >
-            {submitting ? 'Création...' : 'Créer'}
-          </button>
         </div>
-      </div>
+      </form>
     </>
   );
 }

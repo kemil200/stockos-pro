@@ -95,7 +95,9 @@ export default async function DashboardPage() {
     <div className="space-y-5 lg:space-y-7">
       <div>
         <h1 className="text-2xl sm:text-3xl font-heading font-bold tracking-tight">{shop.name}</h1>
-        <p className="text-sm text-zinc-500 mt-1">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+        <p className="text-sm text-zinc-500 mt-1" suppressHydrationWarning>
+          {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

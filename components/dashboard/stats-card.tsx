@@ -22,7 +22,7 @@ export function StatsCard({
   trend?: { value: string; direction: 'up' | 'down' };
 }) {
   return (
-    <Card className="border-zinc-200/80 shadow-sm hover:shadow-md transition-all duration-200 hover:border-zinc-300">
+    <Card className="t-panel-slide border-zinc-200/80 shadow-sm hover:shadow-md transition-all duration-200 hover:border-zinc-300" data-open="true">
       <CardContent className="p-5 lg:p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1.5 min-w-0">

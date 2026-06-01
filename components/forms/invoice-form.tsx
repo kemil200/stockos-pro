@@ -91,8 +91,15 @@ export function InvoiceForm({ products, settings }: Props) {
   }, [router]);
 
   const handleFormError = () => {
-    const el = formRef.current?.querySelector('[aria-invalid="true"], .text-red-500');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const el = formRef.current?.querySelector('[aria-invalid="true"], .t-input');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const input = el.querySelector('.t-input') || el.closest('.t-input') || el;
+      input.classList.remove('is-shaking');
+      void (input as HTMLElement).offsetWidth;
+      input.classList.add('is-shaking');
+      setTimeout(() => input.classList.remove('is-shaking'), 300);
+    }
   };
 
   const selectProduct = useCallback(async (index: number, productId: string) => {
@@ -113,14 +120,18 @@ export function InvoiceForm({ products, settings }: Props) {
     <>
       <form ref={formRef} id="invoice-form" onSubmit={handleSubmit(onSubmit, handleFormError)} className="pb-40 md:pb-8">
         {/* Client — minimal, sans titre */}
-        <div className="bg-white rounded-2xl border border-zinc-200/80 p-5 sm:p-6 mb-4">
-          <input
-            {...register('clientName', { required: true })}
-            className="w-full text-lg font-semibold py-3 border-b-2 border-zinc-200 focus:border-zinc-900 outline-none transition-colors placeholder:text-zinc-300 placeholder:font-normal"
-            placeholder="Nom du client"
-            autoFocus
-          />
-          {errors.clientName && <p className="text-red-500 text-xs mt-1.5 ml-1">Nom requis</p>}
+        <div className={`bg-white rounded-2xl border p-5 sm:p-6 mb-4 ${errors.clientName ? 'border-red-300' : 'border-zinc-200/80'}`}>
+          <div className="t-input-wrap">
+            <div className={`t-input ${errors.clientName ? 'is-error' : ''}`}>
+              <input
+                {...register('clientName', { required: true })}
+                className="w-full text-lg font-semibold py-3 border-b-2 border-zinc-200 focus:border-zinc-900 outline-none transition-colors placeholder:text-zinc-300 placeholder:font-normal"
+                placeholder="Nom du client"
+                autoFocus
+              />
+            </div>
+            {errors.clientName && <p className="t-error-msg text-red-500 text-xs mt-1.5 ml-1">Nom requis</p>}
+          </div>
           <input
             {...register('clientPhone')}
             className="w-full text-sm py-2.5 border-b border-zinc-100 focus:border-zinc-400 outline-none transition-colors placeholder:text-zinc-300 mt-2"

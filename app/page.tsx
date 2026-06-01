@@ -5,7 +5,7 @@ import {
   Store, FileText, Package, Wallet, TrendingUp,
   Shield, Receipt, CreditCard, ArrowRight, Check,
   BarChart3, Warehouse, Clock, Globe, Sparkles,
-  ChevronRight, Star,
+  ChevronRight, Star, Smartphone, Download,
 } from 'lucide-react';
 
 function isRedirectError(err: unknown): boolean {
@@ -94,6 +94,9 @@ export default async function Home() {
               <p className="text-base sm:text-lg text-zinc-500 max-w-2xl mx-auto leading-relaxed mb-10">
                 Facturation, gestion de stock, caisse enregistreuse et suivi des paiements.
                 Une solution complète conçue pour les réalités des PME ouest-africaines.
+                <span className="block mt-3 text-sm text-zinc-400">
+                  Accessible depuis votre téléphone, sans installation. Installez-le sur votre écran d&apos;accueil en un clic.
+                </span>
               </p>
               <div className="flex items-center justify-center gap-4 flex-wrap">
                 <Link
@@ -163,6 +166,7 @@ export default async function Home() {
                 { icon: TrendingUp, title: 'Rapports', desc: 'Analysez vos performances avec des tableaux de bord clairs.', accent: 'bg-zinc-900 text-white' },
                 { icon: Shield, title: 'Sécurisé', desc: 'Vos données sont chiffrées et sauvegardées automatiquement.', accent: 'bg-zinc-800 text-white' },
                 { icon: Globe, title: 'Multi-devises', desc: 'Travaillez en FCFA, EUR, USD et autres devises.', accent: 'bg-zinc-700 text-white' },
+                { icon: Smartphone, title: 'Mode hors-ligne / PWA', desc: 'Aucune installation nécessaire. Ajoutez-le à votre téléphone en un geste et utilisez-le comme une app native.', accent: 'bg-zinc-800 text-white' },
               ].map((f) => (
                 <div
                   key={f.title}

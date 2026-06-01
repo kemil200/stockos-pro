@@ -4,12 +4,13 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
+import { db } from '@/lib/db';
+import { products, stockItems } from '@/lib/db/schema';
 import { CreateProductSchema, AdjustStockSchema } from '@/lib/validations/product';
 
 export async function createProduct(formData: FormData) {
   try {
-    const { shop, user } = await getCurrentShop();
-    const admin = createAdminClient();
+    const { shop } = await getCurrentShop();
 
     const parsed = CreateProductSchema.parse({
       name: formData.get('name'),
@@ -22,38 +23,34 @@ export async function createProduct(formData: FormData) {
       category: formData.get('category') || undefined,
     });
 
-    const { data: product, error: productError } = await admin
-      .from('products')
-      .insert({
-        shop_id: shop.id,
-        name: parsed.name,
-        sku: parsed.sku || null,
-        barcode: parsed.barcode || null,
-        description: parsed.description || null,
-        unit_price: String(parsed.unitPrice),
-        purchase_price: parsed.purchasePrice != null ? String(parsed.purchasePrice) : '0',
-        unit_type: parsed.unitType,
-        category: parsed.category || null,
-      })
-      .select()
-      .single();
+    const result = await db.transaction(async (tx) => {
+      const [product] = await tx
+        .insert(products)
+        .values({
+          shopId: shop.id,
+          name: parsed.name,
+          sku: parsed.sku || null,
+          barcode: parsed.barcode || null,
+          description: parsed.description || null,
+          unitPrice: String(parsed.unitPrice),
+          purchasePrice: parsed.purchasePrice != null ? String(parsed.purchasePrice) : '0',
+          unitType: parsed.unitType,
+          category: parsed.category || null,
+        })
+        .returning();
 
-    if (productError) return { success: false, error: `Erreur création produit: ${productError.message}` } as const;
-    if (!product) return { success: false, error: 'Création produit sans réponse' } as const;
-
-    const { error: stockError } = await admin
-      .from('stock_items')
-      .insert({
-        shop_id: shop.id,
-        product_id: product.id,
+      await tx.insert(stockItems).values({
+        shopId: shop.id,
+        productId: product.id,
         quantity: '0',
-        min_threshold: '0',
+        minThreshold: '0',
       });
 
-    if (stockError) return { success: false, error: `Erreur création stock: ${stockError.message}` } as const;
+      return product;
+    });
 
     revalidatePath('/products');
-    return { success: true, product } as const;
+    return { success: true, product: result } as const;
   } catch (err) {
     if (err instanceof z.ZodError) {
       return { success: false, error: err.issues.map((e) => e.message).join(', ') } as const;
@@ -138,5 +135,3 @@ export async function getStockLevel(productId: string) {
 
   return item ? Number(item.quantity) : 0;
 }
-
-

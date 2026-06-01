@@ -1,5 +1,3 @@
-import 'server-only';
-
 interface LineInput {
   quantity: number;
   unitPrice: number;

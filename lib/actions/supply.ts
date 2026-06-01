@@ -1,8 +1,10 @@
 'use server';
 
 import { z } from 'zod';
+import { eq, and } from 'drizzle-orm';
 import { getCurrentShop } from '@/lib/tenant';
-import { createAdminClient } from '@/lib/server';
+import { db } from '@/lib/db';
+import { stockItems, stockMovements, products, cashMovements } from '@/lib/db/schema';
 import { revalidatePath } from 'next/cache';
 import { auditLog, AuditAction } from '@/lib/audit';
 
@@ -16,7 +18,6 @@ const SupplySchema = z.object({
 export async function purchaseStock(formData: FormData) {
   try {
     const { shop, user } = await getCurrentShop();
-    const admin = createAdminClient();
 
     const parsed = SupplySchema.parse({
       productId: formData.get('productId'),
@@ -25,51 +26,49 @@ export async function purchaseStock(formData: FormData) {
       reason: formData.get('reason') || undefined,
     });
 
-    const { data: stockItem } = await admin
-      .from('stock_items')
-      .select('*')
-      .eq('shop_id', shop.id)
-      .eq('product_id', parsed.productId)
-      .single();
-
-    if (!stockItem) return { success: false, error: 'Produit introuvable en stock' } as const;
-
     const totalCost = parsed.quantity * parsed.unitPrice;
 
-    const { error: movementError } = await admin
-      .from('stock_movements')
-      .insert({
-        shop_id: shop.id,
-        product_id: parsed.productId,
-        stock_item_id: stockItem.id,
-        movement_type: 'IN',
+    await db.transaction(async (tx) => {
+      const [stockItem] = await tx
+        .select()
+        .from(stockItems)
+        .where(and(
+          eq(stockItems.shopId, shop.id),
+          eq(stockItems.productId, parsed.productId),
+        ))
+        .for('update');
+
+      if (!stockItem) throw new Error('Produit introuvable en stock');
+
+      await tx.insert(stockMovements).values({
+        shopId: shop.id,
+        productId: parsed.productId,
+        stockItemId: stockItem.id,
+        movementType: 'IN',
         quantity: String(parsed.quantity),
-        unit_price: String(parsed.unitPrice),
+        unitPrice: String(parsed.unitPrice),
         reason: parsed.reason || 'Approvisionnement',
-        created_by: user.id,
+        createdBy: user.id,
       });
 
-    if (movementError) return { success: false, error: movementError.message } as const;
+      await tx
+        .update(products)
+        .set({ purchasePrice: String(parsed.unitPrice) })
+        .where(and(
+          eq(products.id, parsed.productId),
+          eq(products.shopId, shop.id),
+        ));
 
-    const { error: priceError } = await admin
-      .from('products')
-      .update({ purchase_price: String(parsed.unitPrice) })
-      .eq('id', parsed.productId)
-      .eq('shop_id', shop.id);
-
-    if (priceError) console.error('Failed to update purchase_price:', priceError);
-
-    const { error: cashError } = await admin.from('cash_movements').insert({
-      shop_id: shop.id,
-      movement_type: 'EXPENSE',
-      amount: String(-totalCost),
-      reference_type: 'supply',
-      reference_id: parsed.productId,
-      description: `Achat: ${parsed.reason || 'Approvisionnement'} (${parsed.quantity} × ${parsed.unitPrice})`,
-      created_by: user.id,
+      await tx.insert(cashMovements).values({
+        shopId: shop.id,
+        movementType: 'EXPENSE',
+        amount: String(-totalCost),
+        referenceType: 'supply',
+        referenceId: parsed.productId,
+        description: `Achat: ${parsed.reason || 'Approvisionnement'} (${parsed.quantity} × ${parsed.unitPrice})`,
+        createdBy: user.id,
+      });
     });
-
-    if (cashError) console.error('Failed to record cash movement:', cashError);
 
     try {
       await auditLog({

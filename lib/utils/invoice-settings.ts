@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { createAdminClient } from '@/lib/server';
 
 export interface InvoiceSettings {

@@ -1,18 +1,20 @@
 'use server';
 
 import { z } from 'zod';
+import { eq, and, inArray } from 'drizzle-orm';
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
+import { db } from '@/lib/db';
+import { invoices, invoiceLines, stockItems, stockMovements } from '@/lib/db/schema';
 import { calculateInvoice } from '@/lib/services/invoice-calculator';
+import { getNextInvoiceNumber, ensureInvoiceSettings } from '@/lib/services/invoice-numbering';
 import { revalidatePath } from 'next/cache';
 import { CreateInvoiceSchema, InvoiceLineSchema } from '@/lib/validations/invoice';
-import { ensureInvoiceSettings } from '@/lib/utils/invoice-settings';
 import { auditLog, AuditAction } from '@/lib/audit';
 
 export async function createInvoice(formData: FormData) {
   try {
     const { shop, user } = await getCurrentShop();
-    const admin = createAdminClient();
 
     const rawData = {
       clientName: formData.get('clientName') as string,
@@ -35,6 +37,7 @@ export async function createInvoice(formData: FormData) {
 
     const settings = await ensureInvoiceSettings(shop.id);
 
+    const admin = createAdminClient();
     const { data: shopSettingsRows } = await admin
       .from('shop_settings')
       .select('currency')
@@ -46,99 +49,64 @@ export async function createInvoice(formData: FormData) {
     const calc = calculateInvoice(
       parsed.lines,
       {
-        enableTax: settings.enable_tax ?? false,
-        taxRate: settings.tax_rate,
-        enableGlobalDiscount: settings.enable_global_discount ?? false,
-        enableLineDiscount: settings.enable_line_discount ?? false,
-        enableShipping: settings.enable_shipping ?? false,
-        enableRounding: settings.enable_rounding ?? false,
-        roundingPrecision: settings.rounding_precision,
+        enableTax: settings.enableTax ?? false,
+        taxRate: settings.taxRate,
+        enableGlobalDiscount: settings.enableGlobalDiscount ?? false,
+        enableLineDiscount: settings.enableLineDiscount ?? false,
+        enableShipping: settings.enableShipping ?? false,
+        enableRounding: settings.enableRounding ?? false,
+        roundingPrecision: settings.roundingPrecision,
       },
       parsed.globalDiscountRate ?? 0,
       parsed.shippingFee ?? 0,
     );
 
-    const year = new Date().getFullYear();
-    const prefix = settings.invoice_prefix || 'FACT-';
+    const number = await getNextInvoiceNumber(shop.id);
 
-    let nextNum = parseInt(settings.next_invoice_number || '1');
-    let number = '';
+    const { invoice } = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(invoices)
+        .values({
+          shopId: shop.id,
+          invoiceNumber: number,
+          clientName: parsed.clientName,
+          clientPhone: parsed.clientPhone || null,
+          status: 'DRAFT',
+          currency: shopCurrency,
+          subtotal: String(calc.subtotal),
+          lineDiscountTotal: String(calc.lineDiscountTotal),
+          globalDiscount: String(calc.globalDiscount),
+          shippingFee: String(calc.shippingFee),
+          taxAmount: String(calc.taxAmount),
+          roundingAdjustment: String(calc.roundingAdjustment),
+          total: String(calc.total),
+          amountPaid: '0',
+          balanceDue: String(calc.total),
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          createdBy: user.id,
+        })
+        .returning();
 
-    const MAX_RETRIES = 3;
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      const currentSettings = attempt === 0
-        ? settings
-        : await ensureInvoiceSettings(shop.id);
+      const linesData = parsed.lines.map((line: z.infer<typeof InvoiceLineSchema>, i: number) => {
+        const lineSubtotal = line.quantity * line.unitPrice;
+        const discountAmount = line.discountRate ? lineSubtotal * line.discountRate : 0;
+        return {
+          invoiceId: created.id,
+          productId: line.productId || null,
+          description: line.description,
+          quantity: String(line.quantity),
+          unitPrice: String(line.unitPrice),
+          discountRate: String(line.discountRate || 0),
+          discountAmount: String(discountAmount),
+          lineTotal: String(lineSubtotal - discountAmount),
+          sortOrder: String(i),
+        };
+      });
 
-      nextNum = parseInt(currentSettings.next_invoice_number || '1');
-      number = `${prefix}${year}-${String(nextNum).padStart(4, '0')}`;
+      await tx.insert(invoiceLines).values(linesData);
 
-      const { data: updated } = await admin
-        .from('invoice_settings')
-        .update({ next_invoice_number: String(nextNum + 1) })
-        .eq('id', currentSettings.id)
-        .eq('next_invoice_number', String(nextNum))
-        .select('next_invoice_number')
-        .single();
-
-      if (updated) {
-        break;
-      }
-
-      if (attempt === MAX_RETRIES - 1) {
-        return { success: false, error: 'Conflit de numérotation, veuillez réessayer' } as const;
-      }
-    }
-
-    if (!number) {
-      return { success: false, error: 'Impossible de générer le numéro de facture' } as const;
-    }
-
-    const { data: invoice, error: invoiceError } = await admin
-      .from('invoices')
-      .insert({
-        shop_id: shop.id,
-        invoice_number: number,
-        client_name: parsed.clientName,
-        client_phone: parsed.clientPhone || null,
-        status: 'DRAFT',
-        currency: shopCurrency,
-        subtotal: String(calc.subtotal),
-        line_discount_total: String(calc.lineDiscountTotal),
-        global_discount: String(calc.globalDiscount),
-        shipping_fee: String(calc.shippingFee),
-        tax_amount: String(calc.taxAmount),
-        rounding_adjustment: String(calc.roundingAdjustment),
-        total: String(calc.total),
-        amount_paid: '0',
-        balance_due: String(calc.total),
-        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        created_by: user.id,
-      })
-      .select()
-      .single();
-
-    if (invoiceError) return { success: false, error: `Erreur lors de la création: ${invoiceError.message}` } as const;
-    if (!invoice) return { success: false, error: 'La création n\'a retourné aucune donnée' } as const;
-
-    const linesData = parsed.lines.map((line: z.infer<typeof InvoiceLineSchema>, i: number) => {
-      const lineSubtotal = line.quantity * line.unitPrice;
-      const discountAmount = line.discountRate ? lineSubtotal * line.discountRate : 0;
-      return {
-        invoice_id: invoice.id,
-        product_id: line.productId || null,
-        description: line.description,
-        quantity: String(line.quantity),
-        unit_price: String(line.unitPrice),
-        discount_rate: String(line.discountRate || 0),
-        discount_amount: String(discountAmount),
-        line_total: String(lineSubtotal - discountAmount),
-        sort_order: String(i),
-      };
+      return { invoice: created };
     });
-
-    const { error: linesError } = await admin.from('invoice_lines').insert(linesData);
-    if (linesError) return { success: false, error: `Erreur sur les lignes: ${linesError.message}` } as const;
 
     try {
       await auditLog({
@@ -190,73 +158,78 @@ export async function validateInvoice(invoiceId: string) {
         discountRate: Number(l.discount_rate),
       })),
       {
-        enableTax: settings.enable_tax ?? false,
-        taxRate: settings.tax_rate,
-        enableGlobalDiscount: settings.enable_global_discount ?? false,
-        enableLineDiscount: settings.enable_line_discount ?? false,
-        enableShipping: settings.enable_shipping ?? false,
-        enableRounding: settings.enable_rounding ?? false,
-        roundingPrecision: settings.rounding_precision,
+        enableTax: settings.enableTax ?? false,
+        taxRate: settings.taxRate,
+        enableGlobalDiscount: settings.enableGlobalDiscount ?? false,
+        enableLineDiscount: settings.enableLineDiscount ?? false,
+        enableShipping: settings.enableShipping ?? false,
+        enableRounding: settings.enableRounding ?? false,
+        roundingPrecision: settings.roundingPrecision,
       },
     );
 
-    const productIds = (lines ?? []).filter(l => l.product_id).map(l => l.product_id);
+    const productIds = (lines ?? []).filter((l: any) => l.product_id).map((l: any) => l.product_id);
 
-    const { data: stockItems } = productIds.length > 0
-      ? await admin.from('stock_items').select('*').in('product_id', productIds).eq('shop_id', shop.id)
-      : { data: [] };
+    await db.transaction(async (tx) => {
+      if (productIds.length > 0) {
+        const stockRows = await tx
+          .select()
+          .from(stockItems)
+          .where(and(
+            eq(stockItems.shopId, shop.id),
+            inArray(stockItems.productId, productIds),
+          ))
+          .for('update');
 
-    const stockMap = new Map((stockItems ?? []).map((s: any) => [s.product_id, s]));
+        const stockMap = new Map(stockRows.map((s) => [s.productId, s]));
 
-    for (const line of (lines ?? [])) {
-      if (line.product_id) {
-        const stockItem = stockMap.get(line.product_id);
-        if (stockItem && Number(stockItem.quantity) - Number(line.quantity) < 0) {
-          return { success: false, error: `Stock insuffisant pour ${line.description}` } as const;
+        for (const line of (lines ?? [])) {
+          if (line.product_id) {
+            const stockItem = stockMap.get(line.product_id);
+            if (!stockItem) {
+              throw new Error(`Stock introuvable pour ${line.description}`);
+            }
+            if (Number(stockItem.quantity) - Number(line.quantity) < 0) {
+              throw new Error(`Stock insuffisant pour ${line.description}`);
+            }
+          }
         }
-      }
-    }
 
-    const { error: updateError } = await admin
-      .from('invoices')
-      .update({
-        status: 'VALIDATED',
-        validated_at: new Date().toISOString(),
-        validated_by: user.id,
-        subtotal: String(calc.subtotal),
-        line_discount_total: String(calc.lineDiscountTotal),
-        global_discount: String(calc.globalDiscount),
-        shipping_fee: String(calc.shippingFee),
-        tax_amount: String(calc.taxAmount),
-        rounding_adjustment: String(calc.roundingAdjustment),
-        total: String(calc.total),
-        balance_due: String(calc.total),
-      })
-      .eq('id', invoiceId);
-
-    if (updateError) return { success: false, error: `Erreur validation: ${updateError.message}` } as const;
-
-    for (const line of (lines ?? [])) {
-      if (line.product_id) {
-        const stockItem = stockMap.get(line.product_id);
-        if (stockItem) {
-          const { error: movementError } = await admin.from('stock_movements').insert({
-            shop_id: shop.id,
-            product_id: line.product_id,
-            stock_item_id: stockItem.id,
-            movement_type: 'SALE',
-            quantity: String(-Number(line.quantity)),
-            unit_price: line.unit_price,
-            reference_id: invoiceId,
-            reference_type: 'invoice',
-            created_by: user.id,
-          });
-          if (movementError) {
-            console.error(`Failed to insert stock movement for product ${line.product_id}:`, movementError);
+        for (const line of (lines ?? [])) {
+          if (line.product_id) {
+            const stockItem = stockMap.get(line.product_id)!;
+            await tx.insert(stockMovements).values({
+              shopId: shop.id,
+              productId: line.product_id,
+              stockItemId: stockItem.id,
+              movementType: 'SALE',
+              quantity: String(-Number(line.quantity)),
+              unitPrice: String(line.unit_price),
+              referenceId: invoiceId,
+              referenceType: 'invoice',
+              createdBy: user.id,
+            });
           }
         }
       }
-    }
+
+      await tx
+        .update(invoices)
+        .set({
+          status: 'VALIDATED',
+          validatedAt: new Date(),
+          validatedBy: user.id,
+          subtotal: String(calc.subtotal),
+          lineDiscountTotal: String(calc.lineDiscountTotal),
+          globalDiscount: String(calc.globalDiscount),
+          shippingFee: String(calc.shippingFee),
+          taxAmount: String(calc.taxAmount),
+          roundingAdjustment: String(calc.roundingAdjustment),
+          total: String(calc.total),
+          balanceDue: String(calc.total),
+        })
+        .where(eq(invoices.id, invoiceId));
+    });
 
     try {
       await auditLog({
@@ -306,34 +279,41 @@ export async function cancelInvoice(invoiceId: string, reason?: string) {
         .select('*')
         .eq('invoice_id', invoiceId);
 
-      if (lines) {
-        const productIds = lines.filter((l: any) => l.product_id).map((l: any) => l.product_id);
+      const productLineIds = (lines ?? []).filter((l: any) => l.product_id).map((l: any) => l.product_id);
 
-        const { data: stockItems } = productIds.length > 0
-          ? await admin.from('stock_items').select('*').in('product_id', productIds).eq('shop_id', shop.id)
-          : { data: [] };
+      if (productLineIds.length > 0) {
+        await db.transaction(async (tx) => {
+          const stockRows = await tx
+            .select()
+            .from(stockItems)
+            .where(and(
+              eq(stockItems.shopId, shop.id),
+              inArray(stockItems.productId, productLineIds),
+            ))
+            .for('update');
 
-        const stockMap = new Map((stockItems ?? []).map((s: any) => [s.product_id, s]));
+          const stockMap = new Map(stockRows.map((s) => [s.productId, s]));
 
-        for (const line of lines) {
-          if (line.product_id) {
-            const stockItem = stockMap.get(line.product_id);
-            if (stockItem) {
-              await admin.from('stock_movements').insert({
-                shop_id: shop.id,
-                product_id: line.product_id,
-                stock_item_id: stockItem.id,
-                movement_type: 'CANCELLATION',
-                quantity: String(Number(line.quantity)),
-                unit_price: line.unit_price,
-                reference_id: invoiceId,
-                reference_type: 'invoice',
-                reason: `Annulation facture: ${reason}`,
-                created_by: user.id,
-              });
+          for (const line of (lines ?? [])) {
+            if (line.product_id) {
+              const stockItem = stockMap.get(line.product_id);
+              if (stockItem) {
+                await tx.insert(stockMovements).values({
+                  shopId: shop.id,
+                  productId: line.product_id,
+                  stockItemId: stockItem.id,
+                  movementType: 'CANCELLATION',
+                  quantity: String(Number(line.quantity)),
+                  unitPrice: String(line.unit_price),
+                  referenceId: invoiceId,
+                  referenceType: 'invoice',
+                  reason: `Annulation facture: ${reason}`,
+                  createdBy: user.id,
+                });
+              }
             }
           }
-        }
+        });
       }
     }
 

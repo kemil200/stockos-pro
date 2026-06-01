@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { createServerClient } from '@supabase/ssr';
 import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
@@ -33,6 +35,7 @@ export function createAdminClient() {
   // Supabase Realtime fonctionne sans override explicite dans les Server Components.
   return createSupabaseAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    // DANGER: server-only — ne jamais exposer côté client
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       auth: { persistSession: false },

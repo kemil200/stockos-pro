@@ -1,8 +1,11 @@
 'use server';
 
 import { z } from 'zod';
+import { eq, and } from 'drizzle-orm';
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
+import { db } from '@/lib/db';
+import { invoices, payments, cashMovements } from '@/lib/db/schema';
 import { revalidatePath } from 'next/cache';
 import { PaymentSchema } from '@/lib/validations/invoice';
 import { auditLog, AuditAction } from '@/lib/audit';
@@ -40,53 +43,53 @@ export async function recordPayment(formData: FormData) {
       return { success: false, error: 'Le paiement dépasse le solde restant' } as const;
     }
 
-    const { data: payment, error: paymentError } = await admin
-      .from('payments')
-      .insert({
-        shop_id: shop.id,
-        invoice_id: parsed.invoiceId,
-        amount: String(parsed.amount),
-        method: parsed.method,
-        reference: parsed.reference || null,
-        notes: parsed.notes || null,
-        received_by: user.id,
-      })
-      .select()
-      .single();
-
-    if (paymentError) return { success: false, error: `Erreur paiement: ${paymentError.message}` } as const;
-
     const newStatus = newPaid >= total ? 'PAID' : 'PARTIALLY_PAID';
 
-    const updateFields: Record<string, string> = {
-      amount_paid: String(newPaid),
-      balance_due: String(total - newPaid),
-      status: newStatus,
-    };
-    if (newStatus === 'PAID') {
-      updateFields.paid_at = new Date().toISOString();
-    }
+    let payment: { id: string } | null = null;
 
-    const { error: updateError } = await admin
-      .from('invoices')
-      .update(updateFields)
-      .eq('id', parsed.invoiceId);
+    await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(payments)
+        .values({
+          shopId: shop.id,
+          invoiceId: parsed.invoiceId,
+          amount: String(parsed.amount),
+          method: parsed.method,
+          reference: parsed.reference || null,
+          notes: parsed.notes || null,
+          receivedBy: user.id,
+        })
+        .returning();
 
-    if (updateError) return { success: false, error: `Erreur mise à jour facture: ${updateError.message}` } as const;
+      payment = created;
 
-    const { error: cashError } = await admin.from('cash_movements').insert({
-      shop_id: shop.id,
-      movement_type: 'PAYMENT_IN',
-      amount: String(parsed.amount),
-      reference_type: 'payment',
-      reference_id: payment.id,
-      description: `Paiement facture ${invoice.invoice_number}`,
-      created_by: user.id,
+      const updateData: Record<string, unknown> = {
+        amountPaid: String(newPaid),
+        balanceDue: String(total - newPaid),
+        status: newStatus,
+      };
+      if (newStatus === 'PAID') {
+        updateData.paidAt = new Date();
+      }
+
+      await tx
+        .update(invoices)
+        .set(updateData)
+        .where(and(
+          eq(invoices.id, parsed.invoiceId),
+          eq(invoices.shopId, shop.id),
+        ));
+
+      await tx.insert(cashMovements).values({
+        shopId: shop.id,
+        movementType: 'PAYMENT_IN',
+        amount: String(parsed.amount),
+        referenceType: 'payment',
+        referenceId: created.id,
+        description: `Paiement facture ${invoice.invoice_number}`,
+        createdBy: user.id,
+      });
     });
-
-    if (cashError) {
-      console.error(`Failed to record cash movement: ${cashError.message}`);
-    }
 
     try {
       await auditLog({
@@ -94,7 +97,7 @@ export async function recordPayment(formData: FormData) {
         userId: user.id,
         action: AuditAction.PAYMENT_RECEIVED,
         entityType: 'payment',
-        entityId: payment.id,
+        entityId: payment!.id,
         metadata: { amount: parsed.amount, method: parsed.method, invoiceId: parsed.invoiceId },
       });
     } catch (auditErr) {

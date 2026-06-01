@@ -17,7 +17,17 @@ const body = Inter({
 
 export const metadata: Metadata = {
   title: 'StockOS Pro',
-  description: 'Gestion commerciale pour PME',
+  description: 'Gestion commerciale pour PME — Facturation, stock, caisse. Accessible sans installation.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'StockOS Pro',
+    statusBarStyle: 'black-translucent',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'format-detection': 'telephone=no',
+  },
 };
 
 export default function RootLayout({

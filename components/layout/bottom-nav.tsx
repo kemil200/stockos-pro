@@ -6,13 +6,13 @@ import {
   FileText,
   Package,
   Wallet,
-  Users,
+  ShoppingCart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/invoices', label: 'Factures', icon: FileText },
-  { href: '/clients', label: 'Clients', icon: Users },
+  { href: '/supply', label: 'Achats', icon: ShoppingCart },
   { href: '/products', label: 'Produits', icon: Package },
   { href: '/cash-register', label: 'Caisse', icon: Wallet },
 ];

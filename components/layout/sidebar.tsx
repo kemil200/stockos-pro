@@ -13,6 +13,7 @@ import {
   Menu,
   Store,
   Users,
+  ShoppingCart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -25,6 +26,7 @@ import { Button } from '@/components/ui/button';
 const NAV_ITEMS = [
   { href: '/invoices', label: 'Factures', icon: FileText },
   { href: '/clients', label: 'Clients', icon: Users },
+  { href: '/supply', label: 'Approvisionnement', icon: ShoppingCart },
   { href: '/products', label: 'Produits', icon: Package },
   { href: '/stock', label: 'Stock', icon: Warehouse },
   { href: '/payments', label: 'Paiements', icon: Receipt },

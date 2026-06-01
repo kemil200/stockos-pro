@@ -13,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { StockAdjustButton } from './stock-adjust-button';
 
 interface StockItemData {
   id: string;
@@ -92,7 +91,7 @@ export function StockTableClient({ items }: { items: StockItemData[] }) {
         <CardHeader className="flex flex-row items-center justify-between px-5 lg:px-6 py-4 lg:py-5">
           <CardTitle className="text-base lg:text-lg font-heading font-semibold">Inventaire</CardTitle>
           <span className="text-xs text-zinc-400 flex items-center gap-1">
-            <RefreshCw className="size-3" /> Cliquez sur &quot;Ajuster&quot; pour modifier
+            <RefreshCw className="size-3" /> Approvisionnement → /supply
           </span>
         </CardHeader>
         <CardContent className="px-0">
@@ -105,13 +104,12 @@ export function StockTableClient({ items }: { items: StockItemData[] }) {
                 <TableHead className="text-right">Valeur stock</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead className="text-right">Dernière entrée</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {!filtered.length ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-zinc-500 py-12">
+                  <TableCell colSpan={6} className="text-center text-zinc-500 py-12">
                     <Package className="size-10 text-zinc-200 mx-auto mb-3" />
                     {search ? 'Aucun produit trouvé' : "Aucun stock. Créez d'abord des produits."}
                   </TableCell>
@@ -143,13 +141,6 @@ export function StockTableClient({ items }: { items: StockItemData[] }) {
                         {item.last_in_date
                           ? new Date(item.last_in_date).toLocaleDateString('fr-FR')
                           : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <StockAdjustButton
-                          productId={item.product_id}
-                          productName={item.products?.name ?? ''}
-                          currentQty={qty}
-                        />
                       </TableCell>
                     </TableRow>
                   );

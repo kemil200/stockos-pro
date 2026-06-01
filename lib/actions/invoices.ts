@@ -7,7 +7,7 @@ import { createAdminClient } from '@/lib/server';
 import { db } from '@/lib/db';
 import { invoices, invoiceLines, stockItems, stockMovements } from '@/lib/db/schema';
 import { calculateInvoice } from '@/lib/services/invoice-calculator';
-import { getNextInvoiceNumber, ensureInvoiceSettings } from '@/lib/services/invoice-numbering';
+import { allocateInvoiceNumber, ensureInvoiceSettings } from '@/lib/services/invoice-numbering';
 import { revalidatePath } from 'next/cache';
 import { CreateInvoiceSchema, InvoiceLineSchema } from '@/lib/validations/invoice';
 import { auditLog, AuditAction } from '@/lib/audit';
@@ -61,14 +61,14 @@ export async function createInvoice(formData: FormData) {
       parsed.shippingFee ?? 0,
     );
 
-    const number = await getNextInvoiceNumber(shop.id);
+    const { invoice, number } = await db.transaction(async (tx) => {
+      const invoiceNumber = await allocateInvoiceNumber(tx, shop.id);
 
-    const { invoice } = await db.transaction(async (tx) => {
       const [created] = await tx
         .insert(invoices)
         .values({
           shopId: shop.id,
-          invoiceNumber: number,
+          invoiceNumber,
           clientName: parsed.clientName,
           clientPhone: parsed.clientPhone || null,
           status: 'DRAFT',
@@ -105,7 +105,7 @@ export async function createInvoice(formData: FormData) {
 
       await tx.insert(invoiceLines).values(linesData);
 
-      return { invoice: created };
+      return { invoice: created, number: invoiceNumber };
     });
 
     try {

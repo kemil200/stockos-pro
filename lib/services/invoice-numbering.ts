@@ -48,32 +48,33 @@ export async function ensureInvoiceSettings(
   return created;
 }
 
-export async function getNextInvoiceNumber(
+export async function allocateInvoiceNumber(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
   shopId: string,
 ): Promise<string> {
-  const result = await db.transaction(async (tx) => {
-    const [settings] = await tx
-      .select()
-      .from(invoiceSettings)
-      .where(eq(invoiceSettings.shopId, shopId))
-      .for('update');
+  const [settings] = await tx
+    .select()
+    .from(invoiceSettings)
+    .where(eq(invoiceSettings.shopId, shopId))
+    .for('update');
 
-    if (!settings) {
-      throw new Error('Invoice settings not found for this shop');
-    }
+  if (!settings) {
+    throw new Error('Invoice settings not found for this shop');
+  }
 
-    const nextNum = parseInt(settings.nextInvoiceNumber || '1', 10);
-    const prefix = settings.invoicePrefix || 'FACT-';
-    const year = new Date().getFullYear();
-    const number = `${prefix}${year}-${String(nextNum).padStart(4, '0')}`;
+  const nextNum = parseInt(settings.nextInvoiceNumber || '1', 10);
+  const prefix = settings.invoicePrefix || 'FACT-';
+  const year = new Date().getFullYear();
+  const number = `${prefix}${year}-${String(nextNum).padStart(4, '0')}`;
 
-    await tx
-      .update(invoiceSettings)
-      .set({ nextInvoiceNumber: String(nextNum + 1) })
-      .where(eq(invoiceSettings.id, settings.id));
+  await tx
+    .update(invoiceSettings)
+    .set({ nextInvoiceNumber: String(nextNum + 1) })
+    .where(eq(invoiceSettings.id, settings.id));
 
-    return number;
-  });
+  return number;
+}
 
-  return result;
+export async function getNextInvoiceNumber(shopId: string): Promise<string> {
+  return db.transaction((tx) => allocateInvoiceNumber(tx, shopId));
 }

@@ -43,13 +43,16 @@ export default async function middleware(request: NextRequest) {
 
   // IMPORTANT: getUser() fait une vérification serveur — ne jamais utiliser getSession() ici
   // car la session peut être falsifiée côté client
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (error || !user) {
     const url = new URL('/sign-in', request.url);
-    // FIX: on passe le pathname comme param 'redirect' pour y revenir après login
     url.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    // Supprime les cookies de session invalides
+    response.cookies.delete('sb-kbdmfbwouejuxjizkrzo-auth-token');
+    response.cookies.delete('sb-kbdmfbwouejuxjizkrzo-auth-token-code-verifier');
+    return response;
   }
 
   return supabaseResponse;

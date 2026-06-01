@@ -9,7 +9,13 @@ function getDb() {
   if (!_db) {
     const url = process.env.SUPABASE_DB_URL;
     if (!url) throw new Error('SUPABASE_DB_URL not configured');
-    _client = postgres(url);
+    _client = postgres(url, {
+      ssl: 'require',
+      max: 1,
+      connection: {
+        family: 4,
+      },
+    });
     _db = drizzle(_client, { schema });
   }
   return _db;

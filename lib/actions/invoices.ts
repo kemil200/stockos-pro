@@ -11,10 +11,12 @@ import { allocateInvoiceNumber, ensureInvoiceSettings } from '@/lib/services/inv
 import { revalidatePath } from 'next/cache';
 import { CreateInvoiceSchema, InvoiceLineSchema } from '@/lib/validations/invoice';
 import { auditLog, AuditAction } from '@/lib/audit';
+import { assertWritable } from '@/lib/readonly';
 
 export async function createInvoice(formData: FormData) {
   try {
     const { shop, user } = await getCurrentShop();
+    await assertWritable(shop.id);
 
     const rawData = {
       clientName: formData.get('clientName') as string,
@@ -132,6 +134,7 @@ export async function createInvoice(formData: FormData) {
 export async function validateInvoice(invoiceId: string) {
   try {
     const { shop, user } = await getCurrentShop();
+    await assertWritable(shop.id);
     const admin = createAdminClient();
 
     const { data: invoice } = await admin
@@ -256,6 +259,7 @@ export async function validateInvoice(invoiceId: string) {
 export async function cancelInvoice(invoiceId: string, reason?: string) {
   try {
     const { shop, user } = await getCurrentShop();
+    await assertWritable(shop.id);
     const admin = createAdminClient();
 
     const { data: invoice } = await admin

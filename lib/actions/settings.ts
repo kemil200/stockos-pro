@@ -2,11 +2,13 @@
 
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
+import { assertWritable } from '@/lib/readonly';
 import { revalidatePath } from 'next/cache';
 
 export async function updateShopSettings(formData: FormData) {
   try {
     const { shop, user } = await getCurrentShop();
+    await assertWritable(shop.id);
     const admin = createAdminClient();
 
     const data = {
@@ -38,6 +40,7 @@ export async function updateShopSettings(formData: FormData) {
 export async function updateInvoiceSettings(formData: FormData) {
   try {
     const { shop } = await getCurrentShop();
+    await assertWritable(shop.id);
     const admin = createAdminClient();
 
     const data: Record<string, unknown> = {

@@ -9,10 +9,12 @@ import { invoices, payments, cashMovements } from '@/lib/db/schema';
 import { revalidatePath } from 'next/cache';
 import { PaymentSchema } from '@/lib/validations/invoice';
 import { auditLog, AuditAction } from '@/lib/audit';
+import { assertWritable } from '@/lib/readonly';
 
 export async function recordPayment(formData: FormData) {
   try {
     const { shop, user } = await getCurrentShop();
+    await assertWritable(shop.id);
     const admin = createAdminClient();
 
     const parsed = PaymentSchema.parse({

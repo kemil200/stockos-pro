@@ -7,6 +7,7 @@ import { db } from '@/lib/db';
 import { stockItems, stockMovements, products, cashMovements } from '@/lib/db/schema';
 import { revalidatePath } from 'next/cache';
 import { auditLog, AuditAction } from '@/lib/audit';
+import { assertWritable } from '@/lib/readonly';
 
 const SupplySchema = z.object({
   productId: z.string().uuid(),
@@ -18,6 +19,7 @@ const SupplySchema = z.object({
 export async function purchaseStock(formData: FormData) {
   try {
     const { shop, user } = await getCurrentShop();
+    await assertWritable(shop.id);
 
     const parsed = SupplySchema.parse({
       productId: formData.get('productId'),

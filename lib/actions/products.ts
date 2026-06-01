@@ -7,10 +7,12 @@ import { createAdminClient } from '@/lib/server';
 import { db } from '@/lib/db';
 import { products, stockItems } from '@/lib/db/schema';
 import { CreateProductSchema, AdjustStockSchema } from '@/lib/validations/product';
+import { assertWritable } from '@/lib/readonly';
 
 export async function createProduct(formData: FormData) {
   try {
     const { shop } = await getCurrentShop();
+    await assertWritable(shop.id);
 
     const parsed = CreateProductSchema.parse({
       name: formData.get('name'),
@@ -63,6 +65,7 @@ export async function createProduct(formData: FormData) {
 export async function adjustStock(formData: FormData) {
   try {
     const { shop, user } = await getCurrentShop();
+    await assertWritable(shop.id);
     const admin = createAdminClient();
 
     const parsed = AdjustStockSchema.parse({

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/server';
+import { JsonLd } from '@/components/seo/json-ld';
 import {
   Store, FileText, Package, Wallet, TrendingUp,
   Shield, Receipt, CreditCard, ArrowRight, Check,
@@ -75,7 +76,8 @@ export default async function Home() {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1" itemScope itemType="https://schema.org/SoftwareApplication">
+        <JsonLd />
         {/* Hero */}
         <section className="relative pt-40 pb-28 lg:pt-48 lg:pb-32 px-6 overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_oklch(0.97_0_0)_0%,_transparent_50%)]" />

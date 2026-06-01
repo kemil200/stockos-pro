@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /superadmin/
+
+Sitemap: https://stockos-pro.vercel.app/sitemap.xml

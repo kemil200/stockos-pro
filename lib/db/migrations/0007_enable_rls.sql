@@ -22,46 +22,46 @@ ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 
 -- Policy for tables with direct shop_id column
 CREATE POLICY tenant_isolation_shops ON public.shops
-    FOR ALL USING (id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_shop_settings ON public.shop_settings
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_users ON public.users
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_products ON public.products
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_stock_items ON public.stock_items
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_stock_movements ON public.stock_movements
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_invoice_settings ON public.invoice_settings
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_invoices ON public.invoices
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_payments ON public.payments
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_credit_notes ON public.credit_notes
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_cash_movements ON public.cash_movements
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_subscriptions ON public.subscriptions
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_audit_logs ON public.audit_logs
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 CREATE POLICY tenant_isolation_events ON public.events
-    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()));
+    FOR ALL USING (shop_id IN (SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text));
 
 -- invoice_lines has no shop_id — resolve via parent invoice
 CREATE POLICY tenant_isolation_invoice_lines ON public.invoice_lines
@@ -69,7 +69,7 @@ CREATE POLICY tenant_isolation_invoice_lines ON public.invoice_lines
         invoice_id IN (
             SELECT id FROM public.invoices
             WHERE shop_id IN (
-                SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()
+                SELECT shop_id FROM public.users WHERE auth_user_id = auth.uid()::text
             )
         )
     );

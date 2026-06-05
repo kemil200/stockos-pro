@@ -2,7 +2,6 @@
 
 import { Printer, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
 
 const WhatsAppIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
@@ -16,7 +15,6 @@ export function InvoiceActions({ clientName, clientPhone, balanceDue, invoiceId 
   balanceDue?: string;
   invoiceId?: string;
 }) {
-  const router = useRouter();
 
   const handlePrint = () => {
     window.print();
@@ -24,7 +22,7 @@ export function InvoiceActions({ clientName, clientPhone, balanceDue, invoiceId 
 
   const handleThermalPrint = () => {
     if (invoiceId) {
-      router.push(`/invoices/${invoiceId}?thermal=true`);
+      window.open(`/api/invoices/${invoiceId}/thermal`, '_blank');
     }
   };
 

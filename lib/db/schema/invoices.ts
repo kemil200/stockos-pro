@@ -1,6 +1,7 @@
 import { pgTable, uuid, text, numeric, boolean, timestamp, jsonb } from 'drizzle-orm/pg-core';
 import { shops } from './shops';
 import { products } from './products';
+import { packs } from './packs';
 import { users } from './users';
 
 export const invoiceSettings = pgTable('invoice_settings', {
@@ -63,6 +64,7 @@ export const invoiceLines = pgTable('invoice_lines', {
   id: uuid('id').primaryKey().defaultRandom(),
   invoiceId: uuid('invoice_id').notNull().references(() => invoices.id, { onDelete: 'cascade' }),
   productId: uuid('product_id').references(() => products.id),
+  packId: uuid('pack_id').references(() => packs.id),
   description: text('description').notNull(),
   quantity: numeric('quantity', { precision: 12, scale: 3 }).notNull(),
   unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull(),

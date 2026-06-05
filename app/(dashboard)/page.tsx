@@ -59,7 +59,7 @@ export default async function DashboardPage() {
     admin.from('payments').select('amount, method').eq('shop_id', shop.id).gte('payment_date', t),
     admin.from('invoices').select('total').eq('shop_id', shop.id).eq('status', 'PAID').gte('paid_at', m),
     admin.from('invoices').select('total').eq('shop_id', shop.id).in('status', ['VALIDATED', 'PARTIALLY_PAID', 'PAID', 'CANCELLED']).gte('validated_at', m).neq('status', 'DRAFT'),
-    admin.from('stock_movements').select('quantity, product_id').eq('shop_id', shop.id).eq('movement_type', 'IN'),
+    admin.from('stock_movements').select('quantity, product_id').eq('shop_id', shop.id).eq('movement_type', 'IN').gte('created_at', t),
     admin.from('products').select('id, purchase_price').eq('shop_id', shop.id),
   ]);
 
@@ -78,10 +78,10 @@ export default async function DashboardPage() {
   for (const p of products.data ?? []) {
     priceMap.set(p.id, Number(p.purchase_price ?? 0));
   }
-  const purchases = (inMovements.data ?? []).reduce((s: number, m: any) => {
+  const todayPurchases = (inMovements.data ?? []).reduce((s: number, m: any) => {
     return s + (Number(m.quantity) * (priceMap.get(m.product_id) ?? 0));
   }, 0);
-  const margin = todayRev - purchases;
+  const margin = todayRev - todayPurchases;
 
   const trend = yesterdayRev > 0 ? `${((todayRev - yesterdayRev) / yesterdayRev * 100).toFixed(1)}%` : todayRev > 0 ? '+100%' : '0%';
 
@@ -105,9 +105,9 @@ export default async function DashboardPage() {
           trend={{ value: trend, direction: todayRev >= yesterdayRev ? 'up' : 'down' }}
           subtitle={`vs ${formatCurrency(yesterdayRev)}`} />
         <StatsCard title="Encaissements" value={String(todayCount)} icon={DollarSign} accent="bg-blue-600" subtitle="factures payées" />
-        <StatsCard title="Achats" value={formatCurrency(purchases)} icon={ShoppingCart} accent="bg-amber-600" subtitle="entrées stock" />
+        <StatsCard title="Achats" value={formatCurrency(todayPurchases)} icon={ShoppingCart} accent="bg-amber-600" subtitle="entrées du jour" />
         <StatsCard title="Marge" value={formatCurrency(margin)} icon={ArrowDownUp} accent={margin >= 0 ? 'bg-emerald-700' : 'bg-red-600'}
-          subtitle={purchases > 0 ? `${((todayRev / purchases) * 100).toFixed(0)}% du CA` : '—'} />
+          subtitle={todayPurchases > 0 ? `${((todayRev / todayPurchases) * 100).toFixed(0)}% du CA` : '—'} />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

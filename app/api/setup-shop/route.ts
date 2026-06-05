@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/server';
+import { DEFAULT_ROLES } from '@/lib/permissions';
+
+const MAX_BODY_SIZE = 4096;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -8,13 +11,50 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Non connecté' }, { status: 401 });
   }
 
-  const { name, slug, userId } = await request.json();
+  const contentType = request.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    return NextResponse.json({ error: 'Content-Type must be application/json' }, { status: 415 });
+  }
+
+  const origin = request.headers.get('origin') || '';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+  if (appUrl && origin && origin !== appUrl) {
+    return NextResponse.json({ error: 'Requête non autorisée' }, { status: 403 });
+  }
+
+  const rawBody = await request.text();
+  if (rawBody.length > MAX_BODY_SIZE) {
+    return NextResponse.json({ error: 'Corps de requête trop volumineux' }, { status: 413 });
+  }
+
+  let body: { name?: string; slug?: string; userId?: string };
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: 'JSON invalide' }, { status: 400 });
+  }
+
+  const { name, slug, userId } = body;
+
+  if (!name || !slug || !userId) {
+    return NextResponse.json({ error: 'Champs requis : name, slug, userId' }, { status: 400 });
+  }
 
   if (user.id !== userId) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
   }
 
   const admin = createAdminClient();
+
+  const { data: existingShops } = await admin
+    .from('shops')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1);
+
+  if (existingShops && existingShops.length > 0) {
+    return NextResponse.json({ error: 'Une boutique existe déjà pour cet utilisateur' }, { status: 409 });
+  }
 
   const { data: shop, error: shopError } = await admin
     .from('shops')
@@ -56,10 +96,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: subError.message }, { status: 500 });
   }
 
+  const defaultRoleIds: Record<string, string> = {};
+  for (const def of DEFAULT_ROLES) {
+    const { data: roleData, error: roleError } = await admin
+      .from('roles')
+      .insert({
+        shop_id: shop.id, name: def.name, description: def.description,
+        permissions: def.permissions, is_default: true,
+      })
+      .select('id')
+      .single();
+
+    if (!roleError && roleData) {
+      defaultRoleIds[def.name] = roleData.id;
+    }
+  }
+
+  const ownerRoleId = defaultRoleIds['Propriétaire'] || null;
+
   const { error: userError } = await admin
     .from('users')
     .insert({
-      auth_user_id: user.id, shop_id: shop.id, role: 'owner', display_name: displayName, email: user.email || '',
+      auth_user_id: user.id, shop_id: shop.id, role: 'owner',
+      role_id: ownerRoleId,
+      display_name: displayName, email: user.email || '',
     });
 
   if (userError) {

@@ -1,11 +1,20 @@
 'use server';
 
-import { createAdminClient } from '@/lib/server';
+import { createClient, createAdminClient } from '@/lib/server';
+
+async function assertSuperadmin() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Non authentifié');
+  if (user.app_metadata?.role !== 'SUPERADMIN') throw new Error('Accès refusé : SUPERADMIN requis');
+  return user;
+}
 
 export async function updateSubscription(
   shopId: string,
   data: { status?: string; plan?: string; current_period_end?: string },
 ) {
+  await assertSuperadmin();
   const admin = createAdminClient();
   const { error } = await admin
     .from('subscriptions')
@@ -16,6 +25,7 @@ export async function updateSubscription(
 }
 
 export async function renewSubscription(shopId: string, months: number) {
+  await assertSuperadmin();
   const admin = createAdminClient();
 
   const { data: subs } = await admin
@@ -45,6 +55,7 @@ export async function renewSubscription(shopId: string, months: number) {
 }
 
 export async function toggleReadOnly(shopId: string, readOnly: boolean) {
+  await assertSuperadmin();
   const admin = createAdminClient();
 
   const { data: subs } = await admin
@@ -68,6 +79,7 @@ export async function toggleReadOnly(shopId: string, readOnly: boolean) {
 }
 
 export async function deleteShop(shopId: string) {
+  await assertSuperadmin();
   const admin = createAdminClient();
   const { error } = await admin.from('shops').delete().eq('id', shopId);
   if (error) throw new Error(error.message);

@@ -5,6 +5,7 @@ import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 import { InvoiceActions } from '@/components/invoices/invoice-actions';
 import { PaymentForm } from '@/components/forms/payment-form';
 import { AutoPrint } from '@/components/invoices/auto-print';
+import { ThermalTicket } from '@/components/invoices/thermal-ticket';
 import { formatCurrency } from '@/lib/utils/currency';
 import { validateInvoiceAction } from '@/lib/actions/invoices';
 import { CancelInvoiceButton } from '@/components/invoices/cancel-invoice-button';
@@ -14,10 +15,10 @@ export default async function InvoiceDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ print?: string }>;
+  searchParams: Promise<{ print?: string; thermal?: string }>;
 }) {
   const { id } = await params;
-  const { print } = await searchParams;
+  const { print, thermal } = await searchParams;
   const { shop, user } = await getCurrentShop();
   const admin = createAdminClient();
 
@@ -39,6 +40,51 @@ export default async function InvoiceDetailPage({
   const lines = linesResult.data ?? [];
   const invoicePayments = paymentsResult.data ?? [];
 
+  const thermalLines = lines.map((l: any) => ({
+    description: l.description,
+    quantity: Number(l.quantity),
+    unitPrice: Number(l.unit_price),
+    lineTotal: Number(l.line_total),
+  }));
+
+  const thermalPayments = invoicePayments.map((p: any) => ({
+    method: p.method,
+    amount: Number(p.amount),
+    reference: p.reference,
+  }));
+
+  if (thermal === 'true') {
+    return (
+      <div className="thermal-print">
+        <ThermalTicket
+          shopName={shop.name}
+          shopPhone={shopSettings?.phone}
+          shopAddress={shopSettings?.address}
+          shopEmail={shopSettings?.email}
+          invoiceNumber={invoice.invoice_number}
+          invoiceDate={invoice.created_at}
+          dueDate={invoice.due_date}
+          clientName={invoice.client_name}
+          clientPhone={invoice.client_phone}
+          currency={invoice.currency}
+          lines={thermalLines}
+          lineDiscountTotal={Number(invoice.line_discount_total)}
+          globalDiscount={Number(invoice.global_discount)}
+          shippingFee={Number(invoice.shipping_fee)}
+          taxAmount={Number(invoice.tax_amount)}
+          roundingAdjustment={Number(invoice.rounding_adjustment)}
+          total={Number(invoice.total)}
+          amountPaid={Number(invoice.amount_paid)}
+          balanceDue={Number(invoice.balance_due)}
+          status={invoice.status}
+          invoiceFooter={shopSettings?.invoice_footer}
+          payments={thermalPayments}
+        />
+        <AutoPrint />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {print === 'true' && <AutoPrint />}
@@ -59,6 +105,7 @@ export default async function InvoiceDetailPage({
             clientName={invoice.client_name}
             clientPhone={invoice.client_phone}
             balanceDue={invoice.balance_due}
+            invoiceId={id}
           />
           {invoice.status === 'DRAFT' && (
             <form action={validateInvoiceAction.bind(null, id)}>

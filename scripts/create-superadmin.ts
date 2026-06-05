@@ -1,8 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
 
-const email = 'betosow49@gmail.com';
-const password = 'Kemil2006';
+const email = process.env.SUPERADMIN_EMAIL;
+const password = process.env.SUPERADMIN_PASSWORD;
+
+if (!email || !password) {
+  console.error('SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD environment variables are required');
+  process.exit(1);
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

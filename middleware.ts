@@ -8,7 +8,7 @@ export default async function middleware(request: NextRequest) {
   // FIX: liste des routes publiques étendue + vérification exacte pour '/'
   // On utilise startsWith uniquement pour les préfixes vrais — '/' en exact match
   // pour éviter que tout soit considéré public (pathname.startsWith('/') = toujours vrai)
-  const publicRoutes = ['/sign-in', '/sign-up', '/_next', '/favicon', '/api/webhook'];
+  const publicRoutes = ['/sign-in', '/sign-up', '/_next', '/favicon'];
   const isPublic =
     pathname === '/' ||
     publicRoutes.some((route) => pathname.startsWith(route));

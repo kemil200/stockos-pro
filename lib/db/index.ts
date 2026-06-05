@@ -11,7 +11,7 @@ function getDb() {
     if (!url) throw new Error('SUPABASE_DB_URL not configured');
     _client = postgres(url, {
       ssl: 'require',
-      max: 1,
+      max: 5,
       connection: {
         family: 4,
       },

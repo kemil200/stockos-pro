@@ -8,8 +8,10 @@ interface DataPoint {
   revenue: number;
 }
 
-export function RevenueChart({ data }: { data: DataPoint[] }) {
+export function RevenueChart({ data, period }: { data: DataPoint[]; period: string }) {
   if (!data || data.length === 0) return null;
+
+  const total = data.reduce((s, d) => s + d.revenue, 0);
 
   return (
     <div style={{ width: '100%', height: 256 }}>
@@ -18,19 +20,21 @@ export function RevenueChart({ data }: { data: DataPoint[] }) {
           <XAxis
             dataKey="date"
             tick={{ fontSize: 11 }}
-            tickFormatter={(val: string) => {
-              const d = new Date(val);
-              return `${d.getDate()}/${d.getMonth() + 1}`;
-            }}
+            interval={period === 'month' && data.length > 15 ? 2 : period === 'year' ? 1 : 0}
           />
           <YAxis tick={{ fontSize: 11 }} tickFormatter={(val: number) => `${Math.round(val / 1000)}k`} />
           <Tooltip
-            formatter={(value: any) => [formatCurrency(value), 'Revenu']}
-            labelFormatter={(label: any) => new Date(label).toLocaleDateString('fr-FR')}
+            formatter={(value: any) => [formatCurrency(Number(value)), 'CA']}
+            labelFormatter={(label) => `${label}`}
           />
           <Bar dataKey="revenue" fill="#059669" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
+      {total > 0 && (
+        <p className="text-center text-xs text-zinc-400 mt-2">
+          CA total : {formatCurrency(total)}
+        </p>
+      )}
     </div>
   );
 }

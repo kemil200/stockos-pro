@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const InvoiceLineSchema = z.object({
   productId: z.string().uuid().optional(),
+  packId: z.string().uuid().optional(),
   description: z.string().min(1, 'Description requise'),
   quantity: z.coerce.number().positive('Quantité doit être positive'),
   unitPrice: z.coerce.number().min(0, 'Prix unitaire doit être ≥ 0'),

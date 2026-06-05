@@ -2,17 +2,20 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { eq, and } from 'drizzle-orm';
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { db } from '@/lib/db';
-import { products, stockItems } from '@/lib/db/schema';
+import { products, stockItems, stockMovements } from '@/lib/db/schema';
 import { CreateProductSchema, AdjustStockSchema } from '@/lib/validations/product';
 import { assertWritable } from '@/lib/readonly';
+import { assertPermission } from '@/lib/permissions';
 
 export async function createProduct(formData: FormData) {
   try {
-    const { shop } = await getCurrentShop();
+    const { shop, permissions } = await getCurrentShop();
     await assertWritable(shop.id);
+    assertPermission(permissions, 'products', 'write');
 
     const parsed = CreateProductSchema.parse({
       name: formData.get('name'),
@@ -64,9 +67,9 @@ export async function createProduct(formData: FormData) {
 
 export async function adjustStock(formData: FormData) {
   try {
-    const { shop, user } = await getCurrentShop();
+    const { shop, user, permissions } = await getCurrentShop();
     await assertWritable(shop.id);
-    const admin = createAdminClient();
+    assertPermission(permissions, 'stock', 'write');
 
     const parsed = AdjustStockSchema.parse({
       productId: formData.get('productId'),
@@ -74,30 +77,30 @@ export async function adjustStock(formData: FormData) {
       reason: formData.get('reason') || undefined,
     });
 
-    const { data: stockItem } = await admin
-      .from('stock_items')
-      .select('*')
-      .eq('shop_id', shop.id)
-      .eq('product_id', parsed.productId)
-      .single();
+    await db.transaction(async (tx) => {
+      const [stockItem] = await tx
+        .select()
+        .from(stockItems)
+        .where(and(
+          eq(stockItems.shopId, shop.id),
+          eq(stockItems.productId, parsed.productId),
+        ))
+        .for('update');
 
-    if (!stockItem) return { success: false, error: 'Stock introuvable' } as const;
+      if (!stockItem) throw new Error('Stock introuvable');
 
-    if (parsed.newQuantity !== Number(stockItem.quantity)) {
-      const { error: movementError } = await admin
-        .from('stock_movements')
-        .insert({
-          shop_id: shop.id,
-          product_id: parsed.productId,
-          stock_item_id: stockItem.id,
-          movement_type: 'ADJUSTMENT',
+      if (parsed.newQuantity !== Number(stockItem.quantity)) {
+        await tx.insert(stockMovements).values({
+          shopId: shop.id,
+          productId: parsed.productId,
+          stockItemId: stockItem.id,
+          movementType: 'ADJUSTMENT',
           quantity: String(parsed.newQuantity),
           reason: parsed.reason || 'Ajustement manuel',
-          created_by: user.id,
+          createdBy: user.id,
         });
-
-      if (movementError) return { success: false, error: `Erreur mouvement: ${movementError.message}` } as const;
-    }
+      }
+    });
 
     revalidatePath('/stock');
     return { success: true } as const;

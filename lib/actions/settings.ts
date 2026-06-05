@@ -1,33 +1,33 @@
 'use server';
 
+import { eq } from 'drizzle-orm';
 import { getCurrentShop } from '@/lib/tenant';
-import { createAdminClient } from '@/lib/server';
+import { db } from '@/lib/db';
+import { shopSettings, invoiceSettings } from '@/lib/db/schema';
 import { assertWritable } from '@/lib/readonly';
+import { assertPermission } from '@/lib/permissions';
 import { revalidatePath } from 'next/cache';
 
 export async function updateShopSettings(formData: FormData) {
   try {
-    const { shop, user } = await getCurrentShop();
+    const { shop, permissions } = await getCurrentShop();
     await assertWritable(shop.id);
-    const admin = createAdminClient();
+    assertPermission(permissions, 'settings', 'write');
 
-    const data = {
-      legal_name: formData.get('legalName') as string,
-      trading_name: formData.get('tradingName') as string || null,
-      address: formData.get('address') as string || null,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      currency: formData.get('currency') as string,
-      invoice_footer: formData.get('invoiceFooter') as string || null,
-      country: formData.get('country') as string || 'TG',
-    };
-
-    const { error } = await admin
-      .from('shop_settings')
-      .update(data)
-      .eq('shop_id', shop.id);
-
-    if (error) return { success: false, error: error.message } as const;
+    await db
+      .update(shopSettings)
+      .set({
+        legalName: formData.get('legalName') as string,
+        tradingName: (formData.get('tradingName') as string) || null,
+        address: (formData.get('address') as string) || null,
+        email: formData.get('email') as string,
+        phone: formData.get('phone') as string,
+        currency: formData.get('currency') as string,
+        invoiceFooter: (formData.get('invoiceFooter') as string) || null,
+        country: (formData.get('country') as string) || 'TG',
+        updatedAt: new Date(),
+      })
+      .where(eq(shopSettings.shopId, shop.id));
 
     revalidatePath('/settings');
     return { success: true } as const;
@@ -39,28 +39,25 @@ export async function updateShopSettings(formData: FormData) {
 
 export async function updateInvoiceSettings(formData: FormData) {
   try {
-    const { shop } = await getCurrentShop();
+    const { shop, permissions } = await getCurrentShop();
     await assertWritable(shop.id);
-    const admin = createAdminClient();
+    assertPermission(permissions, 'settings', 'write');
 
-    const data: Record<string, unknown> = {
-      enable_tax: formData.get('enableTax') === 'on',
-      tax_rate: formData.get('taxRate') ? String(Number(formData.get('taxRate' as string)) / 100) : null,
-      enable_global_discount: formData.get('enableGlobalDiscount') === 'on',
-      enable_line_discount: formData.get('enableLineDiscount') === 'on',
-      enable_shipping: formData.get('enableShipping') === 'on',
-      enable_rounding: formData.get('enableRounding') === 'on',
-      rounding_precision: formData.get('enableRounding') === 'on' ? '0' : null,
-      invoice_prefix: formData.get('invoicePrefix') as string || 'FACT-',
-      tax_label: formData.get('taxLabel') as string || 'TVA',
-    };
-
-    const { error } = await admin
-      .from('invoice_settings')
-      .update(data)
-      .eq('shop_id', shop.id);
-
-    if (error) return { success: false, error: error.message } as const;
+    await db
+      .update(invoiceSettings)
+      .set({
+        enableTax: formData.get('enableTax') === 'on',
+        taxRate: formData.get('taxRate') ? String(Number(formData.get('taxRate') as string) / 100) : null,
+        enableGlobalDiscount: formData.get('enableGlobalDiscount') === 'on',
+        enableLineDiscount: formData.get('enableLineDiscount') === 'on',
+        enableShipping: formData.get('enableShipping') === 'on',
+        enableRounding: formData.get('enableRounding') === 'on',
+        roundingPrecision: formData.get('enableRounding') === 'on' ? '0' : null,
+        invoicePrefix: (formData.get('invoicePrefix') as string) || 'FACT-',
+        taxLabel: (formData.get('taxLabel') as string) || 'TVA',
+        updatedAt: new Date(),
+      })
+      .where(eq(invoiceSettings.shopId, shop.id));
 
     revalidatePath('/settings');
     return { success: true } as const;

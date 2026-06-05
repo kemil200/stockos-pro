@@ -5,23 +5,30 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { db } from '@/lib/db';
-import { invoices, invoiceLines, stockItems, stockMovements } from '@/lib/db/schema';
+import { invoices, invoiceLines, stockItems, stockMovements, packs, packItems } from '@/lib/db/schema';
 import { calculateInvoice } from '@/lib/services/invoice-calculator';
 import { allocateInvoiceNumber, ensureInvoiceSettings } from '@/lib/services/invoice-numbering';
 import { revalidatePath } from 'next/cache';
 import { CreateInvoiceSchema, InvoiceLineSchema } from '@/lib/validations/invoice';
 import { auditLog, AuditAction } from '@/lib/audit';
 import { assertWritable } from '@/lib/readonly';
+import { assertPermission } from '@/lib/permissions';
 
 export async function createInvoice(formData: FormData) {
   try {
-    const { shop, user } = await getCurrentShop();
+    const { shop, user, permissions } = await getCurrentShop();
     await assertWritable(shop.id);
+    assertPermission(permissions, 'invoices', 'write');
+
+    const linesJson = formData.get('lines') as string;
+    if (linesJson.length > 100000) {
+      return { success: false, error: 'Trop de lignes' } as const;
+    }
 
     const rawData = {
       clientName: formData.get('clientName') as string,
       clientPhone: (formData.get('clientPhone') as string) || undefined,
-      lines: JSON.parse(formData.get('lines') as string) as z.infer<typeof InvoiceLineSchema>[],
+      lines: JSON.parse(linesJson) as z.infer<typeof InvoiceLineSchema>[],
       globalDiscountRate: formData.has('globalDiscountRate') ? Number(formData.get('globalDiscountRate')) : undefined,
       shippingFee: formData.has('shippingFee') ? Number(formData.get('shippingFee')) : undefined,
     };
@@ -95,6 +102,7 @@ export async function createInvoice(formData: FormData) {
         return {
           invoiceId: created.id,
           productId: line.productId || null,
+          packId: line.packId || null,
           description: line.description,
           quantity: String(line.quantity),
           unitPrice: String(line.unitPrice),
@@ -133,8 +141,9 @@ export async function createInvoice(formData: FormData) {
 
 export async function validateInvoice(invoiceId: string) {
   try {
-    const { shop, user } = await getCurrentShop();
+    const { shop, user, permissions } = await getCurrentShop();
     await assertWritable(shop.id);
+    assertPermission(permissions, 'invoices', 'write');
     const admin = createAdminClient();
 
     const { data: invoice } = await admin
@@ -171,23 +180,64 @@ export async function validateInvoice(invoiceId: string) {
       },
     );
 
-    const productIds = (lines ?? []).filter((l: any) => l.product_id).map((l: any) => l.product_id);
+    const allLines = lines ?? [];
+    const directProductIds = allLines.filter((l: any) => l.product_id && !l.pack_id).map((l: any) => l.product_id);
+    const packLineIds = allLines.filter((l: any) => l.pack_id).map((l: any) => l.pack_id);
+
+    const packItemsMap = new Map<string, { productId: string; quantity: number; purchasePrice: string }[]>();
+    if (packLineIds.length > 0) {
+      const packRows = await db
+        .select({
+          piPackId: packItems.packId,
+          piProductId: packItems.productId,
+          piQuantity: packItems.quantity,
+          pPurchasePrice: packs.purchasePrice,
+        })
+        .from(packItems)
+        .innerJoin(packs, eq(packs.id, packItems.packId))
+        .where(and(
+          eq(packs.shopId, shop.id),
+          inArray(packItems.packId, packLineIds),
+        ));
+
+      for (const row of packRows) {
+        const items = packItemsMap.get(row.piPackId) ?? [];
+        items.push({
+          productId: row.piProductId,
+          quantity: Number(row.piQuantity),
+          purchasePrice: row.pPurchasePrice ?? '0',
+        });
+        packItemsMap.set(row.piPackId, items);
+      }
+
+      for (const packId of packLineIds) {
+        if (!packItemsMap.has(packId)) {
+          const packLine = allLines.find((l: any) => l.pack_id === packId);
+          throw new Error(`Pack introuvable pour ${packLine?.description ?? 'ligne'}`);
+        }
+      }
+    }
+
+    const allProductIds = [
+      ...directProductIds,
+      ...Array.from(packItemsMap.values()).flatMap((items) => items.map((i) => i.productId)),
+    ];
 
     await db.transaction(async (tx) => {
-      if (productIds.length > 0) {
+      if (allProductIds.length > 0) {
         const stockRows = await tx
           .select()
           .from(stockItems)
           .where(and(
             eq(stockItems.shopId, shop.id),
-            inArray(stockItems.productId, productIds),
+            inArray(stockItems.productId, allProductIds),
           ))
           .for('update');
 
         const stockMap = new Map(stockRows.map((s) => [s.productId, s]));
 
-        for (const line of (lines ?? [])) {
-          if (line.product_id) {
+        for (const line of allLines) {
+          if (line.product_id && !line.pack_id) {
             const stockItem = stockMap.get(line.product_id);
             if (!stockItem) {
               throw new Error(`Stock introuvable pour ${line.description}`);
@@ -196,10 +246,23 @@ export async function validateInvoice(invoiceId: string) {
               throw new Error(`Stock insuffisant pour ${line.description}`);
             }
           }
+          if (line.pack_id) {
+            const items = packItemsMap.get(line.pack_id) ?? [];
+            for (const item of items) {
+              const stockItem = stockMap.get(item.productId);
+              if (!stockItem) {
+                throw new Error(`Stock introuvable pour un produit du pack ${line.description}`);
+              }
+              const needed = item.quantity * Number(line.quantity);
+              if (Number(stockItem.quantity) - needed < 0) {
+                throw new Error(`Stock insuffisant pour ${line.description} (pack)`);
+              }
+            }
+          }
         }
 
-        for (const line of (lines ?? [])) {
-          if (line.product_id) {
+        for (const line of allLines) {
+          if (line.product_id && !line.pack_id) {
             const stockItem = stockMap.get(line.product_id)!;
             await tx.insert(stockMovements).values({
               shopId: shop.id,
@@ -212,6 +275,26 @@ export async function validateInvoice(invoiceId: string) {
               referenceType: 'invoice',
               createdBy: user.id,
             });
+          }
+          if (line.pack_id) {
+            const items = packItemsMap.get(line.pack_id) ?? [];
+            for (const item of items) {
+              const stockItem = stockMap.get(item.productId);
+              if (!stockItem) continue;
+              const qty = item.quantity * Number(line.quantity);
+              await tx.insert(stockMovements).values({
+                shopId: shop.id,
+                productId: item.productId,
+                stockItemId: stockItem.id,
+                movementType: 'SALE',
+                quantity: String(-qty),
+                unitPrice: item.purchasePrice,
+                referenceId: invoiceId,
+                referenceType: 'invoice',
+                reason: `Pack: ${line.description}`,
+                createdBy: user.id,
+              });
+            }
           }
         }
       }
@@ -258,8 +341,9 @@ export async function validateInvoice(invoiceId: string) {
 
 export async function cancelInvoice(invoiceId: string, reason?: string) {
   try {
-    const { shop, user } = await getCurrentShop();
+    const { shop, user, permissions } = await getCurrentShop();
     await assertWritable(shop.id);
+    assertPermission(permissions, 'invoices', 'write');
     const admin = createAdminClient();
 
     const { data: invoice } = await admin
@@ -283,23 +367,58 @@ export async function cancelInvoice(invoiceId: string, reason?: string) {
         .select('*')
         .eq('invoice_id', invoiceId);
 
-      const productLineIds = (lines ?? []).filter((l: any) => l.product_id).map((l: any) => l.product_id);
+      const allCancelLines = lines ?? [];
+      const packCancelIds = allCancelLines.filter((l: any) => l.pack_id).map((l: any) => l.pack_id);
 
-      if (productLineIds.length > 0) {
+      const cancelPackItemsMap = new Map<string, { productId: string; quantity: number }[]>();
+      if (packCancelIds.length > 0) {
+        const packRows = await db
+          .select({
+            piPackId: packItems.packId,
+            piProductId: packItems.productId,
+            piQuantity: packItems.quantity,
+          })
+          .from(packItems)
+          .innerJoin(packs, eq(packs.id, packItems.packId))
+          .where(and(
+            eq(packs.shopId, shop.id),
+            inArray(packItems.packId, packCancelIds),
+          ));
+
+        for (const row of packRows) {
+          const items = cancelPackItemsMap.get(row.piPackId) ?? [];
+          items.push({
+            productId: row.piProductId,
+            quantity: Number(row.piQuantity),
+          });
+          cancelPackItemsMap.set(row.piPackId, items);
+        }
+      }
+
+      const directCancelProductIds = allCancelLines
+        .filter((l: any) => l.product_id && !l.pack_id)
+        .map((l: any) => l.product_id);
+
+      const allCancelProductIds = [
+        ...directCancelProductIds,
+        ...Array.from(cancelPackItemsMap.values()).flatMap((items) => items.map((i) => i.productId)),
+      ];
+
+      if (allCancelProductIds.length > 0) {
         await db.transaction(async (tx) => {
           const stockRows = await tx
             .select()
             .from(stockItems)
             .where(and(
               eq(stockItems.shopId, shop.id),
-              inArray(stockItems.productId, productLineIds),
+              inArray(stockItems.productId, allCancelProductIds),
             ))
             .for('update');
 
           const stockMap = new Map(stockRows.map((s) => [s.productId, s]));
 
-          for (const line of (lines ?? [])) {
-            if (line.product_id) {
+          for (const line of allCancelLines) {
+            if (line.product_id && !line.pack_id) {
               const stockItem = stockMap.get(line.product_id);
               if (stockItem) {
                 await tx.insert(stockMovements).values({
@@ -314,6 +433,27 @@ export async function cancelInvoice(invoiceId: string, reason?: string) {
                   reason: `Annulation facture: ${reason}`,
                   createdBy: user.id,
                 });
+              }
+            }
+            if (line.pack_id) {
+              const items = cancelPackItemsMap.get(line.pack_id) ?? [];
+              for (const item of items) {
+                const stockItem = stockMap.get(item.productId);
+                if (stockItem) {
+                  const qty = item.quantity * Number(line.quantity);
+                  await tx.insert(stockMovements).values({
+                    shopId: shop.id,
+                    productId: item.productId,
+                    stockItemId: stockItem.id,
+                    movementType: 'CANCELLATION',
+                    quantity: String(qty),
+                    unitPrice: String(line.unit_price),
+                    referenceId: invoiceId,
+                    referenceType: 'invoice',
+                    reason: `Annulation facture (pack): ${reason}`,
+                    createdBy: user.id,
+                  });
+                }
               }
             }
           }

@@ -1,7 +1,8 @@
 'use client';
 
-import { Printer } from 'lucide-react';
+import { Printer, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 const WhatsAppIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
@@ -9,13 +10,22 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
-export function InvoiceActions({ clientName, clientPhone, balanceDue }: {
+export function InvoiceActions({ clientName, clientPhone, balanceDue, invoiceId }: {
   clientName?: string;
   clientPhone?: string;
   balanceDue?: string;
+  invoiceId?: string;
 }) {
+  const router = useRouter();
+
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleThermalPrint = () => {
+    if (invoiceId) {
+      router.push(`/invoices/${invoiceId}?thermal=true`);
+    }
   };
 
   const handleReminder = () => {
@@ -39,6 +49,17 @@ export function InvoiceActions({ clientName, clientPhone, balanceDue }: {
         <Printer className="size-3.5" />
         PDF
       </Button>
+      {invoiceId && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleThermalPrint}
+          className="gap-1.5"
+        >
+          <Ticket className="size-3.5" />
+          Ticket
+        </Button>
+      )}
       {Number(balanceDue ?? 0) > 0 && clientPhone && (
         <Button
           variant="outline"

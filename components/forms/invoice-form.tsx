@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Layers } from 'lucide-react';
 import { createInvoice } from '@/lib/actions/invoices';
 import { getStockLevel } from '@/lib/actions/products';
 import { InvoicePreview } from '@/components/invoices/invoice-preview';
@@ -15,8 +15,15 @@ interface Product {
   unit_price: string;
 }
 
+interface Pack {
+  id: string;
+  name: string;
+  sale_price: string;
+}
+
 interface FormLine {
   productId?: string;
+  packId?: string;
   description: string;
   quantity: number;
   unitPrice: number;
@@ -33,10 +40,11 @@ interface InvoiceFormData {
 
 interface Props {
   products: Product[];
+  packs?: Pack[];
   settings: any;
 }
 
-export function InvoiceForm({ products, settings }: Props) {
+export function InvoiceForm({ products, packs = [], settings }: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -108,10 +116,21 @@ export function InvoiceForm({ products, settings }: Props) {
       setValue(`lines.${index}.description`, product.name);
       setValue(`lines.${index}.unitPrice`, Number(product.unit_price));
       setValue(`lines.${index}.productId`, productId);
+      setValue(`lines.${index}.packId`, undefined);
       const stock = await getStockLevel(productId);
       setStockLevels((prev) => ({ ...prev, [productId]: stock }));
     }
   }, [products, setValue]);
+
+  const selectPack = useCallback((index: number, packId: string) => {
+    const pack = packs.find((p) => p.id === packId);
+    if (pack) {
+      setValue(`lines.${index}.description`, pack.name);
+      setValue(`lines.${index}.unitPrice`, Number(pack.sale_price));
+      setValue(`lines.${index}.packId`, packId);
+      setValue(`lines.${index}.productId`, undefined);
+    }
+  }, [packs, setValue]);
 
   const totalItems = watchedLines.reduce((s, l) => s + (l.quantity || 0), 0);
   const previewCalc = watchedLines.reduce((s, l) => s + (l.quantity || 0) * (l.unitPrice || 0), 0);
@@ -142,23 +161,41 @@ export function InvoiceForm({ products, settings }: Props) {
         {/* Lignes articles */}
         {fields.map((field, index) => {
           const selectedId = watchedLines[index]?.productId;
+          const selectedPackId = watchedLines[index]?.packId;
           const stock = selectedId ? stockLevels[selectedId] : undefined;
           const qty = watchedLines[index]?.quantity || 0;
           const overstock = stock !== undefined && qty > stock;
+          const isPackLine = !!selectedPackId;
 
           return (
-            <div key={field.id} className="bg-white rounded-2xl border border-zinc-200/80 p-4 sm:p-5 mb-3">
+            <div key={field.id} className={`bg-white rounded-2xl border p-4 sm:p-5 mb-3 ${isPackLine ? 'border-amber-200/80 bg-amber-50/30' : 'border-zinc-200/80'}`}>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-xs font-medium text-zinc-400 w-5">{index + 1}</span>
                 <select
                   className="flex-1 text-sm py-2.5 border-b border-zinc-200 focus:border-zinc-900 outline-none transition-colors bg-transparent"
-                  onChange={(e) => selectProduct(index, e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val.startsWith('pack:')) {
+                      selectPack(index, val.slice(5));
+                    } else if (val) {
+                      selectProduct(index, val);
+                    }
+                  }}
                   defaultValue=""
                 >
-                  <option value="" disabled>Produit</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
+                  <option value="" disabled>Produit ou pack</option>
+                  <optgroup label="Produits">
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </optgroup>
+                  {packs.length > 0 && (
+                    <optgroup label="Packs">
+                      {packs.map((p) => (
+                        <option key={`pack:${p.id}`} value={`pack:${p.id}`}>{p.name} (Pack)</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
                 <button
                   type="button"
@@ -213,6 +250,11 @@ export function InvoiceForm({ products, settings }: Props) {
                 )}
               </div>
 
+              {isPackLine && (
+                <p className="text-[11px] mt-2 text-amber-600 font-medium flex items-center gap-1">
+                  <Layers className="size-3" /> Pack — le stock de chaque produit sera déduit individuellement
+                </p>
+              )}
               {stock !== undefined && (
                 <p className={`text-[11px] mt-2 ${overstock ? 'text-orange-500 font-medium' : 'text-zinc-400'}`}>
                   Stock: {stock} {overstock ? '⚠️ insuffisant' : ''}

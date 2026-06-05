@@ -291,8 +291,56 @@
     .fixed { display: none !important; }
 
     body > *:not(.print-area) { visibility: hidden !important; }
+
+    /* Thermal 58mm */
+    @page thermal { size: 58mm auto; margin: 0; }
+    .thermal-print { page: thermal; }
+
+    .thermal-print .thermal-ticket {
+      display: block !important;
+      visibility: visible !important;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 56mm;
+      background: white !important;
+      color: black !important;
+      font-family: 'Courier New', monospace !important;
+      font-size: 9px !important;
+      line-height: 1.3 !important;
+      padding: 1mm 1mm;
+    }
+
+    .thermal-print .thermal-ticket * {
+      font-family: 'Courier New', monospace !important;
+    }
+
+    .thermal-print .thermal-inner {
+      width: 100%;
+    }
+
+    .thermal-print .thermal-ticket .text-xs {
+      font-size: 8px !important;
+    }
+
+    .thermal-print .thermal-ticket .font-bold {
+      font-weight: 700 !important;
+    }
+
+    .thermal-print .thermal-ticket .font-semibold {
+      font-weight: 600 !important;
+    }
+
+    .thermal-print .thermal-ticket .font-mono {
+      font-family: 'Courier New', monospace !important;
+    }
+
+    body.thermal-print > *:not(.thermal-ticket) {
+      display: none !important;
+    }
   }
   .print-only { display: none; }
+  .thermal-ticket { display: none; }
 }
 
 @layer utilities {

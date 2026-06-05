@@ -2,7 +2,7 @@ import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
 import Link from 'next/link';
-import { Plus, Package } from 'lucide-react';
+import { Plus, Package, Layers } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -38,10 +38,16 @@ export default async function ProductsPage() {
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold tracking-tight">Produits</h1>
           <p className="text-sm text-zinc-500 mt-1.5">{allProducts.length} produit(s)</p>
         </div>
-        <Link href="/products/new" className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-800 transition-all shadow-sm">
-          <Plus className="size-4" />
-          Nouveau
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/products/packs" className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-zinc-200 text-sm font-medium hover:bg-zinc-50 transition-all">
+            <Layers className="size-4" />
+            Packs
+          </Link>
+          <Link href="/products/new" className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-800 transition-all shadow-sm">
+            <Plus className="size-4" />
+            Nouveau
+          </Link>
+        </div>
       </div>
 
       <Card className="border-zinc-200/80 shadow-sm">

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/server';
-import { DEFAULT_ROLES } from '@/lib/permissions';
 
 const MAX_BODY_SIZE = 4096;
 
@@ -96,30 +95,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: subError.message }, { status: 500 });
   }
 
-  const defaultRoleIds: Record<string, string> = {};
-  for (const def of DEFAULT_ROLES) {
-    const { data: roleData, error: roleError } = await admin
-      .from('roles')
-      .insert({
-        shop_id: shop.id, name: def.name, description: def.description,
-        permissions: def.permissions, is_default: true,
-      })
-      .select('id')
-      .single();
-
-    if (!roleError && roleData) {
-      defaultRoleIds[def.name] = roleData.id;
-    }
-  }
-
-  const ownerRoleId = defaultRoleIds['Propriétaire'] || null;
-
   const { error: userError } = await admin
     .from('users')
     .insert({
-      auth_user_id: user.id, shop_id: shop.id, role: 'owner',
-      role_id: ownerRoleId,
-      display_name: displayName, email: user.email || '',
+      auth_user_id: user.id, shop_id: shop.id, role: 'owner', display_name: displayName, email: user.email || '',
     });
 
   if (userError) {

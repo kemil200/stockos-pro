@@ -12,13 +12,12 @@ import { revalidatePath } from 'next/cache';
 import { CreateInvoiceSchema, InvoiceLineSchema } from '@/lib/validations/invoice';
 import { auditLog, AuditAction } from '@/lib/audit';
 import { assertWritable } from '@/lib/readonly';
-import { assertPermission } from '@/lib/permissions';
+
 
 export async function createInvoice(formData: FormData) {
   try {
-    const { shop, user, permissions } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
     await assertWritable(shop.id);
-    assertPermission(permissions, 'invoices', 'write');
 
     const linesJson = formData.get('lines') as string;
     if (linesJson.length > 100000) {
@@ -141,9 +140,8 @@ export async function createInvoice(formData: FormData) {
 
 export async function validateInvoice(invoiceId: string) {
   try {
-    const { shop, user, permissions } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
     await assertWritable(shop.id);
-    assertPermission(permissions, 'invoices', 'write');
     const admin = createAdminClient();
 
     const { data: invoice } = await admin
@@ -341,9 +339,8 @@ export async function validateInvoice(invoiceId: string) {
 
 export async function cancelInvoice(invoiceId: string, reason?: string) {
   try {
-    const { shop, user, permissions } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
     await assertWritable(shop.id);
-    assertPermission(permissions, 'invoices', 'write');
     const admin = createAdminClient();
 
     const { data: invoice } = await admin

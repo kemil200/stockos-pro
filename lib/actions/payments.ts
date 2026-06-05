@@ -10,13 +10,11 @@ import { revalidatePath } from 'next/cache';
 import { PaymentSchema } from '@/lib/validations/invoice';
 import { auditLog, AuditAction } from '@/lib/audit';
 import { assertWritable } from '@/lib/readonly';
-import { assertPermission } from '@/lib/permissions';
 
 export async function recordPayment(formData: FormData) {
   try {
-    const { shop, user, permissions } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
     await assertWritable(shop.id);
-    assertPermission(permissions, 'payments', 'write');
     const admin = createAdminClient();
 
     const parsed = PaymentSchema.parse({

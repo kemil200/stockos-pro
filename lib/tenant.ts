@@ -27,23 +27,7 @@ export async function getCurrentShop() {
   const shopUser = shopUsers?.[0] ?? null;
   if (!shopUser) throw new TenantError('User not found in shop');
 
-  let permissions: Record<string, string> | null = null;
-  if (shopUser.role_id) {
-    const { data: roleData } = await admin
-      .from('roles')
-      .select('permissions')
-      .eq('id', shopUser.role_id)
-      .single();
-    permissions = roleData?.permissions as Record<string, string> | null;
-  } else if (shopUser.role === 'owner') {
-    permissions = {
-      invoices: 'write', products: 'write', packs: 'write', stock: 'write',
-      payments: 'write', cash_register: 'write', supply: 'write',
-      clients: 'write', reports: 'write', settings: 'write',
-    };
-  }
-
-  return { shop, user: shopUser, permissions };
+  return { shop, user: shopUser };
 }
 
 export async function getShopById(shopId: string) {

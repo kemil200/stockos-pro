@@ -14,10 +14,8 @@ import {
   Store,
   Users,
   ShoppingCart,
-  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { canRead, type Permissions } from '@/lib/permissions';
 import {
   Sheet,
   SheetContent,
@@ -26,25 +24,19 @@ import {
 import { Button } from '@/components/ui/button';
 
 const NAV_ITEMS = [
-  { href: '/invoices', label: 'Factures', icon: FileText, feature: 'invoices' as const },
-  { href: '/clients', label: 'Clients', icon: Users, feature: 'clients' as const },
-  { href: '/supply', label: 'Approvisionnement', icon: ShoppingCart, feature: 'supply' as const },
-  { href: '/products', label: 'Produits', icon: Package, feature: 'products' as const },
-  { href: '/products/packs', label: 'Packs', icon: Layers, feature: 'packs' as const },
-  { href: '/stock', label: 'Stock', icon: Warehouse, feature: 'stock' as const },
-  { href: '/payments', label: 'Paiements', icon: Receipt, feature: 'payments' as const },
-  { href: '/cash-register', label: 'Caisse', icon: Wallet, feature: 'cash_register' as const },
-  { href: '/reports', label: 'Rapports', icon: BarChart3, feature: 'reports' as const },
-  { href: '/settings', label: 'Paramètres', icon: Settings, feature: 'settings' as const },
+  { href: '/invoices', label: 'Factures', icon: FileText },
+  { href: '/clients', label: 'Clients', icon: Users },
+  { href: '/supply', label: 'Approvisionnement', icon: ShoppingCart },
+  { href: '/products', label: 'Produits', icon: Package },
+  { href: '/stock', label: 'Stock', icon: Warehouse },
+  { href: '/payments', label: 'Paiements', icon: Receipt },
+  { href: '/cash-register', label: 'Caisse', icon: Wallet },
+  { href: '/reports', label: 'Rapports', icon: BarChart3 },
+  { href: '/settings', label: 'Paramètres', icon: Settings },
 ];
 
-function SidebarContent({ onNavigate, permissions }: { onNavigate?: () => void; permissions?: Permissions | Record<string, string> | null }) {
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-
-  const visibleItems = NAV_ITEMS.filter((item) => {
-    if (!permissions) return true;
-    return canRead(permissions as Permissions, item.feature);
-  });
 
   return (
     <>
@@ -64,8 +56,10 @@ function SidebarContent({ onNavigate, permissions }: { onNavigate?: () => void; 
         </Link>
       </div>
       <nav className="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto">
-        {visibleItems.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname.startsWith(href);
+        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          const isActive = pathname === '/products'
+            ? pathname.startsWith('/products')
+            : pathname.startsWith(href);
           return (
             <Link
               key={href}
@@ -91,22 +85,22 @@ function SidebarContent({ onNavigate, permissions }: { onNavigate?: () => void; 
   );
 }
 
-export function Sidebar({ className, permissions }: { className?: string; permissions?: Permissions | Record<string, string> | null }) {
+export function Sidebar({ className }: { className?: string }) {
   return (
     <aside className={cn('w-60 border-r bg-white h-screen flex flex-col shrink-0 max-lg:hidden', className)}>
-      <SidebarContent permissions={permissions} />
+      <SidebarContent />
     </aside>
   );
 }
 
-export function MobileSidebar({ permissions }: { permissions?: Permissions | Record<string, string> | null }) {
+export function MobileSidebar() {
   return (
     <Sheet>
       <SheetTrigger render={<Button variant="ghost" size="icon" className="lg:hidden" aria-label="Menu" />}>
         <Menu className="size-5" />
       </SheetTrigger>
       <SheetContent side="left" className="w-60 p-0" showCloseButton={false}>
-        <SidebarContent permissions={permissions} onNavigate={() => {
+        <SidebarContent onNavigate={() => {
           document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
         }} />
       </SheetContent>

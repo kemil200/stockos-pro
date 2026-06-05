@@ -29,28 +29,11 @@ export default async function DashboardLayout({
 
   const shopId = shops[0].id;
 
-  const [{ data: subs }, { data: shopUsers }] = await Promise.all([
-    admin.from('subscriptions').select('features, status').eq('shop_id', shopId).limit(1),
-    admin.from('users').select('role, role_id').eq('auth_user_id', user.id).eq('shop_id', shopId).limit(1),
-  ]);
-
-  const shopUser = shopUsers?.[0] ?? null;
-
-  let userPermissions: Record<string, string> | null = null;
-  if (shopUser?.role_id) {
-    const { data: roleData } = await admin
-      .from('roles')
-      .select('permissions')
-      .eq('id', shopUser.role_id)
-      .single();
-    userPermissions = roleData?.permissions as Record<string, string> | null;
-  } else if (shopUser?.role === 'owner') {
-    userPermissions = {
-      invoices: 'write', products: 'write', packs: 'write', stock: 'write',
-      payments: 'write', cash_register: 'write', supply: 'write',
-      clients: 'write', reports: 'write', settings: 'write',
-    };
-  }
+  const { data: subs } = await admin
+    .from('subscriptions')
+    .select('features, status')
+    .eq('shop_id', shopId)
+    .limit(1);
 
   const features = (subs?.[0]?.features ?? {}) as Record<string, unknown>;
   const readOnly = !!features.readOnly;
@@ -58,7 +41,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-dvh overflow-hidden">
-      <Sidebar permissions={userPermissions} />
+      <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />
         {(readOnly || expired) && (

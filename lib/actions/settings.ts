@@ -5,14 +5,12 @@ import { getCurrentShop } from '@/lib/tenant';
 import { db } from '@/lib/db';
 import { shopSettings, invoiceSettings } from '@/lib/db/schema';
 import { assertWritable } from '@/lib/readonly';
-import { assertPermission } from '@/lib/permissions';
 import { revalidatePath } from 'next/cache';
 
 export async function updateShopSettings(formData: FormData) {
   try {
-    const { shop, permissions } = await getCurrentShop();
+    const { shop } = await getCurrentShop();
     await assertWritable(shop.id);
-    assertPermission(permissions, 'settings', 'write');
 
     await db
       .update(shopSettings)
@@ -39,9 +37,8 @@ export async function updateShopSettings(formData: FormData) {
 
 export async function updateInvoiceSettings(formData: FormData) {
   try {
-    const { shop, permissions } = await getCurrentShop();
+    const { shop } = await getCurrentShop();
     await assertWritable(shop.id);
-    assertPermission(permissions, 'settings', 'write');
 
     await db
       .update(invoiceSettings)

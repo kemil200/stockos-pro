@@ -8,13 +8,11 @@ import { db } from '@/lib/db';
 import { packs, packItems } from '@/lib/db/schema';
 import { CreatePackSchema, UpdatePackSchema } from '@/lib/validations/pack';
 import { assertWritable } from '@/lib/readonly';
-import { assertPermission } from '@/lib/permissions';
 
 export async function createPack(formData: FormData) {
   try {
-    const { shop, permissions } = await getCurrentShop();
+    const { shop } = await getCurrentShop();
     await assertWritable(shop.id);
-    assertPermission(permissions, 'packs', 'write');
 
     const itemsJson = formData.get('items') as string;
     if (itemsJson.length > 50000) {
@@ -65,9 +63,8 @@ export async function createPack(formData: FormData) {
 
 export async function updatePack(formData: FormData) {
   try {
-    const { shop, permissions } = await getCurrentShop();
+    const { shop } = await getCurrentShop();
     await assertWritable(shop.id);
-    assertPermission(permissions, 'packs', 'write');
 
     const itemsJson = formData.get('items') as string;
     if (itemsJson.length > 50000) {
@@ -120,9 +117,8 @@ export async function updatePack(formData: FormData) {
 
 export async function deletePack(packId: string) {
   try {
-    const { shop, permissions } = await getCurrentShop();
+    const { shop } = await getCurrentShop();
     await assertWritable(shop.id);
-    assertPermission(permissions, 'packs', 'write');
 
     await db
       .delete(packs)

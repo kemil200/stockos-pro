@@ -8,7 +8,6 @@ import { stockItems, stockMovements, products, cashMovements } from '@/lib/db/sc
 import { revalidatePath } from 'next/cache';
 import { auditLog, AuditAction } from '@/lib/audit';
 import { assertWritable } from '@/lib/readonly';
-import { assertPermission } from '@/lib/permissions';
 
 const SupplySchema = z.object({
   productId: z.string().uuid(),
@@ -19,9 +18,8 @@ const SupplySchema = z.object({
 
 export async function purchaseStock(formData: FormData) {
   try {
-    const { shop, user, permissions } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
     await assertWritable(shop.id);
-    assertPermission(permissions, 'supply', 'write');
 
     const parsed = SupplySchema.parse({
       productId: formData.get('productId'),

@@ -9,13 +9,11 @@ import { db } from '@/lib/db';
 import { products, stockItems, stockMovements } from '@/lib/db/schema';
 import { CreateProductSchema, AdjustStockSchema } from '@/lib/validations/product';
 import { assertWritable } from '@/lib/readonly';
-import { assertPermission } from '@/lib/permissions';
 
 export async function createProduct(formData: FormData) {
   try {
-    const { shop, permissions } = await getCurrentShop();
+    const { shop } = await getCurrentShop();
     await assertWritable(shop.id);
-    assertPermission(permissions, 'products', 'write');
 
     const parsed = CreateProductSchema.parse({
       name: formData.get('name'),
@@ -67,9 +65,8 @@ export async function createProduct(formData: FormData) {
 
 export async function adjustStock(formData: FormData) {
   try {
-    const { shop, user, permissions } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
     await assertWritable(shop.id);
-    assertPermission(permissions, 'stock', 'write');
 
     const parsed = AdjustStockSchema.parse({
       productId: formData.get('productId'),

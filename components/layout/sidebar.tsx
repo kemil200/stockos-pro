@@ -11,11 +11,11 @@ import {
   BarChart3,
   Settings,
   Menu,
-  Store,
   Users,
   ShoppingCart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Logo } from '@/components/logo';
 import {
   Sheet,
   SheetContent,
@@ -46,9 +46,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           className="flex items-center gap-2.5"
           onClick={onNavigate}
         >
-          <div className="size-8 rounded-xl bg-zinc-900 flex items-center justify-center">
-            <Store className="size-4 text-white" />
-          </div>
+          <Logo size={32} variant="icon" />
           <div>
             <h1 className="text-sm font-bold tracking-tight leading-tight">StockOS Pro</h1>
             <p className="text-[10px] text-zinc-400 leading-tight">Gestion commerciale</p>

@@ -2,8 +2,9 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/server';
 import { JsonLd } from '@/components/seo/json-ld';
+import { Logo } from '@/components/logo';
 import {
-  Store, FileText, Package, Wallet, TrendingUp,
+  FileText, Package, Wallet, TrendingUp,
   Shield, Receipt, CreditCard, ArrowRight, Check,
   BarChart3, Warehouse, Clock, Globe, Sparkles,
   ChevronRight, Star, Smartphone, Download,
@@ -51,9 +52,7 @@ export default async function Home() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-200/50 bg-white/70 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="size-9 rounded-xl bg-zinc-900 flex items-center justify-center shadow-sm transition-transform group-hover:scale-105">
-              <Store className="size-4.5 text-white" />
-            </div>
+            <Logo size={36} variant="icon" />
             <div>
               <span className="font-heading font-bold text-sm tracking-tight">StockOS Pro</span>
               <p className="text-[10px] text-zinc-400 leading-none -mt-0.5">Gestion commerciale</p>
@@ -289,9 +288,7 @@ export default async function Home() {
       <footer className="border-t border-zinc-200/80 py-10 px-6 bg-white">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="size-7 rounded-lg bg-zinc-900 flex items-center justify-center">
-              <Store className="size-4 text-white" />
-            </div>
+            <Logo size={28} variant="icon" />
             <span className="text-sm font-heading font-bold">StockOS Pro</span>
           </div>
           <p className="text-xs text-zinc-400">© {new Date().getFullYear()} StockOS Pro. Tous droits réservés.</p>

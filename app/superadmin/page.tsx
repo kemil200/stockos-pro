@@ -21,7 +21,14 @@ import {
 } from '@/components/ui/card';
 import { Delta, DeltaIcon, DeltaValue } from '@/components/delta';
 
-const SUBSCRIPTION_RATE = 90000; // 90 000 FCFA/an
+const PLAN_PRICES: Record<string, number> = {
+  STARTER: 55000,
+  ESSENTIAL: 90000,
+  BUSINESS: 120000,
+  TRIAL: 0,
+  MONTHLY: 90000,
+  ANNUAL: 90000,
+};
 
 export default async function SuperAdminPage() {
   const supabase = await createClient();
@@ -43,13 +50,13 @@ export default async function SuperAdminPage() {
   const allShopUsers = usersResult.data ?? [];
   const allSubscriptions = subsResult.data ?? [];
 
-  const activeSubs = allSubscriptions.filter((s: any) => s.status === 'ACTIVE').length;
+  const activeSubsByPlan = allSubscriptions.filter((s: any) => s.status === 'ACTIVE');
+  const annualRevenue = activeSubsByPlan.reduce((sum, s) => sum + (PLAN_PRICES[s.plan] || 0), 0);
+  const monthlyRevenue = annualRevenue / 12;
+  const activeSubs = activeSubsByPlan.length;
   const trialSubs = allSubscriptions.filter((s: any) => s.status === 'TRIAL').length;
   const pastDueSubs = allSubscriptions.filter((s: any) => s.status === 'PAST_DUE').length;
   const cancelledSubs = allSubscriptions.filter((s: any) => s.status === 'CANCELLED' || s.status === 'EXPIRED').length;
-
-  const monthlyRevenue = (activeSubs * SUBSCRIPTION_RATE) / 12;
-  const annualRevenue = activeSubs * SUBSCRIPTION_RATE;
 
   const subMap = new Map(allSubscriptions.map((s: any) => [s.shop_id, s]));
 
@@ -157,6 +164,30 @@ export default async function SuperAdminPage() {
               <p className="text-xl font-semibold text-zinc-500 tabular-nums">{cancelledSubs}</p>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Plan breakdown */}
+        <div className="mb-8 grid grid-cols-3 gap-3">
+          {(['STARTER', 'ESSENTIAL', 'BUSINESS'] as const).map((plan) => {
+            const count = activeSubsByPlan.filter((s: any) => s.plan === plan).length;
+            return (
+              <Card key={plan} className={`rounded-xl shadow-none border-l-4 ${
+                plan === 'STARTER' ? 'border-l-blue-500' :
+                plan === 'ESSENTIAL' ? 'border-l-emerald-500' :
+                'border-l-violet-500'
+              }`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-normal tracking-wide text-muted-foreground">{plan}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xl font-semibold tabular-nums">{count}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {new Intl.NumberFormat('fr-FR').format(count * PLAN_PRICES[plan])} FCFA/an
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Subscriptions table */}

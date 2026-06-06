@@ -54,6 +54,36 @@ export async function renewSubscription(shopId: string, months: number) {
   if (error) throw new Error(error.message);
 }
 
+export async function setPlan(shopId: string, plan: string, months: number) {
+  await assertSuperadmin();
+  const admin = createAdminClient();
+
+  const { data: subs } = await admin
+    .from('subscriptions')
+    .select('current_period_end')
+    .eq('shop_id', shopId)
+    .limit(1);
+
+  const currentEnd = subs?.[0]?.current_period_end
+    ? new Date(subs[0].current_period_end)
+    : new Date();
+
+  const newEnd = new Date(currentEnd);
+  newEnd.setMonth(newEnd.getMonth() + months);
+
+  const { error } = await admin
+    .from('subscriptions')
+    .update({
+      status: 'ACTIVE',
+      plan,
+      current_period_end: newEnd.toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('shop_id', shopId);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function toggleReadOnly(shopId: string, readOnly: boolean) {
   await assertSuperadmin();
   const admin = createAdminClient();

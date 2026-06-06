@@ -2,17 +2,30 @@
 
 import { useRouter } from 'next/navigation';
 import { createProduct } from '@/lib/actions/products';
-import { useState } from 'react';
+import { getCategories, upsertCategory } from '@/lib/actions/categories';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Plus } from 'lucide-react';
 
 export default function NewProductPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [unitType, setUnitType] = useState('UNITY');
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categoryInput, setCategoryInput] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    getCategories().then(setCategories);
+  }, []);
+
+  const filteredCategories = categories.filter((c) =>
+    c.name.toLowerCase().includes(categoryInput.toLowerCase()),
+  );
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -20,6 +33,13 @@ export default function NewProductPage() {
     try {
       const formData = new FormData(e.currentTarget);
       formData.set('unitType', unitType);
+
+      const catName = categoryInput.trim();
+      if (catName) {
+        formData.set('category', catName);
+        await upsertCategory(catName);
+      }
+
       const result = await createProduct(formData);
       if (result.success) {
         router.replace('/products');
@@ -29,6 +49,11 @@ export default function NewProductPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const selectCategory = (name: string) => {
+    setCategoryInput(name);
+    setShowDropdown(false);
   };
 
   return (
@@ -77,9 +102,7 @@ export default function NewProductPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Unité</label>
                 <Select value={unitType} onValueChange={(v) => v && setUnitType(v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="UNITY">Unité</SelectItem>
                     <SelectItem value="KG">Kg</SelectItem>
@@ -90,10 +113,46 @@ export default function NewProductPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Catégorie</label>
-              <Input name="category" />
+              <div className="space-y-2 relative">
+                <label className="text-sm font-medium">Catégorie *</label>
+                <div className="relative">
+                  <input
+                    value={categoryInput}
+                    onChange={(e) => {
+                      setCategoryInput(e.target.value);
+                      setShowDropdown(true);
+                    }}
+                    onFocus={() => setShowDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-zinc-900 outline-none"
+                    placeholder="Rechercher ou créer..."
+                    required
+                    autoComplete="off"
+                  />
+                  {showDropdown && categoryInput && filteredCategories.length > 0 && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                      {filteredCategories.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => selectCategory(c.name)}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-zinc-100 transition-colors ${c.name === categoryInput ? 'bg-zinc-50 font-medium' : ''}`}
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {showDropdown && categoryInput && filteredCategories.length === 0 && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg p-3">
+                      <p className="text-xs text-zinc-500 flex items-center gap-1">
+                        <Plus className="size-3" />
+                        Créer &quot;{categoryInput}&quot;
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
           <div className="flex items-center justify-end gap-3 px-4 py-4 border-t">

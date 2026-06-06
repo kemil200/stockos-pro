@@ -86,8 +86,8 @@ export async function POST(request: Request) {
   const { error: subError } = await admin
     .from('subscriptions')
     .insert({
-      shop_id: shop.id, plan: 'TRIAL', status: 'TRIAL',
-      trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      shop_id: shop.id, plan: 'ESSENTIAL', status: 'TRIAL',
+      trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     });
 

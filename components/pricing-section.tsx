@@ -153,7 +153,7 @@ export function PricingSection() {
                   <ArrowRight className="size-4" />
                 </Link>
 
-                <p className="text-xs text-zinc-400 text-center mt-4">14 jours d&apos;essai gratuit</p>
+                <p className="text-xs text-zinc-400 text-center mt-4">30 jours d&apos;essai gratuit</p>
               </div>
             );
           })}

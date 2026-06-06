@@ -3,11 +3,13 @@
 import { createClient } from '@/lib/client';
 import { Store } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 export function OnboardingCreateShop() {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export function OnboardingCreateShop() {
         throw new Error(err.error || 'Erreur lors de la création');
       }
 
-      window.location.href = '/invoices';
+      router.push('/invoices');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création');
       setLoading(false);

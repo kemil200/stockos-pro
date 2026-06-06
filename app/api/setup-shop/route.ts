@@ -15,12 +15,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Content-Type must be application/json' }, { status: 415 });
   }
 
-  const origin = request.headers.get('origin') || '';
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-  if (appUrl && origin && origin !== appUrl) {
-    return NextResponse.json({ error: 'Requête non autorisée' }, { status: 403 });
-  }
-
   const rawBody = await request.text();
   if (rawBody.length > MAX_BODY_SIZE) {
     return NextResponse.json({ error: 'Corps de requête trop volumineux' }, { status: 413 });

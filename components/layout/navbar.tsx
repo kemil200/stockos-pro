@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/client';
 import { Button } from '@/components/ui/button';
 import { MobileSidebar } from './sidebar';
+import { CommandPalette } from '@/components/command-palette';
 
 export function Navbar() {
   const router = useRouter();
@@ -49,6 +50,7 @@ export function Navbar() {
         )}
       </div>
       <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+        <CommandPalette />
         <span className="text-sm text-zinc-500 hidden sm:inline truncate max-w-[180px]">
           {user?.email}
         </span>

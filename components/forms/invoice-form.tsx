@@ -64,8 +64,10 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
 
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' });
   const watchedLines = watch('lines');
-  const globalDiscountRate = watch('globalDiscountRate');
   const shippingFee = watch('shippingFee');
+
+  const remiseLabel = settings?.commercial_discount_name || settings?.enable_commercial_discount ? settings?.commercial_discount_name : 'Remise';
+  const [commercialRate, setCommercialRate] = useState(0);
 
   const onSubmit = useCallback(async (data: InvoiceFormData) => {
     setSubmitting(true);
@@ -80,7 +82,8 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
       fd.append('clientName', data.clientName);
       if (data.clientPhone) fd.append('clientPhone', data.clientPhone);
       fd.append('lines', JSON.stringify(linesWithDecimalDiscount));
-      if (data.globalDiscountRate && data.globalDiscountRate > 0) fd.append('globalDiscountRate', String(data.globalDiscountRate / 100));
+      const commercialDecimal = commercialRate > 0 ? commercialRate / 100 : 0;
+      if (commercialDecimal > 0) fd.append('globalDiscountRate', String(commercialDecimal));
       if (data.shippingFee && data.shippingFee > 0) fd.append('shippingFee', String(data.shippingFee));
 
       const result = await createInvoice(fd);
@@ -90,13 +93,13 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
         return;
       }
 
-      router.replace(`/invoices/${result.invoice.id}?print=true`);
+      router.replace(`/invoices/${result.invoice.id}`);
     } catch {
       setSubmitError('Erreur réseau, veuillez réessayer');
     } finally {
       setSubmitting(false);
     }
-  }, [router]);
+  }, [router, commercialRate]);
 
   const handleFormError = () => {
     const el = formRef.current?.querySelector('[aria-invalid="true"], .t-input');
@@ -277,15 +280,16 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
 
         {/* Options */}
         <div className="flex items-center gap-3 mt-4 flex-wrap">
-          {(settings?.enable_global_discount) && (
+          {(settings?.enable_global_discount || settings?.enable_commercial_discount) && (
             <div className="flex items-center gap-1.5 bg-white rounded-xl border px-3 py-2">
-              <span className="text-xs text-zinc-500">Remise</span>
+              <span className="text-xs text-zinc-500">{remiseLabel}</span>
               <input
                 type="number"
                 step="0.01"
                 min="0"
                 max="100"
-                {...register('globalDiscountRate', { valueAsNumber: true })}
+                value={commercialRate || ''}
+                onChange={(e) => setCommercialRate(Number(e.target.value))}
                 className="w-14 text-center text-sm py-1 outline-none"
                 placeholder="%"
               />
@@ -325,7 +329,7 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
           <InvoicePreview
             lines={watchedLines as any}
             settings={settings}
-            globalDiscountRate={globalDiscountRate}
+            globalDiscountRate={commercialRate}
             shippingFee={shippingFee}
           />
         </div>

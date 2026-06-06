@@ -9,6 +9,8 @@ import { ThermalTicket } from '@/components/invoices/thermal-ticket';
 import { formatCurrency } from '@/lib/utils/currency';
 import { validateInvoiceAction } from '@/lib/actions/invoices';
 import { CancelInvoiceButton } from '@/components/invoices/cancel-invoice-button';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 export default async function InvoiceDetailPage({
   params,
@@ -88,6 +90,11 @@ export default async function InvoiceDetailPage({
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {print === 'true' && <AutoPrint />}
+
+      <Link href="/invoices" className="print-hide inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
+        <ArrowLeft className="size-3.5" />
+        Retour aux factures
+      </Link>
 
       {/* Screen-only header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 print-hide">

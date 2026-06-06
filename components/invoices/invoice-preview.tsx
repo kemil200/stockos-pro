@@ -29,7 +29,7 @@ export function InvoicePreview({ lines, settings, globalDiscountRate = 0, shippi
     const subtotal = lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0);
 
     const lineDiscounts = settings.enable_line_discount
-      ? lines.reduce((s, l) => s + (l.discountRate ? l.quantity * l.unitPrice * l.discountRate : 0), 0)
+      ? lines.reduce((s, l) => s + (l.discountRate ? l.quantity * l.unitPrice * (l.discountRate / 100) : 0), 0)
       : 0;
 
     const netSubtotal = subtotal - lineDiscounts;

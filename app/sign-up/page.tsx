@@ -1,7 +1,7 @@
 'use client';
 
 import { createClient } from '@/lib/client';
-import { Store, ArrowRight } from 'lucide-react';
+import { Store, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -18,6 +18,7 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   // Message de succès pour les providers qui exigent une confirmation par email
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,15 +126,26 @@ export default function SignUpPage() {
                   <label htmlFor="password" className="text-sm font-medium text-zinc-700">
                     Mot de passe
                   </label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
                 </div>
                 {error && (
                   <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3">

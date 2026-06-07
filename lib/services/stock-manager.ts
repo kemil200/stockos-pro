@@ -2,7 +2,7 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { stockMovements, stockItems } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, lte, gt } from 'drizzle-orm';
 import { AuditAction, auditLog } from '@/lib/audit';
 
 export class StockError extends Error {
@@ -76,5 +76,7 @@ export async function getLowStockItems(shopId: string) {
     .from(stockItems)
     .where(and(
       eq(stockItems.shopId, shopId),
+      lte(stockItems.quantity, stockItems.minThreshold),
+      gt(stockItems.minThreshold, '0'),
     ));
 }

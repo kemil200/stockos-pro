@@ -55,7 +55,7 @@ export async function renewSubscription(shopId: string, months: number) {
   const newEnd = new Date(currentEnd);
   newEnd.setMonth(newEnd.getMonth() + months);
 
-  const newPlan = months >= 12 ? 'ANNUAL' : 'MONTHLY';
+  const newPlan = months >= 12 ? 'BUSINESS' : 'ESSENTIAL';
 
   const { error } = await admin
     .from('subscriptions')

@@ -1,22 +1,17 @@
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
-import { PrintButton } from '@/components/reports/print-button';
 import { PeriodSelector } from '@/components/reports/period-selector';
 import { RevenueChart } from '@/components/reports/revenue-chart';
 import { TopProducts } from '@/components/reports/top-products';
 import { RevenueTrend } from '@/components/reports/revenue-trend';
 import { CostRevenueChart } from '@/components/reports/cost-revenue-chart';
-import { DownloadCSV } from '@/components/reports/download-csv';
+import { StorySection } from '@/components/reports/story-section';
+import { DownloadPDF } from '@/components/reports/download-pdf';
 import { getTopProducts, getDailyRevenue, getCOGS } from '@/lib/actions/reports';
 import { getPlanConfig } from '@/lib/plans';
-import { TrendingUp, ShoppingCart, Percent, Receipt, ArrowDownUp, Coins } from 'lucide-react';
+import { TrendingUp, ShoppingCart, Coins } from 'lucide-react';
 import { Suspense } from 'react';
-
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: 'Brouillon', VALIDATED: 'Validée', PAID: 'Payée',
-  PARTIALLY_PAID: 'Partielle', CANCELLED: 'Annulée',
-};
 
 function computeRange(period: string, dateParam: string | undefined, fromParam: string | undefined, toParam: string | undefined) {
   const now = new Date();
@@ -87,7 +82,7 @@ export default async function ReportsPage({
   const isAdvanced = planConfig.reports === 'advanced';
   const admin = createAdminClient();
 
-  const [invoicesResult, expensesResult, paymentsResult, topProductsData, dailyRevenueData, cogsData] = await Promise.all([
+  const [invoicesResult, expensesResult, topProductsData, dailyRevenueData, cogsData] = await Promise.all([
     admin.from('invoices')
       .select('id, invoice_number, client_name, total, amount_paid, balance_due, status, paid_at, created_at')
       .eq('shop_id', shop.id)
@@ -102,12 +97,6 @@ export default async function ReportsPage({
       .gte('created_at', from)
       .lte('created_at', to)
       .order('created_at', { ascending: false }),
-    admin.from('cash_movements')
-      .select('amount, method')
-      .eq('shop_id', shop.id)
-      .eq('movement_type', 'PAYMENT_IN')
-      .gte('created_at', from)
-      .lte('created_at', to),
     getTopProducts(from, to, 10),
     getDailyRevenue(from, to),
     getCOGS(from, to),
@@ -115,18 +104,25 @@ export default async function ReportsPage({
 
   const invoices = invoicesResult.data ?? [];
   const expenses = expensesResult.data ?? [];
-  const paymentsData = paymentsResult.data ?? [];
 
   const totalCA = invoices.reduce((s, inv) => s + Number(inv.total), 0);
   const totalPaid = invoices.reduce((s, inv) => s + Number(inv.amount_paid), 0);
   const totalExpenses = expenses.reduce((s, m) => s + Math.abs(Number(m.amount)), 0);
-  const totalCashIn = paymentsData.reduce((s, m) => s + Number(m.amount), 0);
   const totalCOGS = cogsData.totalCost;
   const totalCosts = totalCOGS + totalExpenses;
   const profit = totalCA - totalCosts;
   const marginPct = totalCA > 0 ? ((profit / totalCA) * 100) : 0;
   const nbSales = invoices.length;
   const avgBasket = nbSales > 0 ? totalCA / nbSales : 0;
+
+  const { data: lowStock } = await admin.from('stock_items').select('*').eq('shop_id', shop.id).lte('quantity', 'min_threshold').gt('min_threshold', '0');
+  const lowStockCount = lowStock?.length ?? 0;
+
+  const topProduct = topProductsData.length > 0 ? {
+    name: topProductsData[0].name,
+    revenue: topProductsData[0].totalRevenue,
+    quantity: topProductsData[0].totalQuantity,
+  } : null;
 
   const chartData: { date: string; revenue: number }[] = [];
   if (period === 'day') {
@@ -160,33 +156,13 @@ export default async function ReportsPage({
 
   const costRevenueChartData = cogsData.byDay.map((d) => ({ date: d.date, revenue: d.revenue, cost: d.cost }));
 
-  const csvData = invoices.map((inv: any) => ({
-    'N° Facture': inv.invoice_number,
-    'Client': inv.client_name,
-    'Statut': STATUS_LABELS[inv.status] || inv.status,
-    'Total': Number(inv.total),
-    'Encaissé': Number(inv.amount_paid),
-    'Reste': Number(inv.balance_due),
-    'Date': new Date(inv.created_at).toLocaleDateString('fr-FR'),
-  }));
-
-  const csvColumns = [
-    { key: 'N° Facture', label: 'N° Facture' },
-    { key: 'Client', label: 'Client' },
-    { key: 'Statut', label: 'Statut' },
-    { key: 'Total', label: 'Total' },
-    { key: 'Encaissé', label: 'Encaissé' },
-    { key: 'Reste', label: 'Reste' },
-    { key: 'Date', label: 'Date' },
-  ];
-
   const today = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
     <div className="space-y-6 print-area">
       <div className="hidden print:block mb-6 pb-4 border-b">
-        <h1 className="text-xl font-bold">{shop.name} — Rapport commercial</h1>
-        <p className="text-xs text-zinc-500 mt-1">Période : {label} — Généré le {today}</p>
+        <h1 className="text-xl font-bold">{shop.name} — Rapport</h1>
+        <p className="text-xs text-zinc-500 mt-1">{label} — {today}</p>
       </div>
 
       <div className="print-hide">
@@ -194,58 +170,56 @@ export default async function ReportsPage({
           <div>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold tracking-tight">Rapports</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <DownloadCSV data={csvData} columns={csvColumns} filename={`rapport-${label.replace(/\s+/g, '-').toLowerCase()}`} />
-            <PrintButton />
-          </div>
+          <DownloadPDF />
         </div>
         <Suspense>
           <PeriodSelector />
         </Suspense>
       </div>
 
-      <p className="text-sm text-zinc-500 print-hide mt-1">Période : {label}</p>
+      <p className="text-sm text-zinc-500 print-hide mt-1">{label}</p>
 
-      {/* Key Insights */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 print:grid-cols-3">
-        <div className="bg-white rounded-xl border p-4 lg:p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="size-8 rounded-lg bg-emerald-100 flex items-center justify-center"><TrendingUp className="size-4 text-emerald-600" /></div>
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">CA</p>
-          </div>
-          <p className="text-xl lg:text-2xl font-bold font-heading tracking-tight text-emerald-600 tabular-nums">{formatCurrency(totalCA)}</p>
-          <p className="text-xs text-zinc-400 mt-1">{nbSales} vente(s) · Panier moyen {formatCurrency(avgBasket)}</p>
+      {/* Key numbers — simple, no jargon */}
+      <div className="grid grid-cols-3 gap-3 print:grid-cols-3">
+        <div className="bg-white rounded-xl border p-4 text-center">
+          <p className="text-xs text-zinc-400 mb-1">Chiffre d&apos;affaires</p>
+          <p className="text-xl font-bold font-heading tracking-tight text-emerald-600 tabular-nums">{formatCurrency(totalCA)}</p>
+          <p className="text-[10px] text-zinc-400 mt-1">{nbSales} vente{nbSales > 1 ? 's' : ''}</p>
         </div>
-
-        <div className="bg-white rounded-xl border p-4 lg:p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="size-8 rounded-lg bg-red-100 flex items-center justify-center"><ShoppingCart className="size-4 text-red-600" /></div>
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Coûts</p>
-          </div>
-          <p className="text-xl lg:text-2xl font-bold font-heading tracking-tight text-red-600 tabular-nums">{formatCurrency(totalCosts)}</p>
-          <p className="text-xs text-zinc-400 mt-1">Marchandises {formatCurrency(totalCOGS)} · Dépenses {formatCurrency(totalExpenses)}</p>
+        <div className="bg-white rounded-xl border p-4 text-center">
+          <p className="text-xs text-zinc-400 mb-1">Dépenses</p>
+          <p className="text-xl font-bold font-heading tracking-tight text-red-500 tabular-nums">{formatCurrency(totalCosts)}</p>
+          <p className="text-[10px] text-zinc-400 mt-1">Marchandises + charges</p>
         </div>
-
-        <div className="bg-white rounded-xl border p-4 lg:p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className={`size-8 rounded-lg flex items-center justify-center ${profit >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
-              <Coins className={`size-4 ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
-            </div>
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Bénéfice</p>
-          </div>
-          <p className={`text-xl lg:text-2xl font-bold font-heading tracking-tight tabular-nums ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+        <div className="bg-white rounded-xl border p-4 text-center">
+          <p className="text-xs text-zinc-400 mb-1">Ce qu&apos;il vous reste</p>
+          <p className={`text-xl font-bold font-heading tracking-tight tabular-nums ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
             {formatCurrency(profit)}
           </p>
-          <p className={`text-xs mt-1 ${marginPct >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-            Marge {marginPct >= 0 ? '+' : ''}{marginPct.toFixed(1)}%
+          <p className={`text-[10px] mt-1 ${marginPct >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
+            {marginPct.toFixed(0)}% de marge
           </p>
         </div>
       </div>
 
-      {/* Charts */}
-      {chartData.length > 0 && (
+      {/* Story section — plain language */}
+      <StorySection
+        revenue={totalCA}
+        costs={totalCosts}
+        cogs={totalCOGS}
+        expenses={totalExpenses}
+        profit={profit}
+        marginPct={marginPct}
+        nbSales={nbSales}
+        avgBasket={avgBasket}
+        topProduct={topProduct}
+        lowStockCount={lowStockCount}
+        label={label}
+      />
+
+      {chartData.length > 0 && isAdvanced && (
         <div className="bg-white rounded-xl border overflow-hidden">
-          <div className="px-5 py-4 border-b"><h2 className="font-heading font-semibold text-base">CA</h2></div>
+          <div className="px-5 py-4 border-b"><h2 className="font-heading font-semibold text-base">Évolution du chiffre d&apos;affaires</h2></div>
           <div className="p-4"><RevenueChart data={chartData} period={period} /></div>
         </div>
       )}
@@ -262,95 +236,8 @@ export default async function ReportsPage({
         <TopProducts products={topProductsData} />
       )}
 
-      {/* Sales table */}
-      <div className="bg-white rounded-xl border overflow-hidden">
-        <div className="px-5 py-4 border-b">
-          <h2 className="font-heading font-semibold text-base">Ventes</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">{nbSales} facture(s)</p>
-        </div>
-        {nbSales === 0 ? (
-          <div className="px-5 py-12 text-center text-sm text-zinc-400">Aucune vente sur cette période</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-zinc-50/80">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">N° Facture</th>
-                  <th className="text-left px-2 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Client</th>
-                  <th className="text-left px-2 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Statut</th>
-                  <th className="text-right px-2 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total</th>
-                  <th className="text-right px-2 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Encaissé</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Reste</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {invoices.map((inv: any) => (
-                  <tr key={inv.id} className="hover:bg-zinc-50/50">
-                    <td className="px-5 py-3 font-mono text-xs font-medium">{inv.invoice_number}</td>
-                    <td className="px-2 py-3">{inv.client_name}</td>
-                    <td className="px-2 py-3">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        inv.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
-                        inv.status === 'PARTIALLY_PAID' ? 'bg-amber-100 text-amber-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>{STATUS_LABELS[inv.status] || inv.status}</span>
-                    </td>
-                    <td className="px-2 py-3 text-right tabular-nums font-medium">{formatCurrency(Number(inv.total))}</td>
-                    <td className="px-2 py-3 text-right tabular-nums text-emerald-600">{formatCurrency(Number(inv.amount_paid))}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-red-600">{formatCurrency(Number(inv.balance_due))}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 bg-zinc-50/80 font-semibold">
-                  <td className="px-5 py-3 text-xs text-zinc-500" colSpan={3}>Total</td>
-                  <td className="px-2 py-3 text-right tabular-nums">{formatCurrency(totalCA)}</td>
-                  <td className="px-2 py-3 text-right tabular-nums text-emerald-600">{formatCurrency(totalPaid)}</td>
-                  <td className="px-5 py-3 text-right tabular-nums text-red-600">{formatCurrency(totalCA - totalPaid)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {expenses.length > 0 && (
-        <div className="bg-white rounded-xl border overflow-hidden">
-          <div className="px-5 py-4 border-b">
-            <h2 className="font-heading font-semibold text-base">Dépenses</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">{expenses.length} mouvement(s)</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-zinc-50/80">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Date</th>
-                  <th className="text-left px-2 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Description</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Montant</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {expenses.map((exp: any, i: number) => (
-                  <tr key={i} className="hover:bg-zinc-50/50">
-                    <td className="px-5 py-3 text-xs text-zinc-500 whitespace-nowrap">{new Date(exp.created_at).toLocaleDateString('fr-FR')}</td>
-                    <td className="px-2 py-3">{exp.description || '—'}</td>
-                    <td className="px-5 py-3 text-right tabular-nums font-medium text-red-600">{formatCurrency(Math.abs(Number(exp.amount)))}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 bg-zinc-50/80 font-semibold">
-                  <td className="px-5 py-3 text-xs text-zinc-500" colSpan={2}>Total</td>
-                  <td className="px-5 py-3 text-right tabular-nums text-red-600">{formatCurrency(totalExpenses)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      )}
-
       <div className="hidden print:block mt-6 pt-4 border-t text-xs text-zinc-400 text-center">
-        StockOS Pro — {shop.name} — Rapport généré le {today}
+        {shop.name} — {label} — StockOS Pro
       </div>
     </div>
   );

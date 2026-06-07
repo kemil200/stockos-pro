@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient, createAdminClient } from '@/lib/server';
+import { auditLog, AuditAction } from '@/lib/audit';
 
 async function assertSuperadmin() {
   const supabase = await createClient();
@@ -14,59 +15,84 @@ export async function updateSubscription(
   shopId: string,
   data: { status?: string; plan?: string; current_period_end?: string },
 ) {
-  await assertSuperadmin();
+  const user = await assertSuperadmin();
   const admin = createAdminClient();
+
+  const { data: prev } = await admin.from('subscriptions').select('plan, status').eq('shop_id', shopId).single();
+
   const { error } = await admin
     .from('subscriptions')
     .update({ ...data, updated_at: new Date().toISOString() })
     .eq('shop_id', shopId);
 
   if (error) throw new Error(error.message);
+
+  try {
+    await auditLog({
+      shopId,
+      userId: user.id,
+      action: AuditAction.SUBSCRIPTION_UPDATED,
+      entityType: 'subscription',
+      entityId: shopId,
+      metadata: { from: prev || {}, to: data, by: user.email },
+    });
+  } catch { /* non-bloquant */ }
 }
 
 export async function renewSubscription(shopId: string, months: number) {
-  await assertSuperadmin();
+  const user = await assertSuperadmin();
   const admin = createAdminClient();
 
   const { data: subs } = await admin
     .from('subscriptions')
-    .select('current_period_end')
+    .select('current_period_end, plan, status')
     .eq('shop_id', shopId)
     .limit(1);
 
-  const currentEnd = subs?.[0]?.current_period_end
-    ? new Date(subs[0].current_period_end)
-    : new Date();
+  const prev: any = subs?.[0] || {};
+  const currentEnd = prev.current_period_end ? new Date(prev.current_period_end) : new Date();
 
   const newEnd = new Date(currentEnd);
   newEnd.setMonth(newEnd.getMonth() + months);
+
+  const newPlan = months >= 12 ? 'ANNUAL' : 'MONTHLY';
 
   const { error } = await admin
     .from('subscriptions')
     .update({
       status: 'ACTIVE',
-      plan: months >= 12 ? 'ANNUAL' : 'MONTHLY',
+      plan: newPlan,
       current_period_end: newEnd.toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq('shop_id', shopId);
 
   if (error) throw new Error(error.message);
+
+  try {
+    await auditLog({
+      shopId,
+      userId: user.id,
+      action: AuditAction.PLAN_CHANGED,
+      entityType: 'subscription',
+      entityId: shopId,
+      metadata: { from: { plan: prev.plan, status: prev.status }, to: { plan: newPlan, status: 'ACTIVE', months }, by: user.email },
+    });
+  } catch { /* non-bloquant */ }
 }
 
 export async function setPlan(shopId: string, plan: string, months: number) {
-  await assertSuperadmin();
+  const user = await assertSuperadmin();
   const admin = createAdminClient();
 
   const { data: subs } = await admin
     .from('subscriptions')
-    .select('current_period_end')
+    .select('current_period_end, plan, status')
     .eq('shop_id', shopId)
     .limit(1);
 
-  const currentEnd = subs?.[0]?.current_period_end
-    ? new Date(subs[0].current_period_end)
-    : new Date();
+  const prev: any = subs?.[0] || {};
+  const currentEnd = prev.current_period_end ? new Date(prev.current_period_end) : new Date();
 
   const newEnd = new Date(currentEnd);
   newEnd.setMonth(newEnd.getMonth() + months);
@@ -82,10 +108,21 @@ export async function setPlan(shopId: string, plan: string, months: number) {
     .eq('shop_id', shopId);
 
   if (error) throw new Error(error.message);
+
+  try {
+    await auditLog({
+      shopId,
+      userId: user.id,
+      action: AuditAction.PLAN_CHANGED,
+      entityType: 'subscription',
+      entityId: shopId,
+      metadata: { from: { plan: prev.plan, status: prev.status }, to: { plan, status: 'ACTIVE', months }, by: user.email },
+    });
+  } catch { /* non-bloquant */ }
 }
 
 export async function toggleReadOnly(shopId: string, readOnly: boolean) {
-  await assertSuperadmin();
+  const user = await assertSuperadmin();
   const admin = createAdminClient();
 
   const { data: subs } = await admin
@@ -106,11 +143,36 @@ export async function toggleReadOnly(shopId: string, readOnly: boolean) {
     .eq('shop_id', shopId);
 
   if (error) throw new Error(error.message);
+
+  try {
+    await auditLog({
+      shopId,
+      userId: user.id,
+      action: readOnly ? AuditAction.SUBSCRIPTION_UPDATED : AuditAction.SHOP_UPDATED,
+      entityType: 'subscription',
+      entityId: shopId,
+      metadata: { feature: 'readOnly', from: !!currentFeatures.readOnly, to: readOnly, by: user.email },
+    });
+  } catch { /* non-bloquant */ }
 }
 
 export async function deleteShop(shopId: string) {
-  await assertSuperadmin();
+  const user = await assertSuperadmin();
   const admin = createAdminClient();
+
+  const { data: shop } = await admin.from('shops').select('name, slug').eq('id', shopId).single();
+
   const { error } = await admin.from('shops').delete().eq('id', shopId);
   if (error) throw new Error(error.message);
+
+  try {
+    await auditLog({
+      shopId: null as any,
+      userId: user.id,
+      action: AuditAction.SHOP_DELETED,
+      entityType: 'shop',
+      entityId: shopId,
+      metadata: { shopName: shop?.name, shopSlug: shop?.slug, by: user.email },
+    });
+  } catch { /* non-bloquant */ }
 }

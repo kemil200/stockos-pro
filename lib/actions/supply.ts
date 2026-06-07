@@ -54,6 +54,14 @@ export async function purchaseStock(formData: FormData) {
       });
 
       await tx
+        .update(stockItems)
+        .set({ quantity: String(Number(stockItem.quantity) + parsed.quantity), updatedAt: new Date() })
+        .where(and(
+          eq(stockItems.id, stockItem.id),
+          eq(stockItems.shopId, shop.id),
+        ));
+
+      await tx
         .update(products)
         .set({ purchasePrice: String(parsed.unitPrice) })
         .where(and(

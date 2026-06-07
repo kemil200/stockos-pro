@@ -9,11 +9,13 @@ import { db } from '@/lib/db';
 import { products, stockItems, stockMovements } from '@/lib/db/schema';
 import { CreateProductSchema, AdjustStockSchema } from '@/lib/validations/product';
 import { assertWritable } from '@/lib/readonly';
+import { assertPlanLimit } from '@/lib/plans';
 
 export async function createProduct(formData: FormData) {
   try {
     const { shop } = await getCurrentShop();
     await assertWritable(shop.id);
+    await assertPlanLimit(shop.id, 'maxProducts');
 
     const parsed = CreateProductSchema.parse({
       name: formData.get('name'),
@@ -96,6 +98,11 @@ export async function adjustStock(formData: FormData) {
           reason: parsed.reason || 'Ajustement manuel',
           createdBy: user.id,
         });
+
+        await tx
+          .update(stockItems)
+          .set({ quantity: String(parsed.newQuantity), updatedAt: new Date() })
+          .where(eq(stockItems.id, stockItem.id));
       }
     });
 

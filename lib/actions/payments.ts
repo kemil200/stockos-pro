@@ -37,19 +37,31 @@ export async function recordPayment(formData: FormData) {
       return { success: false, error: 'Cette facture ne peut pas recevoir de paiement' } as const;
     }
 
-    const currentPaid = Number(invoice.amount_paid);
-    const total = Number(invoice.total);
-    const newPaid = currentPaid + parsed.amount;
-
-    if (newPaid > total) {
-      return { success: false, error: 'Le paiement dépasse le solde restant' } as const;
-    }
-
-    const newStatus = newPaid >= total ? 'PAID' : 'PARTIALLY_PAID';
-
     let payment: { id: string } | null = null;
+    let finalStatus = invoice.status;
 
     await db.transaction(async (tx) => {
+      const [lockedInvoice] = await tx
+        .select({ amountPaid: invoices.amountPaid, total: invoices.total, status: invoices.status })
+        .from(invoices)
+        .where(and(eq(invoices.id, parsed.invoiceId), eq(invoices.shopId, shop.id)))
+        .for('update');
+
+      if (!lockedInvoice) throw new Error('Facture introuvable');
+      if (!['VALIDATED', 'PARTIALLY_PAID'].includes(lockedInvoice.status)) {
+        throw new Error('Cette facture ne peut pas recevoir de paiement');
+      }
+
+      const currentPaid = Number(lockedInvoice.amountPaid);
+      const total = Number(lockedInvoice.total);
+      const newPaid = currentPaid + parsed.amount;
+
+      if (newPaid > total) {
+        throw new Error('Le paiement dépasse le solde restant');
+      }
+      const newStatus = newPaid >= total ? 'PAID' : 'PARTIALLY_PAID';
+      finalStatus = newStatus;
+
       const [created] = await tx
         .insert(payments)
         .values({
@@ -108,7 +120,7 @@ export async function recordPayment(formData: FormData) {
 
     revalidatePath(`/invoices/${parsed.invoiceId}`);
     revalidatePath('/invoices');
-    return { success: true, payment, status: newStatus } as const;
+    return { success: true, payment, status: finalStatus } as const;
   } catch (err) {
     if (err instanceof z.ZodError) {
       return { success: false, error: err.issues.map((e) => e.message).join(', ') } as const;

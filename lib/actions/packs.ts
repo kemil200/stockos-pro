@@ -8,11 +8,16 @@ import { db } from '@/lib/db';
 import { packs, packItems } from '@/lib/db/schema';
 import { CreatePackSchema, UpdatePackSchema } from '@/lib/validations/pack';
 import { assertWritable } from '@/lib/readonly';
+import { hasFeature } from '@/lib/plans';
 
 export async function createPack(formData: FormData) {
   try {
     const { shop } = await getCurrentShop();
     await assertWritable(shop.id);
+
+    if (!(await hasFeature(shop.id, 'packs'))) {
+      return { success: false, error: 'Fonctionnalité non disponible sur votre plan' } as const;
+    }
 
     const itemsJson = formData.get('items') as string;
     if (itemsJson.length > 50000) {
@@ -65,6 +70,10 @@ export async function updatePack(formData: FormData) {
   try {
     const { shop } = await getCurrentShop();
     await assertWritable(shop.id);
+
+    if (!(await hasFeature(shop.id, 'packs'))) {
+      return { success: false, error: 'Fonctionnalité non disponible sur votre plan' } as const;
+    }
 
     const itemsJson = formData.get('items') as string;
     if (itemsJson.length > 50000) {
@@ -119,6 +128,10 @@ export async function deletePack(packId: string) {
   try {
     const { shop } = await getCurrentShop();
     await assertWritable(shop.id);
+
+    if (!(await hasFeature(shop.id, 'packs'))) {
+      return { success: false, error: 'Fonctionnalité non disponible sur votre plan' } as const;
+    }
 
     await db
       .delete(packs)

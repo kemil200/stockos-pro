@@ -7,6 +7,8 @@ export type PlanName = 'STARTER' | 'ESSENTIAL' | 'BUSINESS' | 'TRIAL';
 interface PlanConfig {
   maxUsers: number;
   maxRegisters: number;
+  maxProducts: number;
+  maxInvoicesPerMonth: number;
   packs: boolean;
   reports: 'basic' | 'advanced';
   thermalPrinter: boolean;
@@ -17,6 +19,8 @@ const PLAN_FEATURES: Record<PlanName, PlanConfig> = {
   STARTER: {
     maxUsers: 1,
     maxRegisters: 0,
+    maxProducts: 100,
+    maxInvoicesPerMonth: 200,
     packs: false,
     reports: 'basic',
     thermalPrinter: true,
@@ -25,6 +29,8 @@ const PLAN_FEATURES: Record<PlanName, PlanConfig> = {
   ESSENTIAL: {
     maxUsers: 1,
     maxRegisters: 1,
+    maxProducts: Infinity,
+    maxInvoicesPerMonth: Infinity,
     packs: true,
     reports: 'advanced',
     thermalPrinter: true,
@@ -33,6 +39,8 @@ const PLAN_FEATURES: Record<PlanName, PlanConfig> = {
   BUSINESS: {
     maxUsers: Infinity,
     maxRegisters: Infinity,
+    maxProducts: Infinity,
+    maxInvoicesPerMonth: Infinity,
     packs: true,
     reports: 'advanced',
     thermalPrinter: true,
@@ -41,6 +49,8 @@ const PLAN_FEATURES: Record<PlanName, PlanConfig> = {
   TRIAL: {
     maxUsers: 1,
     maxRegisters: 1,
+    maxProducts: Infinity,
+    maxInvoicesPerMonth: Infinity,
     packs: true,
     reports: 'advanced',
     thermalPrinter: true,
@@ -71,7 +81,9 @@ export async function getPlanConfig(shopId: string): Promise<PlanConfig> {
   return PLAN_FEATURES[plan] || PLAN_FEATURES.TRIAL;
 }
 
-export async function checkPlanLimit(shopId: string, feature: 'maxUsers' | 'maxRegisters'): Promise<{ allowed: boolean; limit: number; current: number }> {
+type PlanFeature = 'maxUsers' | 'maxRegisters' | 'maxProducts' | 'maxInvoicesPerMonth';
+
+export async function checkPlanLimit(shopId: string, feature: PlanFeature): Promise<{ allowed: boolean; limit: number; current: number }> {
   const config = await getPlanConfig(shopId);
   const admin = createAdminClient();
 
@@ -88,14 +100,28 @@ export async function checkPlanLimit(shopId: string, feature: 'maxUsers' | 'maxR
       .select('*', { count: 'exact', head: true })
       .eq('shop_id', shopId);
     current = count ?? 0;
+  } else if (feature === 'maxProducts') {
+    const { count } = await admin
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .eq('shop_id', shopId);
+    current = count ?? 0;
+  } else if (feature === 'maxInvoicesPerMonth') {
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const { count } = await admin
+      .from('invoices')
+      .select('*', { count: 'exact', head: true })
+      .eq('shop_id', shopId)
+      .gte('created_at', startOfMonth);
+    current = count ?? 0;
   }
 
   const limit = config[feature];
   return { allowed: current < limit, limit, current };
 }
 
-export async function assertPlanLimit(shopId: string, feature: 'maxUsers' | 'maxRegisters'): Promise<void> {
-  const { allowed, limit, current } = await checkPlanLimit(shopId, feature);
+export async function assertPlanLimit(shopId: string, feature: PlanFeature): Promise<void> {
+  const { allowed, limit } = await checkPlanLimit(shopId, feature);
   if (!allowed) {
     throw new PlanLimitError(feature, limit);
   }

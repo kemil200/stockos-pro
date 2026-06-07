@@ -12,12 +12,14 @@ import { revalidatePath } from 'next/cache';
 import { CreateInvoiceSchema, InvoiceLineSchema } from '@/lib/validations/invoice';
 import { auditLog, AuditAction } from '@/lib/audit';
 import { assertWritable } from '@/lib/readonly';
+import { assertPlanLimit } from '@/lib/plans';
 
 
 export async function createInvoice(formData: FormData) {
   try {
     const { shop, user } = await getCurrentShop();
     await assertWritable(shop.id);
+    await assertPlanLimit(shop.id, 'maxInvoicesPerMonth');
 
     const linesJson = formData.get('lines') as string;
     if (linesJson.length > 100000) {
@@ -144,15 +146,15 @@ export async function validateInvoice(invoiceId: string) {
     await assertWritable(shop.id);
     const admin = createAdminClient();
 
-    const { data: invoice } = await admin
+    const { data: invoiceData } = await admin
       .from('invoices')
       .select('*')
       .eq('id', invoiceId)
       .eq('shop_id', shop.id)
       .single();
 
-    if (!invoice) return { success: false, error: 'Facture introuvable' } as const;
-    if (invoice.status !== 'DRAFT') return { success: false, error: 'Facture déjà validée ou annulée' } as const;
+    if (!invoiceData) return { success: false, error: 'Facture introuvable' } as const;
+    if (invoiceData.status !== 'DRAFT') return { success: false, error: 'Facture déjà validée ou annulée' } as const;
 
     const { data: lines } = await admin
       .from('invoice_lines')
@@ -222,6 +224,14 @@ export async function validateInvoice(invoiceId: string) {
     ];
 
     await db.transaction(async (tx) => {
+      const [invoice] = await tx
+        .select({ status: invoices.status })
+        .from(invoices)
+        .where(eq(invoices.id, invoiceId))
+        .for('update');
+
+      if (!invoice) throw new Error('Facture introuvable');
+      if (invoice.status !== 'DRAFT') throw new Error('Facture déjà validée ou annulée');
       if (allProductIds.length > 0) {
         const stockRows = await tx
           .select()
@@ -403,6 +413,13 @@ export async function cancelInvoice(invoiceId: string, reason?: string) {
 
       if (allCancelProductIds.length > 0) {
         await db.transaction(async (tx) => {
+          const [inv] = await tx
+            .select({ status: invoices.status })
+            .from(invoices)
+            .where(eq(invoices.id, invoiceId))
+            .for('update');
+
+          if (!inv || inv.status !== 'VALIDATED') throw new Error('La facture n\'est plus validée');
           const stockRows = await tx
             .select()
             .from(stockItems)
@@ -454,19 +471,21 @@ export async function cancelInvoice(invoiceId: string, reason?: string) {
               }
             }
           }
+
+          await tx
+            .update(invoices)
+            .set({ status: 'CANCELLED', cancelReason: reason, updatedAt: new Date() })
+            .where(eq(invoices.id, invoiceId));
         });
       }
     }
 
-    const { error: cancelError } = await admin
-      .from('invoices')
-      .update({
-        status: 'CANCELLED',
-        cancel_reason: reason,
-      })
-      .eq('id', invoiceId);
-
-    if (cancelError) return { success: false, error: `Erreur annulation: ${cancelError.message}` } as const;
+    if (invoice.status !== 'VALIDATED') {
+      await admin
+        .from('invoices')
+        .update({ status: 'CANCELLED', cancel_reason: reason })
+        .eq('id', invoiceId);
+    }
 
     try {
       await auditLog({

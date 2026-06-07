@@ -31,13 +31,19 @@ export default async function DashboardLayout({
 
   const { data: subs } = await admin
     .from('subscriptions')
-    .select('features, status')
+    .select('features, status, plan, trial_ends_at')
     .eq('shop_id', shopId)
     .limit(1);
 
-  const features = (subs?.[0]?.features ?? {}) as Record<string, unknown>;
+  const sub = subs?.[0] ?? null;
+  const features = (sub?.features ?? {}) as Record<string, unknown>;
+
+  if (sub?.status === 'TRIAL' && sub.trial_ends_at && new Date(sub.trial_ends_at) < new Date()) {
+    await admin.from('subscriptions').update({ status: 'EXPIRED' }).eq('shop_id', shopId);
+  }
+
+  const expired = sub?.status === 'EXPIRED' || (sub?.status === 'TRIAL' && sub.trial_ends_at && new Date(sub.trial_ends_at) < new Date());
   const readOnly = !!features.readOnly;
-  const expired = subs?.[0]?.status === 'EXPIRED';
 
   return (
     <div className="flex h-dvh overflow-hidden">

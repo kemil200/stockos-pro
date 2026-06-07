@@ -107,7 +107,7 @@ export default async function DashboardPage() {
         <StatsCard title="Encaissements" value={String(todayCount)} icon={DollarSign} accent="bg-blue-600" subtitle="factures payées" />
         <StatsCard title="Achats" value={formatCurrency(todayPurchases)} icon={ShoppingCart} accent="bg-amber-600" subtitle="entrées du jour" />
         <StatsCard title="Marge" value={formatCurrency(margin)} icon={ArrowDownUp} accent={margin >= 0 ? 'bg-emerald-700' : 'bg-red-600'}
-          subtitle={todayPurchases > 0 ? `${((todayRev / todayPurchases) * 100).toFixed(0)}% du CA` : '—'} />
+          subtitle={todayPurchases > 0 ? `${((todayRev / todayPurchases) * 100).toFixed(0)}% du CA` : todayRev > 0 ? '100% du CA' : '—'} />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

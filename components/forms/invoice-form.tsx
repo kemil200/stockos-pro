@@ -34,7 +34,6 @@ interface InvoiceFormData {
   clientName: string;
   clientPhone: string;
   lines: FormLine[];
-  globalDiscountRate?: number;
   shippingFee?: number;
 }
 
@@ -57,7 +56,6 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
       clientName: '',
       clientPhone: '',
       lines: [{ description: '', quantity: 1, unitPrice: 0 }],
-      globalDiscountRate: 0,
       shippingFee: 0,
     },
   });
@@ -120,8 +118,10 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
       setValue(`lines.${index}.unitPrice`, Number(product.unit_price));
       setValue(`lines.${index}.productId`, productId);
       setValue(`lines.${index}.packId`, undefined);
-      const stock = await getStockLevel(productId);
-      setStockLevels((prev) => ({ ...prev, [productId]: stock }));
+      try {
+        const stock = await getStockLevel(productId);
+        setStockLevels((prev) => ({ ...prev, [productId]: stock }));
+      } catch { /* non-bloquant */ }
     }
   }, [products, setValue]);
 

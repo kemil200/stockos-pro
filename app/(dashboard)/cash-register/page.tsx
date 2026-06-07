@@ -32,7 +32,7 @@ export default async function CashRegisterPage() {
 
   const [balanceResult, movementsResult] = await Promise.all([
     admin.from('cash_movements').select('amount').eq('shop_id', shop.id),
-    admin.from('cash_movements').select('*').eq('shop_id', shop.id).neq('movement_type', 'EXPENSE').order('created_at', { ascending: false }).limit(100),
+    admin.from('cash_movements').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false }).limit(100),
   ]);
 
   const total = (balanceResult.data ?? []).reduce((sum, m) => sum + Number(m.amount), 0);

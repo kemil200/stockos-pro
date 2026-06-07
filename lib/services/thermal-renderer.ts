@@ -114,13 +114,14 @@ ${data.balanceDue > 0 ? `<pre class="right">Reste dû  ${balanceStr.padStart(18,
 </html>`;
 }
 
-export async function fetchAndRenderThermal(invoiceId: string): Promise<{ html: string; error?: string }> {
+export async function fetchAndRenderThermal(invoiceId: string, shopId: string): Promise<{ html: string; error?: string }> {
   const admin = createAdminClient();
 
   const { data: invoices, error: invErr } = await admin
     .from('invoices')
     .select('*')
     .eq('id', invoiceId)
+    .eq('shop_id', shopId)
     .limit(1);
 
   if (invErr || !invoices?.length) {

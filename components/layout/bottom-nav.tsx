@@ -53,14 +53,19 @@ const NAV_ITEMS = [
   { href: '/cash-register', label: 'Caisse', icon: Wallet },
 ];
 
-export function BottomNav() {
+export function BottomNav({ plan }: { plan?: string | null }) {
   const pathname = usePathname();
   const { groupRef, onEnter, onLeave } = useAvatarGroup();
+
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (item.href === '/cash-register' && plan === 'STARTER') return false;
+    return true;
+  });
 
   return (
     <nav ref={groupRef} className="fixed bottom-0 left-0 right-0 z-50 lg:hidden border-t border-zinc-200/80 bg-white/90 backdrop-blur-xl safe-area-bottom">
       <div className="flex items-center justify-around h-16 px-2">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {visibleItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href);
           return (
             <Link

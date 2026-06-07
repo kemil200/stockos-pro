@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/server';
+import { createClient, createAdminClient } from '@/lib/server';
 import { fetchAndRenderThermal } from '@/lib/services/thermal-renderer';
 
 export async function GET(
@@ -12,9 +12,16 @@ export async function GET(
     return NextResponse.json({ error: 'Non connecté' }, { status: 401 });
   }
 
+  const admin = createAdminClient();
+  const { data: shopUsers } = await admin.from('users').select('shop_id').eq('auth_user_id', user.id);
+  const shopId = shopUsers?.[0]?.shop_id;
+  if (!shopId) {
+    return NextResponse.json({ error: 'Aucune boutique' }, { status: 403 });
+  }
+
   const { id } = await params;
 
-  const { html, error } = await fetchAndRenderThermal(id);
+  const { html, error } = await fetchAndRenderThermal(id, shopId);
 
   if (error) {
     return NextResponse.json({ error }, { status: 404 });

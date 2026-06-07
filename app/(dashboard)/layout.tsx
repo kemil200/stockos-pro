@@ -45,9 +45,11 @@ export default async function DashboardLayout({
   const expired = sub?.status === 'EXPIRED' || (sub?.status === 'TRIAL' && sub.trial_ends_at && new Date(sub.trial_ends_at) < new Date());
   const readOnly = !!features.readOnly;
 
+  const plan = sub?.plan || 'TRIAL';
+
   return (
     <div className="flex h-dvh overflow-hidden">
-      <Sidebar />
+      <Sidebar plan={plan} />
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />
         {(readOnly || expired) && (

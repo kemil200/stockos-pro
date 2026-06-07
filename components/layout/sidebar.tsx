@@ -24,19 +24,28 @@ import {
 import { Button } from '@/components/ui/button';
 
 const NAV_ITEMS = [
-  { href: '/invoices', label: 'Factures', icon: FileText },
-  { href: '/clients', label: 'Clients', icon: Users },
-  { href: '/supply', label: 'Approvisionnement', icon: ShoppingCart },
-  { href: '/products', label: 'Produits', icon: Package },
-  { href: '/stock', label: 'Stock', icon: Warehouse },
-  { href: '/payments', label: 'Paiements', icon: Receipt },
-  { href: '/cash-register', label: 'Caisse', icon: Wallet },
-  { href: '/reports', label: 'Rapports', icon: BarChart3 },
-  { href: '/settings', label: 'Paramètres', icon: Settings },
+  { href: '/invoices', label: 'Factures', icon: FileText, feature: null as string | null },
+  { href: '/clients', label: 'Clients', icon: Users, feature: null },
+  { href: '/supply', label: 'Approvisionnement', icon: ShoppingCart, feature: null },
+  { href: '/products', label: 'Produits', icon: Package, feature: null },
+  { href: '/stock', label: 'Stock', icon: Warehouse, feature: null },
+  { href: '/payments', label: 'Paiements', icon: Receipt, feature: null },
+  { href: '/cash-register', label: 'Caisse', icon: Wallet, feature: 'maxRegisters' as const },
+  { href: '/reports', label: 'Rapports', icon: BarChart3, feature: 'reports' as const },
+  { href: '/settings', label: 'Paramètres', icon: Settings, feature: null },
 ];
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarContent({ onNavigate, plan }: { onNavigate?: () => void; plan?: string | null }) {
   const pathname = usePathname();
+
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (!item.feature) return true;
+    if (plan === 'BUSINESS' || plan === 'TRIAL') return true;
+    if (plan === 'ESSENTIAL') {
+      return item.feature !== 'maxRegisters';
+    }
+    return false;
+  });
 
   return (
     <>
@@ -56,7 +65,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
       </div>
       <nav className="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {visibleItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href);
           return (
             <Link
@@ -83,22 +92,22 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function Sidebar({ className }: { className?: string }) {
+export function Sidebar({ className, plan }: { className?: string; plan?: string | null }) {
   return (
     <aside className={cn('w-60 border-r bg-white h-screen flex flex-col shrink-0 max-lg:hidden', className)}>
-      <SidebarContent />
+      <SidebarContent plan={plan} />
     </aside>
   );
 }
 
-export function MobileSidebar() {
+export function MobileSidebar({ plan }: { plan?: string | null }) {
   return (
     <Sheet>
       <SheetTrigger render={<Button variant="ghost" size="icon" className="lg:hidden" aria-label="Menu" />}>
         <Menu className="size-5" />
       </SheetTrigger>
       <SheetContent side="left" className="w-60 p-0" showCloseButton={false}>
-        <SidebarContent onNavigate={() => {
+        <SidebarContent plan={plan} onNavigate={() => {
           document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
         }} />
       </SheetContent>

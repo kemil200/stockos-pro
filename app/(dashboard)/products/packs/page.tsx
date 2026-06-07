@@ -1,6 +1,8 @@
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
+import { hasFeature } from '@/lib/plans';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Layers } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +17,7 @@ import {
 
 export default async function PacksPage() {
   const { shop } = await getCurrentShop();
+  if (!(await hasFeature(shop.id, 'packs'))) notFound();
   const admin = createAdminClient();
 
   const { data: allPacks } = await admin

@@ -1,6 +1,8 @@
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
+import { hasFeature } from '@/lib/plans';
+import { notFound } from 'next/navigation';
 import { Landmark } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +25,9 @@ const MOVEMENT_LABELS: Record<string, string> = {
 
 export default async function CashRegisterPage() {
   const { shop } = await getCurrentShop();
+  const { getPlanConfig } = await import('@/lib/plans');
+  const config = await getPlanConfig(shop.id);
+  if (config.maxRegisters === 0) notFound();
   const admin = createAdminClient();
 
   const [balanceResult, movementsResult] = await Promise.all([

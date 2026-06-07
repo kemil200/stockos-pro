@@ -7,6 +7,7 @@ import { RevenueChart } from '@/components/reports/revenue-chart';
 import { TopProducts } from '@/components/reports/top-products';
 import { RevenueTrend } from '@/components/reports/revenue-trend';
 import { getTopProducts, getDailyRevenue } from '@/lib/actions/reports';
+import { getPlanConfig } from '@/lib/plans';
 import { TrendingUp, ShoppingCart, ArrowDownUp, Receipt } from 'lucide-react';
 import { Suspense } from 'react';
 
@@ -82,6 +83,8 @@ export default async function ReportsPage({
   const label = periodLabel(period, sp.date, sp.from, sp.to);
 
   const { shop } = await getCurrentShop();
+  const planConfig = await getPlanConfig(shop.id);
+  const isAdvanced = planConfig.reports === 'advanced';
   const admin = createAdminClient();
 
   const [invoicesResult, expensesResult, paymentsResult, topProductsData, dailyRevenueData] = await Promise.all([
@@ -233,11 +236,11 @@ export default async function ReportsPage({
         </div>
       )}
 
-      {dailyRevenueData.length > 1 && (
+      {dailyRevenueData.length > 1 && isAdvanced && (
         <RevenueTrend data={dailyRevenueData} />
       )}
 
-      {topProductsData.length > 0 && (
+      {topProductsData.length > 0 && isAdvanced && (
         <TopProducts products={topProductsData} />
       )}
 

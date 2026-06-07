@@ -98,11 +98,6 @@ export async function adjustStock(formData: FormData) {
           reason: parsed.reason || 'Ajustement manuel',
           createdBy: user.id,
         });
-
-        await tx
-          .update(stockItems)
-          .set({ quantity: String(parsed.newQuantity), updatedAt: new Date() })
-          .where(eq(stockItems.id, stockItem.id));
       }
     });
 

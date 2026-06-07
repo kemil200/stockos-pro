@@ -19,15 +19,15 @@ export default async function DashboardLayout({
   }
 
   const admin = createAdminClient();
-  const { data: shops } = await admin
-    .from('shops')
-    .select('id')
-    .eq('user_id', user.id)
-    .limit(1);
 
-  if (!shops?.length) redirect('/onboarding');
+  const { data: shopUsers } = await admin
+    .from('users')
+    .select('shop_id')
+    .eq('auth_user_id', user.id);
 
-  const shopId = shops[0].id;
+  if (!shopUsers?.length) redirect('/onboarding');
+
+  const shopId = shopUsers[0].shop_id;
 
   const { data: subs } = await admin
     .from('subscriptions')

@@ -4,11 +4,14 @@ const postgres = require('postgres');
 async function main() {
   const sql = postgres(process.env.SUPABASE_DB_URL, { ssl: 'require', max: 1 });
 
+  // Drop existing trigger first
+  await sql.unsafe('DROP TRIGGER IF EXISTS trg_apply_stock_movement ON stock_movements');
+
+  // Create function WITHOUT SET search_path (original did not have it)
   await sql.unsafe(`
     CREATE OR REPLACE FUNCTION apply_stock_movement()
     RETURNS TRIGGER
     LANGUAGE plpgsql
-    SET search_path = ''
     AS $$
     BEGIN
       CASE NEW.movement_type
@@ -34,7 +37,16 @@ async function main() {
     END;
     $$;
   `);
-  console.log('Trigger updated with CANCELLATION support + search_path fix');
+
+  // Recreate trigger
+  await sql.unsafe(`
+    CREATE TRIGGER trg_apply_stock_movement
+      AFTER INSERT ON stock_movements
+      FOR EACH ROW
+      EXECUTE FUNCTION apply_stock_movement();
+  `);
+
+  console.log('Trigger fixed — no search_path, CANCELLATION support added');
 
   await sql.end();
 }

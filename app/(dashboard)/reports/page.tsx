@@ -6,9 +6,11 @@ import { PeriodSelector } from '@/components/reports/period-selector';
 import { RevenueChart } from '@/components/reports/revenue-chart';
 import { TopProducts } from '@/components/reports/top-products';
 import { RevenueTrend } from '@/components/reports/revenue-trend';
-import { getTopProducts, getDailyRevenue } from '@/lib/actions/reports';
+import { CostRevenueChart } from '@/components/reports/cost-revenue-chart';
+import { DownloadCSV } from '@/components/reports/download-csv';
+import { getTopProducts, getDailyRevenue, getCOGS } from '@/lib/actions/reports';
 import { getPlanConfig } from '@/lib/plans';
-import { TrendingUp, ShoppingCart, ArrowDownUp, Receipt } from 'lucide-react';
+import { TrendingUp, ShoppingCart, Percent, Receipt, ArrowDownUp, Coins } from 'lucide-react';
 import { Suspense } from 'react';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -20,7 +22,6 @@ function computeRange(period: string, dateParam: string | undefined, fromParam: 
   const now = new Date();
   let from: Date;
   let to: Date;
-
   switch (period) {
     case 'day': {
       const d = dateParam ? new Date(dateParam) : now;
@@ -52,7 +53,6 @@ function computeRange(period: string, dateParam: string | undefined, fromParam: 
       to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     }
   }
-
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
@@ -87,7 +87,7 @@ export default async function ReportsPage({
   const isAdvanced = planConfig.reports === 'advanced';
   const admin = createAdminClient();
 
-  const [invoicesResult, expensesResult, paymentsResult, topProductsData, dailyRevenueData] = await Promise.all([
+  const [invoicesResult, expensesResult, paymentsResult, topProductsData, dailyRevenueData, cogsData] = await Promise.all([
     admin.from('invoices')
       .select('id, invoice_number, client_name, total, amount_paid, balance_due, status, paid_at, created_at')
       .eq('shop_id', shop.id)
@@ -110,6 +110,7 @@ export default async function ReportsPage({
       .lte('created_at', to),
     getTopProducts(from, to, 10),
     getDailyRevenue(from, to),
+    getCOGS(from, to),
   ]);
 
   const invoices = invoicesResult.data ?? [];
@@ -120,8 +121,10 @@ export default async function ReportsPage({
   const totalPaid = invoices.reduce((s, inv) => s + Number(inv.amount_paid), 0);
   const totalExpenses = expenses.reduce((s, m) => s + Math.abs(Number(m.amount)), 0);
   const totalCashIn = paymentsData.reduce((s, m) => s + Number(m.amount), 0);
-  const netResult = totalCashIn - totalExpenses;
-
+  const totalCOGS = cogsData.totalCost;
+  const totalCosts = totalCOGS + totalExpenses;
+  const profit = totalCA - totalCosts;
+  const marginPct = totalCA > 0 ? ((profit / totalCA) * 100) : 0;
   const nbSales = invoices.length;
   const avgBasket = nbSales > 0 ? totalCA / nbSales : 0;
 
@@ -130,8 +133,7 @@ export default async function ReportsPage({
     const grouped = new Map<string, number>();
     for (const inv of invoices) {
       const hour = new Date(inv.created_at).getHours();
-      const key = String(hour);
-      grouped.set(key, (grouped.get(key) ?? 0) + Number(inv.total));
+      grouped.set(String(hour), (grouped.get(String(hour)) ?? 0) + Number(inv.total));
     }
     for (const [h, v] of grouped) chartData.push({ date: `${h}h`, revenue: v });
     chartData.sort((a, b) => Number(a.date.replace('h', '')) - Number(b.date.replace('h', '')));
@@ -139,8 +141,7 @@ export default async function ReportsPage({
     const grouped = new Map<string, number>();
     for (const inv of invoices) {
       const d = new Date(inv.created_at);
-      const key = `${d.getDate()}/${d.getMonth() + 1}`;
-      grouped.set(key, (grouped.get(key) ?? 0) + Number(inv.total));
+      grouped.set(`${d.getDate()}/${d.getMonth() + 1}`, (grouped.get(`${d.getDate()}/${d.getMonth() + 1}`) ?? 0) + Number(inv.total));
     }
     for (const [k, v] of grouped) chartData.push({ date: k, revenue: v });
     chartData.sort((a, b) => {
@@ -151,14 +152,33 @@ export default async function ReportsPage({
   } else if (period === 'year') {
     const grouped = new Map<number, number>();
     for (const inv of invoices) {
-      const m = new Date(inv.created_at).getMonth();
-      grouped.set(m, (grouped.get(m) ?? 0) + Number(inv.total));
+      grouped.set(new Date(inv.created_at).getMonth(), (grouped.get(new Date(inv.created_at).getMonth()) ?? 0) + Number(inv.total));
     }
     const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-    for (let i = 0; i < 12; i++) {
-      chartData.push({ date: months[i], revenue: grouped.get(i) ?? 0 });
-    }
+    for (let i = 0; i < 12; i++) chartData.push({ date: months[i], revenue: grouped.get(i) ?? 0 });
   }
+
+  const costRevenueChartData = cogsData.byDay.map((d) => ({ date: d.date, revenue: d.revenue, cost: d.cost }));
+
+  const csvData = invoices.map((inv: any) => ({
+    'N° Facture': inv.invoice_number,
+    'Client': inv.client_name,
+    'Statut': STATUS_LABELS[inv.status] || inv.status,
+    'Total': Number(inv.total),
+    'Encaissé': Number(inv.amount_paid),
+    'Reste': Number(inv.balance_due),
+    'Date': new Date(inv.created_at).toLocaleDateString('fr-FR'),
+  }));
+
+  const csvColumns = [
+    { key: 'N° Facture', label: 'N° Facture' },
+    { key: 'Client', label: 'Client' },
+    { key: 'Statut', label: 'Statut' },
+    { key: 'Total', label: 'Total' },
+    { key: 'Encaissé', label: 'Encaissé' },
+    { key: 'Reste', label: 'Reste' },
+    { key: 'Date', label: 'Date' },
+  ];
 
   const today = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -172,9 +192,12 @@ export default async function ReportsPage({
       <div className="print-hide">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
           <div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold tracking-tight">Rapport commercial</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold tracking-tight">Rapports</h1>
           </div>
-          <PrintButton />
+          <div className="flex items-center gap-2">
+            <DownloadCSV data={csvData} columns={csvColumns} filename={`rapport-${label.replace(/\s+/g, '-').toLowerCase()}`} />
+            <PrintButton />
+          </div>
         </div>
         <Suspense>
           <PeriodSelector />
@@ -183,57 +206,52 @@ export default async function ReportsPage({
 
       <p className="text-sm text-zinc-500 print-hide mt-1">Période : {label}</p>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 print:grid-cols-3">
+      {/* Key Insights */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 print:grid-cols-3">
         <div className="bg-white rounded-xl border p-4 lg:p-5">
           <div className="flex items-center gap-2 mb-2">
             <div className="size-8 rounded-lg bg-emerald-100 flex items-center justify-center"><TrendingUp className="size-4 text-emerald-600" /></div>
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">CA</p>
           </div>
           <p className="text-xl lg:text-2xl font-bold font-heading tracking-tight text-emerald-600 tabular-nums">{formatCurrency(totalCA)}</p>
-          <p className="text-xs text-zinc-400 mt-1">{nbSales} vente(s)</p>
+          <p className="text-xs text-zinc-400 mt-1">{nbSales} vente(s) · Panier moyen {formatCurrency(avgBasket)}</p>
         </div>
 
         <div className="bg-white rounded-xl border p-4 lg:p-5">
           <div className="flex items-center gap-2 mb-2">
             <div className="size-8 rounded-lg bg-red-100 flex items-center justify-center"><ShoppingCart className="size-4 text-red-600" /></div>
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Dépenses</p>
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Coûts</p>
           </div>
-          <p className="text-xl lg:text-2xl font-bold font-heading tracking-tight text-red-600 tabular-nums">{formatCurrency(totalExpenses)}</p>
-          <p className="text-xs text-zinc-400 mt-1">{expenses.length} mouvement(s)</p>
+          <p className="text-xl lg:text-2xl font-bold font-heading tracking-tight text-red-600 tabular-nums">{formatCurrency(totalCosts)}</p>
+          <p className="text-xs text-zinc-400 mt-1">Marchandises {formatCurrency(totalCOGS)} · Dépenses {formatCurrency(totalExpenses)}</p>
         </div>
 
         <div className="bg-white rounded-xl border p-4 lg:p-5">
           <div className="flex items-center gap-2 mb-2">
-            <div className={`size-8 rounded-lg flex items-center justify-center ${netResult >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
-              <ArrowDownUp className={`size-4 ${netResult >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
+            <div className={`size-8 rounded-lg flex items-center justify-center ${profit >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+              <Coins className={`size-4 ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
             </div>
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Résultat net</p>
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Bénéfice</p>
           </div>
-          <p className={`text-xl lg:text-2xl font-bold font-heading tracking-tight tabular-nums ${netResult >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-            {formatCurrency(netResult)}
+          <p className={`text-xl lg:text-2xl font-bold font-heading tracking-tight tabular-nums ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+            {formatCurrency(profit)}
           </p>
-          <p className="text-xs text-zinc-400 mt-1">Encaissé: {formatCurrency(totalCashIn)}</p>
-        </div>
-
-        <div className="bg-white rounded-xl border p-4 lg:p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="size-8 rounded-lg bg-blue-100 flex items-center justify-center"><Receipt className="size-4 text-blue-600" /></div>
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Panier moyen</p>
-          </div>
-          <p className="text-xl lg:text-2xl font-bold font-heading tracking-tight tabular-nums text-blue-600">{formatCurrency(avgBasket)}</p>
-          <p className="text-xs text-zinc-400 mt-1">par vente</p>
+          <p className={`text-xs mt-1 ${marginPct >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+            Marge {marginPct >= 0 ? '+' : ''}{marginPct.toFixed(1)}%
+          </p>
         </div>
       </div>
 
+      {/* Charts */}
       {chartData.length > 0 && (
         <div className="bg-white rounded-xl border overflow-hidden">
-          <div className="px-5 py-4 border-b">
-            <h2 className="font-heading font-semibold text-base">Évolution du CA</h2>
-          </div>
-          <div className="p-4">
-            <RevenueChart data={chartData} period={period} />
-          </div>
+          <div className="px-5 py-4 border-b"><h2 className="font-heading font-semibold text-base">CA</h2></div>
+          <div className="p-4"><RevenueChart data={chartData} period={period} /></div>
         </div>
+      )}
+
+      {costRevenueChartData.length > 0 && isAdvanced && (
+        <CostRevenueChart data={costRevenueChartData} />
       )}
 
       {dailyRevenueData.length > 1 && isAdvanced && (
@@ -244,6 +262,7 @@ export default async function ReportsPage({
         <TopProducts products={topProductsData} />
       )}
 
+      {/* Sales table */}
       <div className="bg-white rounded-xl border overflow-hidden">
         <div className="px-5 py-4 border-b">
           <h2 className="font-heading font-semibold text-base">Ventes</h2>
@@ -313,13 +332,9 @@ export default async function ReportsPage({
               <tbody className="divide-y">
                 {expenses.map((exp: any, i: number) => (
                   <tr key={i} className="hover:bg-zinc-50/50">
-                    <td className="px-5 py-3 text-xs text-zinc-500 whitespace-nowrap">
-                      {new Date(exp.created_at).toLocaleDateString('fr-FR')}
-                    </td>
+                    <td className="px-5 py-3 text-xs text-zinc-500 whitespace-nowrap">{new Date(exp.created_at).toLocaleDateString('fr-FR')}</td>
                     <td className="px-2 py-3">{exp.description || '—'}</td>
-                    <td className="px-5 py-3 text-right tabular-nums font-medium text-red-600">
-                      {formatCurrency(Math.abs(Number(exp.amount)))}
-                    </td>
+                    <td className="px-5 py-3 text-right tabular-nums font-medium text-red-600">{formatCurrency(Math.abs(Number(exp.amount)))}</td>
                   </tr>
                 ))}
               </tbody>

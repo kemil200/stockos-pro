@@ -8,6 +8,8 @@ interface TopProduct {
   name: string;
   totalQuantity: number;
   totalRevenue: number;
+  totalCost: number;
+  margin: number;
   count: number;
 }
 
@@ -68,6 +70,9 @@ export function TopProducts({ products }: { products: TopProduct[] }) {
                       {p.totalQuantity}
                     </span>
                     <span>{p.count} vente(s)</span>
+                    {p.margin > 0 && (
+                      <span className="text-emerald-500 font-medium">+{formatCurrency(p.margin)}</span>
+                    )}
                   </div>
                 </div>
               </div>

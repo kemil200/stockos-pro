@@ -1,6 +1,7 @@
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
+import { hasFeature } from '@/lib/plans';
 import Link from 'next/link';
 import { Plus, Package, Layers } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +17,7 @@ import {
 
 export default async function ProductsPage() {
   const { shop } = await getCurrentShop();
+  const showPacks = await hasFeature(shop.id, 'packs');
   const admin = createAdminClient();
 
   const [productsResult, stockResult] = await Promise.all([
@@ -39,10 +41,12 @@ export default async function ProductsPage() {
           <p className="text-sm text-zinc-500 mt-1.5">{allProducts.length} produit(s)</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/products/packs" className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-zinc-200 text-sm font-medium hover:bg-zinc-50 transition-all">
-            <Layers className="size-4" />
-            Packs
-          </Link>
+          {showPacks && (
+            <Link href="/products/packs" className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-zinc-200 text-sm font-medium hover:bg-zinc-50 transition-all">
+              <Layers className="size-4" />
+              Packs
+            </Link>
+          )}
           <Link href="/products/new" className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-800 transition-all shadow-sm">
             <Plus className="size-4" />
             Nouveau

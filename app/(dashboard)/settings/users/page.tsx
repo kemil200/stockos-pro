@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { Users, Shield, UserPlus, Trash2 } from 'lucide-react';
 import { InviteForm } from './invite-form';
 import { RemoveButton } from './remove-button';
+import { InviteLink } from './invite-link';
 
 export default async function UsersPage() {
   const { shop } = await getCurrentShop();
@@ -27,6 +28,8 @@ export default async function UsersPage() {
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold tracking-tight">Utilisateurs</h1>
         <p className="text-sm text-zinc-500 mt-1.5">{users.length} utilisateur(s)</p>
       </div>
+
+      <InviteLink />
 
       <InviteForm />
 

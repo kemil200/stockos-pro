@@ -12,7 +12,8 @@ import { hasFeature } from '@/lib/plans';
 
 export async function createPack(formData: FormData) {
   try {
-    const { shop } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
+    if (user.role !== 'owner') return { success: false, error: 'Réservé au propriétaire' } as const;
     await assertWritable(shop.id);
 
     if (!(await hasFeature(shop.id, 'packs'))) {
@@ -68,7 +69,8 @@ export async function createPack(formData: FormData) {
 
 export async function updatePack(formData: FormData) {
   try {
-    const { shop } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
+    if (user.role !== 'owner') return { success: false, error: 'Réservé au propriétaire' } as const;
     await assertWritable(shop.id);
 
     if (!(await hasFeature(shop.id, 'packs'))) {
@@ -126,7 +128,8 @@ export async function updatePack(formData: FormData) {
 
 export async function deletePack(packId: string) {
   try {
-    const { shop } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
+    if (user.role !== 'owner') return { success: false, error: 'Réservé au propriétaire' } as const;
     await assertWritable(shop.id);
 
     if (!(await hasFeature(shop.id, 'packs'))) {

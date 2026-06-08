@@ -19,6 +19,7 @@ const SupplySchema = z.object({
 export async function purchaseStock(formData: FormData) {
   try {
     const { shop, user } = await getCurrentShop();
+    if (user.role !== 'owner') return { success: false, error: 'Réservé au propriétaire' } as const;
     await assertWritable(shop.id);
 
     const parsed = SupplySchema.parse({

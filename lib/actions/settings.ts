@@ -9,7 +9,8 @@ import { revalidatePath } from 'next/cache';
 
 export async function updateShopSettings(formData: FormData) {
   try {
-    const { shop } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
+    if (user.role !== 'owner') return { success: false, error: 'Réservé au propriétaire' } as const;
     await assertWritable(shop.id);
 
     await db
@@ -37,7 +38,8 @@ export async function updateShopSettings(formData: FormData) {
 
 export async function updateInvoiceSettings(formData: FormData) {
   try {
-    const { shop } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
+    if (user.role !== 'owner') return { success: false, error: 'Réservé au propriétaire' } as const;
     await assertWritable(shop.id);
 
     await db

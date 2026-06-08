@@ -53,12 +53,16 @@ const NAV_ITEMS = [
   { href: '/cash-register', label: 'Caisse', icon: Wallet },
 ];
 
-export function BottomNav({ plan }: { plan?: string | null }) {
+export function BottomNav({ plan, role }: { plan?: string | null; role?: string }) {
   const pathname = usePathname();
   const { groupRef, onEnter, onLeave } = useAvatarGroup();
 
+  const isEmployee = role === 'EMPLOYEE';
+
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (item.href === '/cash-register' && plan === 'STARTER') return false;
+    if (isEmployee && item.href === '/supply') return false;
+    if (isEmployee && item.href === '/products') return false;
     return true;
   });
 

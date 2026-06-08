@@ -32,15 +32,24 @@ function SignInForm() {
     setError(null);
 
     const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     if (signInError) {
       setError(signInError.message);
       setLoading(false);
       return;
     }
 
-    // FIX: on redirige vers la destination voulue, jamais vers '/'
-    // Si le middleware avait capturé une route protégée, on récupère le param 'redirect'
+    const inviteCode = searchParams.get('invite');
+    if (inviteCode && data.user) {
+      const { completeInvite } = await import('@/lib/actions/invites');
+      const result = await completeInvite(inviteCode, data.user.id, data.user.user_metadata?.name || email, email);
+      if (!result.success) {
+        setError(result.error || 'Impossible de rejoindre la boutique');
+        setLoading(false);
+        return;
+      }
+    }
+
     const redirectTo = searchParams.get('redirect') || '/invoices';
     router.push(redirectTo);
     router.refresh();

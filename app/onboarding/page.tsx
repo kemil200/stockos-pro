@@ -16,5 +16,13 @@ export default async function OnboardingPage() {
 
   if (shops?.length) redirect('/invoices');
 
+  const { data: shopUsers } = await admin
+    .from('users')
+    .select('shop_id')
+    .eq('auth_user_id', user.id)
+    .limit(1);
+
+  if (shopUsers?.length) redirect('/invoices');
+
   return <OnboardingCreateShop />;
 }

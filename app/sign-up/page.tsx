@@ -2,21 +2,30 @@
 
 import { createClient } from '@/lib/client';
 import { Store, ArrowRight, Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpForm />
+    </Suspense>
+  );
+}
+
+function SignUpForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteCode = searchParams.get('invite');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Message de succès pour les providers qui exigent une confirmation par email
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -38,14 +47,22 @@ export default function SignUpPage() {
       return;
     }
 
-    // Supabase peut retourner un user sans session si "Confirm email" est activé
-    // Dans ce cas, on affiche un message plutôt que de rediriger vers une page protégée
     if (data.session) {
-      // Session immédiate → redirection directe
-      router.push('/onboarding');
-      router.refresh();
+      if (inviteCode) {
+        const { completeInvite } = await import('@/lib/actions/invites');
+        const result = await completeInvite(inviteCode, data.user!.id, name, email);
+        if (result.success) {
+          router.push('/invoices');
+          router.refresh();
+        } else {
+          setError(result.error || 'Erreur');
+          setLoading(false);
+        }
+      } else {
+        router.push('/onboarding');
+        router.refresh();
+      }
     } else {
-      // Email de confirmation envoyé → on informe l'utilisateur
       setSuccess(true);
       setLoading(false);
     }

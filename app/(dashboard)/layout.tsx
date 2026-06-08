@@ -22,12 +22,13 @@ export default async function DashboardLayout({
 
   const { data: shopUsers } = await admin
     .from('users')
-    .select('shop_id')
+    .select('shop_id, role')
     .eq('auth_user_id', user.id);
 
   if (!shopUsers?.length) redirect('/onboarding');
 
   const shopId = shopUsers[0].shop_id;
+  const userRole = shopUsers[0].role || 'owner';
 
   const { data: subs } = await admin
     .from('subscriptions')
@@ -49,9 +50,9 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-dvh overflow-hidden">
-      <Sidebar plan={plan} />
+      <Sidebar plan={plan} role={userRole} />
       <div className="flex-1 flex flex-col min-w-0">
-        <Navbar plan={plan} />
+        <Navbar plan={plan} role={userRole} />
         {(readOnly || expired) && (
           <div className="bg-amber-50 border-b border-amber-200/80 px-4 py-2.5 lg:px-6">
             <div className="flex items-center justify-center gap-2 text-sm text-amber-800">
@@ -72,7 +73,7 @@ export default async function DashboardLayout({
             </div>
           </div>
         </main>
-        <BottomNav plan={plan} />
+        <BottomNav plan={plan} role={userRole} />
       </div>
     </div>
   );

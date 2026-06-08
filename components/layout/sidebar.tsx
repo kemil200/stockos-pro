@@ -35,13 +35,18 @@ const NAV_ITEMS = [
   { href: '/settings', label: 'Paramètres', icon: Settings, feature: null },
 ];
 
-function SidebarContent({ onNavigate, plan }: { onNavigate?: () => void; plan?: string | null }) {
+function SidebarContent({ onNavigate, plan, role }: { onNavigate?: () => void; plan?: string | null; role?: string }) {
   const pathname = usePathname();
+
+  const isEmployee = role === 'EMPLOYEE';
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (!item.feature) return true;
-    if (item.feature === 'maxRegisters' && (plan === 'STARTER')) return false;
+    if (item.feature === 'maxRegisters' && plan === 'STARTER') return false;
     return true;
+  }).filter((item) => {
+    if (!isEmployee) return true;
+    return ['/invoices', '/clients', '/cash-register'].includes(item.href);
   });
 
   return (
@@ -89,15 +94,15 @@ function SidebarContent({ onNavigate, plan }: { onNavigate?: () => void; plan?: 
   );
 }
 
-export function Sidebar({ className, plan }: { className?: string; plan?: string | null }) {
+export function Sidebar({ className, plan, role }: { className?: string; plan?: string | null; role?: string }) {
   return (
     <aside className={cn('w-60 border-r bg-white h-screen flex flex-col shrink-0 max-lg:hidden', className)}>
-      <SidebarContent plan={plan} />
+      <SidebarContent plan={plan} role={role} />
     </aside>
   );
 }
 
-export function MobileSidebar({ plan }: { plan?: string | null }) {
+export function MobileSidebar({ plan, role }: { plan?: string | null; role?: string }) {
   return (
     <Sheet>
       <SheetTrigger render={<Button variant="ghost" size="icon" className="lg:hidden" aria-label="Menu" />}>

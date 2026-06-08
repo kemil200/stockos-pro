@@ -21,6 +21,8 @@ export async function removeUser(userId: string) {
   const { shop, user } = await getCurrentShop();
   await assertWritable(shop.id);
 
+  if (user.role !== 'owner') return { success: false, error: 'Réservé au propriétaire' } as const;
+
   if (user.id === userId) {
     return { success: false, error: 'Vous ne pouvez pas vous supprimer vous-même' } as const;
   }
@@ -49,8 +51,10 @@ export async function removeUser(userId: string) {
 }
 
 export async function inviteUserByEmail(email: string) {
-  const { shop } = await getCurrentShop();
+  const { shop, user } = await getCurrentShop();
   await assertWritable(shop.id);
+
+  if (user.role !== 'owner') return { success: false, error: 'Réservé au propriétaire' } as const;
   await assertPlanLimit(shop.id, 'maxUsers');
 
   const admin = createAdminClient();

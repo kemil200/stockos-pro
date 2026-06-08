@@ -13,7 +13,8 @@ import { assertPlanLimit } from '@/lib/plans';
 
 export async function createProduct(formData: FormData) {
   try {
-    const { shop } = await getCurrentShop();
+    const { shop, user } = await getCurrentShop();
+    if (user.role !== 'owner') return { success: false, error: 'Réservé au propriétaire' } as const;
     await assertWritable(shop.id);
     await assertPlanLimit(shop.id, 'maxProducts');
 
@@ -68,6 +69,7 @@ export async function createProduct(formData: FormData) {
 export async function adjustStock(formData: FormData) {
   try {
     const { shop, user } = await getCurrentShop();
+    if (user.role !== 'owner') return { success: false, error: 'Réservé au propriétaire' } as const;
     await assertWritable(shop.id);
 
     const parsed = AdjustStockSchema.parse({

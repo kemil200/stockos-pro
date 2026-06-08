@@ -40,11 +40,8 @@ function SidebarContent({ onNavigate, plan }: { onNavigate?: () => void; plan?: 
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (!item.feature) return true;
-    if (plan === 'BUSINESS' || plan === 'TRIAL') return true;
-    if (plan === 'ESSENTIAL') {
-      return item.feature !== 'maxRegisters';
-    }
-    return false;
+    if (item.feature === 'maxRegisters' && (plan === 'STARTER')) return false;
+    return true;
   });
 
   return (

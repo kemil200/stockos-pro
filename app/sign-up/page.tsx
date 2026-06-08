@@ -65,6 +65,9 @@ function SignUpForm() {
         router.refresh();
       }
     } else {
+      if (inviteCode && typeof document !== 'undefined') {
+        document.cookie = `invite_code=${inviteCode}; path=/; max-age=604800; SameSite=Lax`;
+      }
       setSuccess(true);
       setLoading(false);
     }
@@ -87,24 +90,28 @@ function SignUpForm() {
               <ArrowRight className="size-6 text-emerald-600" />
             </div>
             <h1 className="text-xl font-bold mb-2">Vérifiez votre email</h1>
-            <p className="text-sm text-zinc-500 mb-6">
+            <p className="text-sm text-zinc-500 mb-2">
               Un lien de confirmation a été envoyé à <strong>{email}</strong>.
-              Cliquez sur le lien pour activer votre compte.
             </p>
-            {inviteCode && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left">
-                <p className="text-sm font-medium text-amber-800 mb-2">Invitation en attente</p>
-                <p className="text-xs text-amber-700 mb-3">
-                  Après avoir confirmé votre email, revenez sur le lien d&apos;invitation pour être ajouté à la boutique.
+            {inviteCode ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-left mt-4">
+                <p className="text-sm font-medium text-emerald-800 mb-2">Invitation détectée</p>
+                <p className="text-xs text-emerald-700 mb-3">
+                  Après avoir confirmé votre email, vous serez automatiquement ajouté à la boutique.
+                  Cliquez ci-dessous pour finaliser.
                 </p>
                 <a
-                  href={`/invite/${inviteCode}`}
-                  className="inline-flex items-center justify-center gap-1.5 w-full px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-all"
+                  href={`/sign-in?invite=${inviteCode}`}
+                  className="inline-flex items-center justify-center gap-1.5 w-full px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-all"
                 >
                   <ArrowRight className="size-3.5" />
-                  Revenir au lien d&apos;invitation
+                  Me connecter pour rejoindre la boutique
                 </a>
               </div>
+            ) : (
+              <p className="text-sm text-zinc-500">
+                Cliquez sur le lien pour activer votre compte.
+              </p>
             )}
           </div>
         </div>

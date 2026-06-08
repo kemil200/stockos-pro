@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { createClient, createAdminClient } from '@/lib/server';
 import { OnboardingCreateShop } from './create-shop';
 
@@ -8,6 +9,7 @@ export default async function OnboardingPage() {
   if (!user) redirect('/sign-in');
 
   const admin = createAdminClient();
+
   const { data: shops } = await admin
     .from('shops')
     .select('id')
@@ -23,6 +25,12 @@ export default async function OnboardingPage() {
     .limit(1);
 
   if (shopUsers?.length) redirect('/invoices');
+
+  const cookieStore = await cookies();
+  const inviteCookie = cookieStore.get('invite_code')?.value;
+  if (inviteCookie) {
+    redirect(`/sign-in?invite=${inviteCookie}`);
+  }
 
   return <OnboardingCreateShop />;
 }

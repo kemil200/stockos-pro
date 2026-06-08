@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createInvite, deleteInvite } from '@/lib/actions/invites';
-import { LinkIcon, Copy, Trash2, Clock } from 'lucide-react';
+import { createInvite } from '@/lib/actions/invites';
+import { LinkIcon, Copy, Clock } from 'lucide-react';
 
 export function InviteLink() {
   const router = useRouter();
@@ -31,22 +31,6 @@ export function InviteLink() {
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleDelete = async () => {
-    if (!inviteCode) return;
-    setGenerating(true);
-    try {
-      const [inviteId] = await (async () => {
-        const res = await fetch('/api/invites?code=' + inviteCode);
-        const data = await res.json();
-        return [data.id];
-      })().catch(() => [null]);
-      setInviteCode(null);
-    } finally {
-      setGenerating(false);
-      router.refresh();
-    }
   };
 
   if (inviteCode) {
@@ -80,22 +64,14 @@ export function InviteLink() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent('Rejoins ma boutique sur StockOS Pro : ' + url)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 text-center px-3 py-2 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 transition-all"
-          >
-            Partager via WhatsApp
-          </a>
-          <button
-            onClick={handleDelete}
-            className="px-3 py-2 border border-red-200 text-red-500 rounded-lg hover:bg-red-50 transition-all"
-          >
-            <Trash2 className="size-3.5" />
-          </button>
-        </div>
+        <a
+          href={`https://wa.me/?text=${encodeURIComponent('Rejoins ma boutique sur StockOS Pro : ' + url)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center px-3 py-2 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 transition-all"
+        >
+          Partager via WhatsApp
+        </a>
       </div>
     );
   }

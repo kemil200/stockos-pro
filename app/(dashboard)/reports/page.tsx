@@ -10,7 +10,6 @@ import { StorySection } from '@/components/reports/story-section';
 import { DownloadPDF } from '@/components/reports/download-pdf';
 import { getTopProducts, getDailyRevenue, getCOGS } from '@/lib/actions/reports';
 import { getPlanConfig } from '@/lib/plans';
-import { TrendingUp, ShoppingCart, Coins } from 'lucide-react';
 import { Suspense } from 'react';
 
 function computeRange(period: string, dateParam: string | undefined, fromParam: string | undefined, toParam: string | undefined) {

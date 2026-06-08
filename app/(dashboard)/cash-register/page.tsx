@@ -1,7 +1,7 @@
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
-import { hasFeature } from '@/lib/plans';
+import { getPlanConfig } from '@/lib/plans';
 import { notFound } from 'next/navigation';
 import { Landmark } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

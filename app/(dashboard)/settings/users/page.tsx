@@ -2,7 +2,7 @@ import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { hasFeature } from '@/lib/plans';
 import { notFound } from 'next/navigation';
-import { Users, Shield, UserPlus, Trash2 } from 'lucide-react';
+import { Users, Shield } from 'lucide-react';
 import { InviteForm } from './invite-form';
 import { RemoveButton } from './remove-button';
 import { InviteLink } from './invite-link';
@@ -20,7 +20,6 @@ export default async function UsersPage() {
     .order('created_at', { ascending: true });
 
   const users = shopUsers ?? [];
-  const owner = users.find((u: any) => u.role === 'owner');
 
   return (
     <div className="space-y-6">

@@ -109,7 +109,7 @@ export function MobileSidebar({ plan, role }: { plan?: string | null; role?: str
         <Menu className="size-5" />
       </SheetTrigger>
       <SheetContent side="left" className="w-60 p-0" showCloseButton={false}>
-        <SidebarContent plan={plan} onNavigate={() => {
+        <SidebarContent plan={plan} role={role} onNavigate={() => {
           document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
         }} />
       </SheetContent>

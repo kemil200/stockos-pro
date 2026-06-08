@@ -1,5 +1,5 @@
 import { acceptInvite } from '@/lib/actions/invites';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { Store, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 

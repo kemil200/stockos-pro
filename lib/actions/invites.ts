@@ -55,42 +55,51 @@ export async function acceptInvite(code: string) {
 export async function completeInvite(code: string, userId: string, displayName: string, email: string) {
   const admin = createAdminClient();
 
-  const { data: invites } = await admin
-    .from('invites')
-    .select('*')
-    .eq('code', code)
-    .is('used_at', null)
-    .limit(1);
-
-  const invite = invites?.[0] ?? null;
-  if (!invite) return { success: false, error: 'Lien invalide ou déjà utilisé' } as const;
-  if (new Date(invite.expires_at) < new Date()) {
-    return { success: false, error: 'Ce lien a expiré' } as const;
-  }
-
-  const { data: existing } = await admin
+  const { data: existingUser } = await admin
     .from('users')
-    .select('id')
+    .select('id, shop_id')
     .eq('auth_user_id', userId)
     .limit(1);
 
-  if (existing && existing.length > 0) {
+  if (existingUser && existingUser.length > 0) {
     return { success: false, error: 'Ce compte est déjà lié à une boutique' } as const;
+  }
+
+  const { data: updated, error: updateError } = await admin
+    .from('invites')
+    .update({ used_at: new Date().toISOString(), used_by: userId })
+    .eq('code', code)
+    .is('used_at', null)
+    .select('shop_id')
+    .single();
+
+  if (updateError || !updated) {
+    return { success: false, error: 'Lien invalide, déjà utilisé ou expiré' } as const;
+  }
+
+  const { data: invite } = await admin
+    .from('invites')
+    .select('expires_at')
+    .eq('code', code)
+    .single();
+
+  if (invite && new Date(invite.expires_at) < new Date()) {
+    return { success: false, error: 'Ce lien a expiré' } as const;
   }
 
   const { error: userError } = await admin.from('users').insert({
     auth_user_id: userId,
-    shop_id: invite.shop_id,
+    shop_id: updated.shop_id,
     role: 'EMPLOYEE',
     display_name: displayName,
     email,
   });
 
-  if (userError) return { success: false, error: userError.message } as const;
+  if (userError) {
+    return { success: false, error: userError.message.includes('unique') ? 'Ce compte est déjà lié à une boutique' : userError.message } as const;
+  }
 
-  await admin.from('invites').update({ used_at: new Date().toISOString(), used_by: userId }).eq('id', invite.id);
-
-  return { success: true, shopId: invite.shop_id } as const;
+  return { success: true, shopId: updated.shop_id } as const;
 }
 
 export async function deleteInvite(inviteId: string) {

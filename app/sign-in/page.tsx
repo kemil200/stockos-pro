@@ -44,6 +44,7 @@ function SignInForm() {
       const { completeInvite } = await import('@/lib/actions/invites');
       const result = await completeInvite(inviteCode, data.user.id, data.user.user_metadata?.name || email, email);
       if (!result.success) {
+        await supabase.auth.signOut();
         setError(result.error || 'Impossible de rejoindre la boutique');
         setLoading(false);
         return;

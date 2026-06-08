@@ -11,6 +11,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { SubscriptionRow } from '@/components/superadmin/subscription-row';
+import { SystemHealth } from '@/components/superadmin/system-health';
 import { SignOutButton } from '@/components/layout/sign-out-button';
 import {
   Card,
@@ -75,6 +76,11 @@ export default async function SuperAdminPage() {
             </div>
           </div>
           <SignOutButton />
+        </div>
+
+        {/* System health */}
+        <div className="mb-8">
+          <SystemHealth />
         </div>
 
         {/* Stats cards */}

@@ -122,6 +122,11 @@ function SignInForm() {
                   {!loading && <ArrowRight className="size-4" />}
                 </Button>
                 <p className="text-sm text-center text-zinc-500">
+                  <Link href="/forgot-password" className="text-zinc-500 hover:text-zinc-900 transition-colors">
+                    Mot de passe oublié ?
+                  </Link>
+                </p>
+                <p className="text-sm text-center text-zinc-500">
                   Pas encore de compte ?{' '}
                   <Link href="/sign-up" className="text-zinc-900 font-medium underline underline-offset-4 hover:text-zinc-700">
                     Créer un compte

@@ -43,13 +43,25 @@ export default async function middleware(request: NextRequest) {
 
   // IMPORTANT: getUser() fait une vérification serveur — ne jamais utiliser getSession() ici
   // car la session peut être falsifiée côté client
-  const { data: { user }, error } = await supabase.auth.getUser();
-
-  if (error || !user) {
+  let user;
+  try {
+    const result = await supabase.auth.getUser();
+    user = result.data.user;
+    if (result.error) throw result.error;
+  } catch {
+    // Session invalide ou refresh token expiré → rediriger proprement
     const url = new URL('/sign-in', request.url);
     url.searchParams.set('redirect', pathname);
     const response = NextResponse.redirect(url);
-    // Supprime les cookies de session invalides
+    response.cookies.delete('sb-kbdmfbwouejuxjizkrzo-auth-token');
+    response.cookies.delete('sb-kbdmfbwouejuxjizkrzo-auth-token-code-verifier');
+    return response;
+  }
+
+  if (!user) {
+    const url = new URL('/sign-in', request.url);
+    url.searchParams.set('redirect', pathname);
+    const response = NextResponse.redirect(url);
     response.cookies.delete('sb-kbdmfbwouejuxjizkrzo-auth-token');
     response.cookies.delete('sb-kbdmfbwouejuxjizkrzo-auth-token-code-verifier');
     return response;

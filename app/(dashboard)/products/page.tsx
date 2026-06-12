@@ -15,6 +15,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProductsPage() {
   const { shop } = await getCurrentShop();
   const showPacks = await hasFeature(shop.id, 'packs');

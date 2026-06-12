@@ -5,6 +5,8 @@ import { hasFeature } from '@/lib/plans';
 import Link from 'next/link';
 import { Users } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SettingsPage() {
   const { shop } = await getCurrentShop();
   const admin = createAdminClient();

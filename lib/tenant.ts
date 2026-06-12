@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 
 import { createClient, createAdminClient } from '@/lib/server';
 
@@ -9,7 +10,7 @@ export class TenantError extends Error {
   }
 }
 
-export async function getCurrentShop() {
+export const getCurrentShop = cache(async () => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new TenantError('Unauthorized');
@@ -34,7 +35,7 @@ export async function getCurrentShop() {
   if (!shop) throw new TenantError('Shop not found');
 
   return { shop, user: shopUser };
-}
+});
 
 export async function getShopById(shopId: string) {
   const supabase = await createClient();

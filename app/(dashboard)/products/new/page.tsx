@@ -43,6 +43,7 @@ export default function NewProductPage() {
       const result = await createProduct(formData);
       if (result.success) {
         router.replace('/products');
+        router.refresh();
       } else {
         alert(result.error);
       }

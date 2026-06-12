@@ -92,6 +92,7 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
       }
 
       router.replace(`/invoices/${result.invoice.id}`);
+      router.refresh();
     } catch {
       setSubmitError('Erreur réseau, veuillez réessayer');
     } finally {

@@ -65,7 +65,7 @@ export interface StockMovement {
   shop_id: string;
   product_id: string;
   stock_item_id: string;
-  movement_type: 'IN' | 'OUT' | 'SALE' | 'ADJUSTMENT';
+  movement_type: 'PURCHASE' | 'SALE' | 'RETURN' | 'ADJUSTMENT' | 'TRANSFER_OUT' | 'TRANSFER_IN' | 'LOSS' | 'INITIAL';
   quantity: string;
   unit_price: string | null;
   reference_id: string | null;

@@ -8,7 +8,7 @@ export default async function StockPage() {
 
   const [{ data: items }, { data: inMovements }] = await Promise.all([
     admin.from('stock_items').select('*, products(*)').eq('shop_id', shop.id).order('quantity', { ascending: true }),
-    admin.from('stock_movements').select('product_id, created_at').eq('shop_id', shop.id).eq('movement_type', 'IN').order('created_at', { ascending: false }),
+    admin.from('stock_movements').select('product_id, created_at').eq('shop_id', shop.id).eq('movement_type', 'PURCHASE').order('created_at', { ascending: false }),
   ]);
 
   const lastInMap = new Map<string, string>();

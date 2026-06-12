@@ -12,7 +12,7 @@ export default async function SupplyPage() {
   const [productsResult, expensesResult, recentResult] = await Promise.all([
     admin.from('products').select('id, name, unit_price, purchase_price').eq('shop_id', shop.id).order('name'),
     admin.from('cash_movements').select('amount').eq('shop_id', shop.id).eq('movement_type', 'EXPENSE'),
-    admin.from('stock_movements').select('*').eq('shop_id', shop.id).eq('movement_type', 'IN').order('created_at', { ascending: false }).limit(10),
+    admin.from('stock_movements').select('*').eq('shop_id', shop.id).eq('movement_type', 'PURCHASE').order('created_at', { ascending: false }).limit(10),
   ]);
 
   const products = productsResult.data ?? [];
@@ -20,7 +20,7 @@ export default async function SupplyPage() {
   const recentMovements = recentResult.data ?? [];
 
   const typeLabel = (t: string) => {
-    const m: Record<string, string> = { IN: 'Achat', SALE: 'Vente', ADJUSTMENT: 'Ajustement', CANCELLATION: 'Annulation' };
+    const m: Record<string, string> = { PURCHASE: 'Achat', SALE: 'Vente', ADJUSTMENT: 'Ajustement', CANCELLATION: 'Annulation' };
     return m[t] || t;
   };
 

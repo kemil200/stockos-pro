@@ -47,7 +47,7 @@ export async function purchaseStock(formData: FormData) {
         shopId: shop.id,
         productId: parsed.productId,
         stockItemId: stockItem.id,
-        movementType: 'IN',
+        movementType: 'PURCHASE',
         quantity: String(parsed.quantity),
         unitPrice: String(parsed.unitPrice),
         reason: parsed.reason || 'Approvisionnement',

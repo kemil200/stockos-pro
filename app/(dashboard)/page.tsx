@@ -59,7 +59,7 @@ export default async function DashboardPage() {
     admin.from('payments').select('amount, method').eq('shop_id', shop.id).gte('payment_date', t),
     admin.from('invoices').select('total').eq('shop_id', shop.id).eq('status', 'PAID').gte('paid_at', m),
     admin.from('invoices').select('total').eq('shop_id', shop.id).in('status', ['VALIDATED', 'PARTIALLY_PAID', 'PAID', 'CANCELLED']).gte('validated_at', m).neq('status', 'DRAFT'),
-    admin.from('stock_movements').select('quantity, product_id').eq('shop_id', shop.id).eq('movement_type', 'IN').gte('created_at', t),
+    admin.from('stock_movements').select('quantity, product_id').eq('shop_id', shop.id).eq('movement_type', 'PURCHASE').gte('created_at', t),
     admin.from('products').select('id, purchase_price').eq('shop_id', shop.id),
   ]);
 

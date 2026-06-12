@@ -42,3 +42,8 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+--> statement-breakpoint
+CREATE TRIGGER trg_apply_stock_movement
+  AFTER INSERT ON stock_movements
+  FOR EACH ROW
+  EXECUTE FUNCTION apply_stock_movement();

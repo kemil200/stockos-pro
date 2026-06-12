@@ -71,6 +71,13 @@
       "when": 1749000000000,
       "tag": "0012_fix_stock_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1749200000000,
+      "tag": "0013_recreate_trigger_and_repair_stock",
+      "breakpoints": true
     }
   ]
 }

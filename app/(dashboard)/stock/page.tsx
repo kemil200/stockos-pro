@@ -2,6 +2,8 @@ import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { StockTableClient } from '@/components/stock/stock-table-client';
 
+export const dynamic = 'force-dynamic';
+
 export default async function StockPage() {
   const { shop } = await getCurrentShop();
   const admin = createAdminClient();

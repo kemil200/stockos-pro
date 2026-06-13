@@ -85,6 +85,13 @@
       "when": 1749859200000,
       "tag": "0014_password_reset_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1749945600000,
+      "tag": "0015_password_reset_tokens_rls",
+      "breakpoints": true
     }
   ]
 }

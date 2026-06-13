@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getCurrentShop } from '@/lib/tenant';
-import { createAdminClient } from '@/lib/server';
+import { createAdminClient, createClient } from '@/lib/server';
 import { assertWritable } from '@/lib/readonly';
 import { assertPlanLimit } from '@/lib/plans';
 import { randomUUID } from 'crypto';
@@ -38,7 +38,7 @@ export async function acceptInvite(code: string) {
 
   const { data: invites } = await admin
     .from('invites')
-    .select('*, shops(name)')
+    .select('id, expires_at')
     .eq('code', code)
     .is('used_at', null)
     .limit(1);
@@ -49,10 +49,16 @@ export async function acceptInvite(code: string) {
     return { success: false, error: 'Ce lien a expiré' } as const;
   }
 
-  return { success: true, shopId: invite.shop_id, shopName: invite.shops?.name || '' } as const;
+  return { success: true } as const;
 }
 
 export async function completeInvite(code: string, userId: string, displayName: string, email: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.id !== userId) {
+    return { success: false, error: 'Non autorisé' } as const;
+  }
+
   const admin = createAdminClient();
 
   const { data: existingUser } = await admin

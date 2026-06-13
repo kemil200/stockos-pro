@@ -26,7 +26,7 @@ export default async function InvitePage({ params }: { params: Promise<{ code: s
           </div>
           <h1 className="text-2xl font-heading font-bold tracking-tight mb-2">Rejoindre une boutique</h1>
           <p className="text-zinc-500 mb-8">
-            Vous avez été invité à rejoindre <strong className="text-zinc-900">{result.shopName}</strong> sur StockOS Pro.
+            Vous avez été invité à rejoindre une boutique sur StockOS Pro.
           </p>
           <Link
             href={`/sign-up?invite=${code}`}

@@ -162,23 +162,13 @@ export async function validateInvoice(invoiceId: string) {
       .eq('invoice_id', invoiceId);
 
     const settings = await ensureInvoiceSettings(shop.id);
-
-    const calc = calculateInvoice(
-      (lines ?? []).map((l: any) => ({
-        quantity: Number(l.quantity),
-        unitPrice: Number(l.unit_price),
-        discountRate: Number(l.discount_rate),
-      })),
-      {
-        enableTax: settings.enableTax ?? false,
-        taxRate: settings.taxRate,
-        enableGlobalDiscount: settings.enableGlobalDiscount ?? false,
-        enableLineDiscount: settings.enableLineDiscount ?? false,
-        enableShipping: settings.enableShipping ?? false,
-        enableRounding: settings.enableRounding ?? false,
-        roundingPrecision: settings.roundingPrecision,
-      },
-    );
+    const storedGlobalDiscount = Number(invoiceData.global_discount);
+    const storedShippingFee = Number(invoiceData.shipping_fee);
+    const storedSubtotal = Number(invoiceData.subtotal);
+    const storedLineDiscountTotal = Number(invoiceData.line_discount_total);
+    const storedTaxAmount = Number(invoiceData.tax_amount);
+    const storedRoundingAdjustment = Number(invoiceData.rounding_adjustment);
+    const storedTotal = Number(invoiceData.total);
 
     const allLines = lines ?? [];
     const directProductIds = allLines.filter((l: any) => l.product_id && !l.pack_id).map((l: any) => l.product_id);
@@ -313,14 +303,14 @@ export async function validateInvoice(invoiceId: string) {
           status: 'VALIDATED',
           validatedAt: new Date(),
           validatedBy: user.id,
-          subtotal: String(calc.subtotal),
-          lineDiscountTotal: String(calc.lineDiscountTotal),
-          globalDiscount: String(calc.globalDiscount),
-          shippingFee: String(calc.shippingFee),
-          taxAmount: String(calc.taxAmount),
-          roundingAdjustment: String(calc.roundingAdjustment),
-          total: String(calc.total),
-          balanceDue: String(calc.total),
+          subtotal: String(storedSubtotal),
+          lineDiscountTotal: String(storedLineDiscountTotal),
+          globalDiscount: String(storedGlobalDiscount),
+          shippingFee: String(storedShippingFee),
+          taxAmount: String(storedTaxAmount),
+          roundingAdjustment: String(storedRoundingAdjustment),
+          total: String(storedTotal),
+          balanceDue: String(storedTotal),
         })
         .where(eq(invoices.id, invoiceId));
     });
@@ -332,7 +322,7 @@ export async function validateInvoice(invoiceId: string) {
         action: AuditAction.INVOICE_VALIDATED,
         entityType: 'invoice',
         entityId: invoiceId,
-        metadata: { total: String(calc.total) },
+        metadata: { total: String(storedTotal) },
       });
     } catch {
       // audit non-bloquant
@@ -362,6 +352,7 @@ export async function cancelInvoice(invoiceId: string, reason?: string) {
 
     if (!invoice) return { success: false, error: 'Facture introuvable' } as const;
     if (invoice.status === 'PAID') return { success: false, error: 'Une facture payée ne peut pas être annulée' } as const;
+    if (invoice.status === 'PARTIALLY_PAID') return { success: false, error: 'Une facture partiellement payée ne peut pas être annulée. Remboursez d\'abord les paiements.' } as const;
     if (invoice.status === 'CANCELLED') return { success: false, error: 'Facture déjà annulée' } as const;
 
     if (!reason || reason.trim().length === 0) {

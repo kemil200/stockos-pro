@@ -19,11 +19,11 @@ const body = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://stockos.site'),
   title: {
-    default: 'StockOS Pro — Gestion commerciale, facturation et stock pour PME en Afrique de l\'Ouest',
+    default: 'StockOS Pro — Gestion commerciale, facturation et stock PME',
     template: '%s | StockOS Pro',
   },
   description:
-    'Logiciel SaaS de gestion commerciale pour PME au Togo, Bénin, Côte d\'Ivoire, Sénégal, Guinée, Mali, Burkina, Niger. Facturation, gestion de stock, caisse enregistreuse, rapports. Accessible sans installation sur mobile (PWA). Multi-devises FCFA, EUR, USD.',
+    'Logiciel SaaS de gestion commerciale pour PME en Afrique de l\'Ouest. Facturation, stock, caisse enregistreuse et rapports. PWA sans installation. FCFA, EUR, USD.',
   keywords: [
     'logiciel gestion commerciale', 'facturation PME', 'gestion de stock',
     'caisse enregistreuse', 'ERP Afrique', 'SaaS PME', 'logiciel facturation',

@@ -9,6 +9,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/sign-in', priority: 0.5, freq: 'monthly' as const },
     { path: '/sign-up', priority: 0.8, freq: 'monthly' as const },
     { path: '/forgot-password', priority: 0.3, freq: 'monthly' as const },
+    { path: '/privacy', priority: 0.3, freq: 'yearly' as const },
+    { path: '/terms', priority: 0.3, freq: 'yearly' as const },
   ];
 
   return staticRoutes.map(({ path, priority, freq }) => ({

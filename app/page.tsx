@@ -219,16 +219,43 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* Testimonial */}
+        <section className="py-24 lg:py-28 px-6 bg-white">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-12">
+              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4 block">Témoignage</span>
+              <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-heading font-bold tracking-tight mb-4">
+                Ils font confiance à StockOS Pro
+              </h2>
+            </div>
+            <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-8 lg:p-10">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="size-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                  <span className="text-emerald-700 font-bold text-sm">AK</span>
+                </div>
+                <div>
+                  <p className="text-sm text-zinc-700 leading-relaxed italic">
+                    &ldquo;Depuis que j&apos;utilise StockOS Pro, je suis mes ventes et mon stock sur mon téléphone sans effort. Je peux créer une facture en 30 secondes. Mes clients sont impressionnés par les tickets thermiques. J&apos;ai réduit mes pertes de stock de 40% en 3 mois.&rdquo;
+                  </p>
+                  <p className="text-sm font-semibold text-zinc-900 mt-4">Amivi K.</p>
+                  <p className="text-xs text-zinc-500">Boutique de cosmétiques — Lomé, Togo</p>
+                  <p className="text-xs text-emerald-700 font-medium mt-1">+40% de précision de stock en 3 mois</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Use cases / Solutions par pays */}
         <section className="py-24 lg:py-28 px-6 bg-white">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
               <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4 block">Solutions par pays</span>
               <h2 className="text-[clamp(1.75rem,4vw,2.5rem)] font-heading font-bold tracking-tight mb-4">
-                Adapté à chaque marché ouest-africain
+                Régimes fiscaux et villes couverts
               </h2>
               <p className="text-zinc-500 max-w-2xl mx-auto">
-                StockOS Pro s&apos;adapte aux spécificités fiscales et commerciales de chaque pays.
+                9 pays, 20+ villes. StockOS Pro s&apos;adapte aux régimes fiscaux et réalités commerciales de chaque marché ouest-africain.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
@@ -251,6 +278,36 @@ export default async function Home() {
                   <p className="text-xs text-zinc-400 mb-2">Villes : {item.cities}</p>
                   <p className="text-xs text-zinc-500">Régime fiscal : {item.tax}</p>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="py-24 lg:py-28 px-6 bg-white">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-12">
+              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4 block">FAQ</span>
+              <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-heading font-bold tracking-tight mb-4">
+                Questions fréquentes
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {[
+                { q: 'Comment fonctionne l\'essai gratuit ?', a: 'Vous bénéficiez de 30 jours d\'essai gratuit avec accès à toutes les fonctionnalités. Aucune carte bancaire requise. À la fin de l\'essai, choisissez le plan qui vous convient.' },
+                { q: 'StockOS Pro fonctionne-t-il hors-ligne ?', a: 'Oui, StockOS Pro est une PWA qui continue de fonctionner même avec une connexion limitée. Vous pouvez enregistrer des ventes et l\'application synchronise automatiquement quand la connexion est rétablie.' },
+                { q: 'Quels pays sont supportés ?', a: 'Togo, Bénin, Côte d\'Ivoire, Sénégal, Guinée, Mali, Burkina Faso, Niger, Ghana et Nigeria. L\'interface est en français avec support multi-devises (FCFA, NGN, GHS, EUR, USD).' },
+                { q: 'Puis-je utiliser un ticket thermique ?', a: 'Oui, StockOS Pro génère des tickets thermiques compatibles avec la plupart des imprimantes 58mm. Les tickets incluent les informations fiscales adaptées à votre pays.' },
+                { q: 'Comment sont sécurisées mes données ?', a: 'Vos données sont chiffrées en transit (TLS) et au repos (AES-256), hébergées sur des serveurs AWS en Europe avec isolation stricte entre commerces via Row-Level Security.' },
+                { q: 'Y a-t-il une application mobile ?', a: 'StockOS Pro est une PWA : vous l\'installez en un clic depuis votre navigateur sur l\'écran d\'accueil de votre téléphone. Elle fonctionne comme une app native, sans passer par le Play Store ou l\'App Store.' },
+              ].map((faq) => (
+                <details key={faq.q} className="group border border-zinc-200 rounded-xl">
+                  <summary className="px-5 py-4 text-sm font-medium text-zinc-800 cursor-pointer hover:text-zinc-900 list-none flex items-center justify-between gap-2">
+                    {faq.q}
+                    <span className="text-zinc-400 group-open:rotate-45 transition-transform text-lg leading-none">+</span>
+                  </summary>
+                  <p className="px-5 pb-4 text-sm text-zinc-500 leading-relaxed">{faq.a}</p>
+                </details>
               ))}
             </div>
           </div>
@@ -284,7 +341,11 @@ export default async function Home() {
             </div>
             <span className="text-sm font-heading font-bold">StockOS Pro</span>
           </div>
-          <p className="text-xs text-zinc-400">© {new Date().getFullYear()} StockOS Pro. Tous droits réservés.</p>
+          <div className="flex items-center gap-6 text-xs text-zinc-400">
+            <Link href="/privacy" className="hover:text-zinc-700 transition-colors">Confidentialité</Link>
+            <Link href="/terms" className="hover:text-zinc-700 transition-colors">Conditions</Link>
+            <span>© {new Date().getFullYear()} StockOS Pro</span>
+          </div>
         </div>
       </footer>
     </div>

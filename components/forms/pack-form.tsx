@@ -134,7 +134,7 @@ export function PackForm({ products, pack }: Props) {
             <label className="text-sm font-medium">Prix de vente *</label>
             <input
               type="number"
-              step="1"
+              step="0.01"
               min="0"
               value={salePrice || ''}
               onChange={(e) => setSalePrice(Number(e.target.value))}
@@ -146,7 +146,7 @@ export function PackForm({ products, pack }: Props) {
               <label className="text-sm font-medium">Prix d&apos;achat total</label>
             <input
               type="number"
-              step="1"
+              step="0.01"
               min="0"
               value={purchasePrice || ''}
               onChange={(e) => setPurchasePrice(Number(e.target.value))}
@@ -204,8 +204,8 @@ export function PackForm({ products, pack }: Props) {
                 <label className="text-xs text-zinc-500">Quantité</label>
                 <input
                   type="number"
-                  step="1"
-                  min="1"
+                  step="0.001"
+                  min="0.001"
                   value={item.quantity}
                   onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                   className="w-20 text-center text-sm py-2 border rounded-xl focus:ring-2 focus:ring-zinc-900 outline-none"

@@ -19,11 +19,11 @@ export function SupplyForm({ products }: { products: Product[] }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [selectedId, setSelectedId] = useState('');
-  const [qty, setQty] = useState(1);
+  const [qty, setQty] = useState<number | string>(1);
   const [price, setPrice] = useState('');
 
   const selected = products.find((p) => p.id === selectedId);
-  const total = qty * (Number(price) || 0);
+  const total = Number(qty) * (Number(price) || 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,11 +80,14 @@ export function SupplyForm({ products }: { products: Product[] }) {
         <div>
           <label className="text-sm font-medium text-zinc-700 mb-1 block">Quantité reçue</label>
           <input
-            type="number"
-            step="1"
-            min="1"
+             type="number"
+            step="0.001"
+            min="0.001"
             value={qty}
-            onChange={(e) => setQty(Math.max(1, Number(e.target.value)))}
+            onChange={(e) => {
+              const v = e.target.value;
+              setQty(v === '' ? '' : Math.max(0.001, Number(v)));
+            }}
             className="w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
             required
           />
@@ -93,7 +96,7 @@ export function SupplyForm({ products }: { products: Product[] }) {
           <label className="text-sm font-medium text-zinc-700 mb-1 block">Prix d&apos;achat unitaire</label>
           <input
             type="number"
-            step="1"
+            step="0.01"
             min="0"
             value={price}
             onChange={(e) => setPrice(e.target.value)}

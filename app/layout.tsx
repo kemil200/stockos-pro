@@ -58,10 +58,10 @@ export const metadata: Metadata = {
     url: '/',
     images: [
       {
-        url: '/og-image.png',
+        url: '/og',
         width: 1200,
         height: 630,
-        alt: 'StockOS Pro — Interface de gestion commerciale pour PME en Afrique de l\'Ouest',
+        alt: 'StockOS Pro — Gestion commerciale pour PME en Afrique de l\'Ouest',
       },
     ],
   },
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     title: 'StockOS Pro — Gestion commerciale SaaS pour PME ouest-africaines',
     description:
       'Facturation, stock, caisse. Accessible sans installation. Conçu pour les commerces au Togo, Bénin, Côte d\'Ivoire, Sénégal.',
-    images: ['/og-image.png'],
+    images: ['/og'],
   },
   alternates: {
     canonical: '/',

@@ -1,0 +1,29 @@
+# StockOS Pro
+> Logiciel SaaS de gestion commerciale, facturation et stock pour PME en Afrique de l'Ouest.
+
+## À propos
+StockOS Pro est une application web progressive (PWA) qui permet aux petites et moyennes entreprises ouest-africaines de gérer leur facturation, leur stock, leur caisse enregistreuse et leurs rapports financiers depuis n'importe quel appareil connecté, sans installation. Interface en français, multi-devises (FCFA, EUR, USD, NGN, GHS).
+
+## Fonctionnalités principales
+- Facturation professionnelle avec tickets thermiques
+- Gestion de stock en temps réel avec alertes de rupture
+- Caisse enregistreuse intégrée (point de vente)
+- Rapports et analyses de performance
+- Multi-devises (FCFA, EUR, USD, NGN, GHS)
+- PWA — fonctionne hors-ligne et s'installe sur l'écran d'accueil
+
+## Pays disponibles
+Togo, Bénin, Côte d'Ivoire, Sénégal, Guinée, Mali, Burkina Faso, Niger, Ghana, Nigeria.
+
+## Tarifs
+- Essai gratuit de 30 jours
+- Abonnement annuel : 90 000 FCFA (7 500 FCFA/mois)
+
+## Pages
+- Accueil : /
+- Inscription : /sign-up
+- Connexion : /sign-in
+
+## Liens
+- Site web : https://stockos-pro.vercel.app
+- Sitemap : https://stockos-pro.vercel.app/sitemap.xml

@@ -219,6 +219,43 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* Use cases / Solutions par pays */}
+        <section className="py-24 lg:py-28 px-6 bg-white">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4 block">Solutions par pays</span>
+              <h2 className="text-[clamp(1.75rem,4vw,2.5rem)] font-heading font-bold tracking-tight mb-4">
+                Adapté à chaque marché ouest-africain
+              </h2>
+              <p className="text-zinc-500 max-w-2xl mx-auto">
+                StockOS Pro s&apos;adapte aux spécificités fiscales et commerciales de chaque pays.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+              {[
+                { country: 'Togo', flag: '🇹🇬', cities: 'Lomé, Sokodé, Kara', tax: 'TVA 18%, TP, patente' },
+                { country: 'Bénin', flag: '🇧🇯', cities: 'Cotonou, Porto-Novo, Parakou', tax: 'TVA 18%, TP, patente' },
+                { country: 'Côte d\'Ivoire', flag: '🇨🇮', cities: 'Abidjan, Bouaké, Yamoussoukro', tax: 'TVA 18%, BIC, patente' },
+                { country: 'Sénégal', flag: '🇸🇳', cities: 'Dakar, Thiès, Saint-Louis', tax: 'TVA 18%, contribution globale' },
+                { country: 'Guinée', flag: '🇬🇳', cities: 'Conakry, Nzérékoré, Kankan', tax: 'TVA 18%, patente' },
+                { country: 'Burkina Faso', flag: '🇧🇫', cities: 'Ouagadougou, Bobo-Dioulasso', tax: 'TVA 18%, patente, TOM' },
+                { country: 'Mali', flag: '🇲🇱', cities: 'Bamako, Sikasso, Ségou', tax: 'TVA 18%, patente, ISCP' },
+                { country: 'Niger', flag: '🇳🇪', cities: 'Niamey, Zinder, Maradi', tax: 'TVA 19%, patente' },
+                { country: 'Ghana', flag: '🇬🇭', cities: 'Accra, Kumasi, Tamale', tax: 'VAT 12.5%, NHIL, GETFund' },
+              ].map((item) => (
+                <div key={item.country} className="border border-zinc-200 rounded-xl p-5 hover:border-zinc-300 hover:shadow-sm transition-all">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">{item.flag}</span>
+                    <span className="font-semibold text-zinc-900">{item.country}</span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mb-2">Villes : {item.cities}</p>
+                  <p className="text-xs text-zinc-500">Régime fiscal : {item.tax}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* CTA */}
         <section className="py-24 lg:py-28 px-6 bg-zinc-900">
           <div className="max-w-3xl mx-auto text-center">

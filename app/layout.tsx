@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     template: '%s | StockOS Pro',
   },
   description:
-    'Logiciel SaaS de gestion commerciale pour PME en Afrique de l\'Ouest. Facturation, stock, caisse enregistreuse et rapports. PWA sans installation. FCFA, EUR, USD.',
+    'Logiciel SaaS gestion commerciale pour PME Afrique de l\'Ouest. Facturation, stock, caisse enregistreuse et rapports. PWA sans installation. FCFA, EUR, USD.',
   keywords: [
     'logiciel gestion commerciale', 'facturation PME', 'gestion de stock',
     'caisse enregistreuse', 'ERP Afrique', 'SaaS PME', 'logiciel facturation',

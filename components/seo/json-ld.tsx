@@ -137,6 +137,12 @@ export function JsonLd() {
       'Solution SaaS de gestion commerciale pour les PME et commerces en Afrique de l\'Ouest.',
     priceRange: '7500 FCFA/mois',
     currenciesAccepted: 'XOF, XAF, NGN, GHS, EUR, USD',
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Lomé',
+      addressCountry: 'TG',
+    },
+    telephone: '+228 92 29 48 58',
     areaServed: citiesServed.map((city) => ({
       '@type': 'City',
       name: city,

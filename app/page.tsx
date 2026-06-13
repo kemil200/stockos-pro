@@ -92,6 +92,7 @@ export default async function Home() {
               <h1 className="text-[clamp(2.25rem,6vw,4.5rem)] font-heading font-bold tracking-tight leading-[1.05] mb-6">
                 Gérez votre commerce
                 <br />
+                {' '}
                 <span className="text-zinc-400">en toute simplicité</span>
               </h1>
               <p className="text-base sm:text-lg text-zinc-500 max-w-2xl mx-auto leading-relaxed mb-10">

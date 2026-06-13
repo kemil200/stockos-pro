@@ -100,6 +100,9 @@ export default async function Home() {
                 <span className="block mt-3 text-sm text-zinc-400">
                   Accessible depuis votre téléphone, sans installation. Installez-le sur votre écran d&apos;accueil en un clic.
                 </span>
+                <span className="block mt-2 text-sm text-zinc-400">
+                  Disponible à Lomé, Abidjan, Dakar, Cotonou, Ouagadougou, Bamako, Niamey, Conakry, Accra, Lagos et partout en Afrique de l&apos;Ouest.
+                </span>
               </p>
               <div className="flex items-center justify-center gap-4 flex-wrap">
                 <Link
@@ -158,7 +161,7 @@ export default async function Home() {
                 Tout ce qu&apos;il vous faut
               </h2>
               <p className="text-zinc-500 max-w-2xl mx-auto text-base lg:text-lg">
-                Une suite complète d&apos;outils conçus pour les réalités des marchés africains.
+                Une suite complète d&apos;outils conçus pour les réalités des marchés ouest-africains&nbsp;: Togo, Bénin, Côte d&apos;Ivoire, Sénégal, Guinée, Mali, Burkina Faso, Niger, Ghana, Nigeria.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
@@ -192,7 +195,7 @@ export default async function Home() {
         {/* Testimonial / Stats */}
         <section className="py-24 lg:py-28 px-6">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12 mb-16">
               {[
                 { value: '10k+', label: 'Transactions traitées' },
                 { value: '500+', label: 'Commerces utilisateurs' },
@@ -203,6 +206,14 @@ export default async function Home() {
                   <div className="text-2xl lg:text-3xl font-bold font-heading tracking-tight text-zinc-900 mb-1">{s.value}</div>
                   <div className="text-xs text-zinc-500 font-medium">{s.label}</div>
                 </div>
+              ))}
+            </div>
+            <div className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-zinc-400">
+              <span className="font-medium text-zinc-500">Présent dans :</span>
+              {['Lomé', 'Abidjan', 'Dakar', 'Cotonou', 'Ouagadougou', 'Bamako', 'Niamey', 'Conakry', 'Accra', 'Lagos'].map((city) => (
+                <span key={city} className="px-2 py-0.5 rounded-full bg-zinc-100 border border-zinc-200">
+                  {city}
+                </span>
               ))}
             </div>
           </div>

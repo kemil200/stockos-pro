@@ -221,15 +221,15 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
                 <div className="flex items-center gap-1.5">
                   <input
                     type="number"
-                    step="0.001"
-                    min="0.001"
+                    step="any"
+                    min="0"
                     {...register(`lines.${index}.quantity`, { valueAsNumber: true, required: true, min: 0.001 })}
                     className="w-16 text-center text-sm py-2.5 border rounded-xl focus:ring-2 focus:ring-zinc-900 outline-none"
                   />
                   <span className="text-xs text-zinc-400">×</span>
                   <input
                     type="number"
-                    step="0.01"
+                    step="any"
                     {...register(`lines.${index}.unitPrice`, { valueAsNumber: true, required: true })}
                     className="w-24 text-center text-sm py-2.5 border rounded-xl focus:ring-2 focus:ring-zinc-900 outline-none"
                     placeholder="Prix"
@@ -242,7 +242,7 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
                     <span className="text-xs text-zinc-400">−</span>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       min="0"
                       max="100"
                       {...register(`lines.${index}.discountRate`, { valueAsNumber: true })}
@@ -286,7 +286,7 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
               <span className="text-xs text-zinc-500">{remiseLabel}</span>
               <input
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 max="100"
                 value={commercialRate || ''}
@@ -302,7 +302,7 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
               <span className="text-xs text-zinc-500">Livraison</span>
               <input
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 {...register('shippingFee', { valueAsNumber: true })}
                 className="w-20 text-center text-sm py-1 outline-none"

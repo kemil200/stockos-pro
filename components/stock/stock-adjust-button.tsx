@@ -81,7 +81,7 @@ export function StockAdjustButton({ productId, productName, currentQty }: Props)
                 <label className="block text-sm font-medium text-zinc-700 mb-1">Nouvelle quantité</label>
                 <input
                   type="number"
-                  step="0.001"
+                  step="any"
                   min="0"
                   value={qty}
                   onChange={(e) => setQty(Number(e.target.value))}

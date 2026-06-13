@@ -46,7 +46,7 @@ export function PaymentForm({ invoiceId, balance }: Props) {
         <label className="block text-sm font-medium text-zinc-700 mb-1">Montant</label>
         <input
           type="number"
-          step="0.01"
+          step="any"
           value={amount}
           onChange={(e) => setAmount(Number(e.target.value))}
           max={Number(balance)}

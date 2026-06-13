@@ -1,42 +1,80 @@
 'use client';
 
-import { createClient } from '@/lib/client';
-import { Store, ArrowRight, Eye, EyeOff } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Store, ArrowRight, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { validateResetToken, resetPassword } from '@/lib/actions/auth';
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col bg-zinc-50">
+        <header className="px-6 h-14 flex items-center border-b bg-white">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="size-7 rounded-lg bg-zinc-900 flex items-center justify-center shadow-sm">
+              <Store className="size-4 text-white" />
+            </div>
+            <span className="font-semibold text-sm tracking-tight">StockOS Pro</span>
+          </Link>
+        </header>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <p className="text-sm text-zinc-500">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
+  );
+}
+
+function ResetPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [valid, setValid] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  const validate = useCallback(async (t: string) => {
+    setChecking(true);
+    const result = await validateResetToken(t);
+    if (result.success) {
+      setValid(true);
+    } else {
+      setError(result.error || 'Lien invalide.');
+    }
+    setChecking(false);
+  }, []);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setReady(true);
-      }
-    });
-  }, []);
+    if (token) {
+      validate(token);
+    } else {
+      setError('Aucun token de réinitialisation fourni.');
+      setChecking(false);
+    }
+  }, [token, validate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token) return;
+
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
-    const { error: updateError } = await supabase.auth.updateUser({ password });
+    const result = await resetPassword(token, password);
 
-    if (updateError) {
-      setError(updateError.message);
+    if (!result.success) {
+      setError(result.error || 'Erreur lors de la réinitialisation.');
       setLoading(false);
       return;
     }
@@ -45,7 +83,7 @@ export default function ResetPasswordPage() {
     setLoading(false);
 
     setTimeout(() => {
-      router.push('/invoices');
+      router.push('/sign-in');
       router.refresh();
     }, 2000);
   };
@@ -67,14 +105,14 @@ export default function ResetPasswordPage() {
               <ArrowRight className="size-6 text-emerald-600" />
             </div>
             <h1 className="text-xl font-bold mb-2">Mot de passe modifié</h1>
-            <p className="text-sm text-zinc-500">Votre mot de passe a été changé avec succès. Redirection...</p>
+            <p className="text-sm text-zinc-500">Votre mot de passe a été changé avec succès. Redirection vers la connexion...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  if (!ready) {
+  if (checking) {
     return (
       <div className="min-h-screen flex flex-col bg-zinc-50">
         <header className="px-6 h-14 flex items-center border-b bg-white">
@@ -88,6 +126,31 @@ export default function ResetPasswordPage() {
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="w-full max-w-sm text-center">
             <p className="text-sm text-zinc-500">Vérification du lien de réinitialisation...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!valid || error) {
+    return (
+      <div className="min-h-screen flex flex-col bg-zinc-50">
+        <header className="px-6 h-14 flex items-center border-b bg-white">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="size-7 rounded-lg bg-zinc-900 flex items-center justify-center shadow-sm">
+              <Store className="size-4 text-white" />
+            </div>
+            <span className="font-semibold text-sm tracking-tight">StockOS Pro</span>
+          </Link>
+        </header>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-sm text-center">
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 mb-6">
+              <p className="text-sm text-red-700">{error || 'Lien invalide ou expiré.'}</p>
+            </div>
+            <Link href="/forgot-password" className="text-sm text-zinc-900 font-medium underline underline-offset-4 hover:text-zinc-700">
+              Demander un nouveau lien
+            </Link>
           </div>
         </div>
       </div>
@@ -140,6 +203,10 @@ export default function ResetPasswordPage() {
                   {loading ? 'Modification...' : 'Changer le mot de passe'}
                   {!loading && <ArrowRight className="size-4" />}
                 </Button>
+                <Link href="/sign-in" className="flex items-center justify-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
+                  <ArrowLeft className="size-3.5" />
+                  Retour à la connexion
+                </Link>
               </form>
             </CardContent>
           </Card>

@@ -17,7 +17,7 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://stockos-pro.vercel.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://stockos.site'),
   title: {
     default: 'StockOS Pro — Gestion commerciale, facturation et stock pour PME en Afrique de l\'Ouest',
     template: '%s | StockOS Pro',

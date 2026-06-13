@@ -25,5 +25,5 @@ Togo, Bénin, Côte d'Ivoire, Sénégal, Guinée, Mali, Burkina Faso, Niger, Gha
 - Connexion : /sign-in
 
 ## Liens
-- Site web : https://stockos-pro.vercel.app
-- Sitemap : https://stockos-pro.vercel.app/sitemap.xml
+- Site web : https://stockos.site
+- Sitemap : https://stockos.site/sitemap.xml

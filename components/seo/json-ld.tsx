@@ -1,5 +1,5 @@
 export function JsonLd() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://stockos-pro.vercel.app';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://stockos.site';
 
   const westAfricanCountries = [
     'TG', 'BJ', 'CI', 'SN', 'GN', 'ML', 'BF', 'NE', 'GH', 'NG',

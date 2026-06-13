@@ -11,7 +11,7 @@ export async function sendPasswordResetEmail(email: string, resetLink: string) {
   const resend = getResend();
 
   const { data, error } = await resend.emails.send({
-    from: 'StockOS Pro <noreply@stockos.pro>',
+    from: 'StockOS Pro <noreply@stockos.site>',
     to: email,
     subject: 'Réinitialisation de votre mot de passe',
     html: `

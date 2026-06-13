@@ -3,7 +3,7 @@ Allow: /
 Disallow: /api/
 Disallow: /superadmin/
 
-Sitemap: https://stockos-pro.vercel.app/sitemap.xml
+Sitemap: https://stockos.site/sitemap.xml
 
 # AI Crawlers
 User-agent: GPTBot

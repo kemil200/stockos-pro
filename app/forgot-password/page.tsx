@@ -48,9 +48,11 @@ export default function ForgotPasswordPage() {
               <ArrowRight className="size-6 text-emerald-600" />
             </div>
             <h1 className="text-xl font-bold mb-2">Email envoyé</h1>
-            <p className="text-sm text-zinc-500 mb-6">
-              Un lien de réinitialisation a été envoyé à <strong>{email}</strong>.
-              Vérifiez votre boîte de réception et cliquez sur le lien.
+            <p className="text-sm text-zinc-500 mb-2">
+              Si un compte existe avec l&apos;adresse <strong>{email}</strong>, vous recevrez un lien de réinitialisation.
+            </p>
+            <p className="text-xs text-zinc-400 mb-6">
+              Vérifiez votre boîte de réception et vos spams.
             </p>
             <Link href="/sign-in" className="text-sm text-zinc-900 font-medium underline underline-offset-4 hover:text-zinc-700">
               Retour à la connexion

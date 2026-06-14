@@ -12,7 +12,7 @@ function generateToken(): string {
 }
 
 function getResetLink(token: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://stockos.site';
   return `${baseUrl}/reset-password?token=${token}`;
 }
 
@@ -46,6 +46,7 @@ export async function requestPasswordReset(email: string) {
     const authUser = await findAuthUserByEmail(email);
 
     if (!authUser) {
+      console.log(`[auth] Aucun compte Supabase Auth trouvé pour : ${email}`);
       return { success: true };
     }
 
@@ -59,10 +60,13 @@ export async function requestPasswordReset(email: string) {
     });
 
     const resetLink = getResetLink(token);
+    console.log(`[auth] Envoi email reset à ${email}, lien : ${resetLink}`);
     await sendPasswordResetEmail(email, resetLink);
 
     return { success: true };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[auth] Erreur requestPasswordReset pour ${email}:`, message);
     return { success: false, error: 'Erreur lors de l\'envoi de l\'email' };
   }
 }

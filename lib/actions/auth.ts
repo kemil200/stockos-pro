@@ -53,21 +53,34 @@ export async function requestPasswordReset(email: string) {
     const token = generateToken();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    await db.insert(passwordResetTokens).values({
-      email,
-      token,
-      expiresAt,
-    });
+    try {
+      await db.insert(passwordResetTokens).values({
+        email,
+        token,
+        expiresAt,
+      });
+    } catch (dbError) {
+      const msg = dbError instanceof Error ? dbError.message : String(dbError);
+      console.error(`[auth] DB insert échoué pour ${email}:`, msg);
+      return { success: false, error: 'Erreur base de données. Réessayez.' };
+    }
 
     const resetLink = getResetLink(token);
     console.log(`[auth] Envoi email reset à ${email}, lien : ${resetLink}`);
-    await sendPasswordResetEmail(email, resetLink);
+
+    try {
+      await sendPasswordResetEmail(email, resetLink);
+    } catch (emailError) {
+      const msg = emailError instanceof Error ? emailError.message : String(emailError);
+      console.error(`[auth] Resend échoué pour ${email}:`, msg);
+      return { success: false, error: 'Impossible d\'envoyer l\'email. Vérifiez votre adresse ou réessayez plus tard.' };
+    }
 
     return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`[auth] Erreur requestPasswordReset pour ${email}:`, message);
-    return { success: false, error: 'Erreur lors de l\'envoi de l\'email' };
+    console.error(`[auth] Erreur globale pour ${email}:`, message);
+    return { success: false, error: message.includes('not configured') ? 'Service momentanément indisponible. Réessayez dans quelques minutes.' : 'Erreur lors de l\'envoi de l\'email' };
   }
 }
 

@@ -1,7 +1,12 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const URL = 'https://kbdmfbwouejuxjizkrzo.supabase.co';
-const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtiZG1mYndvdWVqdXhqaXprcnpvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDE2MzA5OSwiZXhwIjoyMDk1NzM5MDk5fQ.pY96OfS5F9UMHIA53rdk0usnZvtIr2ucRelEE7WBp6g';
+const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!URL || !KEY) {
+  console.error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
+  process.exit(1);
+}
 
 async function main() {
   const email = process.argv[2];

@@ -1,8 +1,13 @@
 const { Resend } = require('resend');
 const postgres = require('postgres');
 
-const DB_URL = 'postgresql://postgres.kbdmfbwouejuxjizkrzo:%3FaF_pZ7yhpKN6mK@aws-0-eu-west-1.pooler.supabase.com:5432/postgres';
+const DB_URL = process.env.SUPABASE_DB_URL;
 const RESEND_KEY = process.env.RESEND_API_KEY;
+
+if (!DB_URL || !RESEND_KEY) {
+  console.error('SUPABASE_DB_URL and RESEND_API_KEY are required');
+  process.exit(1);
+}
 
 async function main() {
   const sql = postgres(DB_URL, { ssl: 'require', max: 1, connection: { family: 4 } });

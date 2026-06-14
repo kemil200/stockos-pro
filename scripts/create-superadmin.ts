@@ -3,15 +3,15 @@ import ws from 'ws';
 
 const email = process.env.SUPERADMIN_EMAIL;
 const password = process.env.SUPERADMIN_PASSWORD;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!email || !password) {
-  console.error('SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD environment variables are required');
+if (!email || !password || !supabaseUrl || !serviceRoleKey) {
+  console.error('SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD, NEXT_PUBLIC_SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY are required');
   process.exit(1);
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+const supabase = createClient(supabaseUrl, serviceRoleKey,
   {
     auth: { persistSession: false },
     realtime: { transport: ws },

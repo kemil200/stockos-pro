@@ -16,12 +16,34 @@ function getResetLink(token: string): string {
   return `${baseUrl}/reset-password?token=${token}`;
 }
 
+async function findAuthUserByEmail(email: string): Promise<{ id: string } | null> {
+  const admin = createAdminClient();
+  let page = 0;
+  const perPage = 500;
+  let totalFetched = 0;
+
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({
+      page,
+      perPage,
+    });
+
+    if (error || !data?.users?.length) break;
+
+    const found = data.users.find((u: any) => u.email === email);
+    if (found) return { id: found.id };
+
+    totalFetched += data.users.length;
+    if (data.users.length < perPage || totalFetched >= data.total) break;
+    page++;
+  }
+
+  return null;
+}
+
 export async function requestPasswordReset(email: string) {
   try {
-    const admin = createAdminClient();
-
-    const { data: authUsers } = await admin.auth.admin.listUsers();
-    const authUser = authUsers.users.find((u: any) => u.email === email);
+    const authUser = await findAuthUserByEmail(email);
 
     if (!authUser) {
       return { success: true };
@@ -97,8 +119,7 @@ export async function resetPassword(token: string, newPassword: string) {
       return { success: false, error: 'Ce lien a déjà été utilisé.' };
     }
 
-    const { data: authUsers } = await admin.auth.admin.listUsers();
-    const authUser = authUsers.users.find((u: any) => u.email === resetToken.email);
+    const authUser = await findAuthUserByEmail(resetToken.email);
 
     if (!authUser) {
       return { success: false, error: 'Utilisateur introuvable.' };

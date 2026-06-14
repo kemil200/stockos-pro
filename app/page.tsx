@@ -85,32 +85,28 @@ export default async function Home() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_oklch(0.97_0_0)_0%,_transparent_50%)]" />
           <div className="max-w-7xl mx-auto relative">
             <div className="max-w-3xl mx-auto text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-xs font-medium text-zinc-600 mb-8 animate-in">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-700 mb-8 animate-in">
                 <Sparkles className="size-3" />
-                Pour les PME et commerces d&apos;Afrique de l&apos;Ouest
+                Déjà 500+ commerces en Afrique de l&apos;Ouest
               </div>
               <h1 className="text-[clamp(2.25rem,6vw,4.5rem)] font-heading font-bold tracking-tight leading-[1.05] mb-6">
-                Gérez votre commerce
+                Facturez, suivez votre stock
                 <br />
                 {' '}
-                <span className="text-zinc-400">en toute simplicité</span>
+                <span className="text-zinc-400">et encaissez sans stress</span>
               </h1>
-              <p className="text-base sm:text-lg text-zinc-500 max-w-2xl mx-auto leading-relaxed mb-10">
-                Facturation, gestion de stock, caisse enregistreuse et suivi des paiements.
-                Une solution complète conçue pour les réalités des PME ouest-africaines.
-                <span className="block mt-3 text-sm text-zinc-400">
-                  Accessible depuis votre téléphone, sans installation. Installez-le sur votre écran d&apos;accueil en un clic.
-                </span>
-                <span className="block mt-2 text-sm text-zinc-400">
-                  Disponible à Lomé, Abidjan, Dakar, Cotonou, Ouagadougou, Bamako, Niamey, Conakry, Accra, Lagos et partout en Afrique de l&apos;Ouest.
-                </span>
+              <p className="text-base sm:text-lg text-zinc-500 max-w-2xl mx-auto leading-relaxed mb-4">
+                Une facture en 30 secondes. Votre stock surveillé automatiquement. Votre caisse dans la poche.
+              </p>
+              <p className="text-sm text-zinc-400 max-w-xl mx-auto mb-10">
+                Créez des factures, suivez vos ventes et imprimez des tickets thermiques depuis votre téléphone, sans rien installer. Conçu pour les commerces au Togo, Bénin, Côte d&apos;Ivoire, Sénégal et partout en Afrique de l&apos;Ouest.
               </p>
               <div className="flex items-center justify-center gap-4 flex-wrap">
                 <Link
                   href="/sign-up"
                   className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-medium bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl active:scale-[0.98]"
                 >
-                  Commencer maintenant
+                  Démarrer mon essai gratuit
                   <ArrowRight className="size-4" />
                 </Link>
                 <Link
@@ -121,6 +117,7 @@ export default async function Home() {
                   <ChevronRight className="size-4" />
                 </Link>
               </div>
+              <p className="text-xs text-zinc-400 mt-4">30 jours gratuits • Sans carte bancaire • Annulez quand vous voulez</p>
             </div>
 
             {/* Mockup dashboard */}
@@ -167,13 +164,13 @@ export default async function Home() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
               {[
-                { icon: Receipt, title: 'Facturation', desc: 'Créez et envoyez des factures professionnelles en quelques secondes.', accent: 'bg-zinc-900 text-white' },
-                { icon: Package, title: 'Gestion de stock', desc: 'Suivez vos stocks en temps réel et recevez des alertes de rupture.', accent: 'bg-zinc-800 text-white' },
-                { icon: Wallet, title: 'Caisse enregistreuse', desc: 'Point de vente intégré pour les ventes au comptoir.', accent: 'bg-zinc-700 text-white' },
-                { icon: TrendingUp, title: 'Rapports', desc: 'Analysez vos performances avec des tableaux de bord clairs.', accent: 'bg-zinc-900 text-white' },
-                { icon: Shield, title: 'Sécurisé', desc: 'Vos données sont chiffrées et sauvegardées automatiquement.', accent: 'bg-zinc-800 text-white' },
-                { icon: Globe, title: 'Multi-devises', desc: 'Travaillez en FCFA, EUR, USD et autres devises.', accent: 'bg-zinc-700 text-white' },
-                { icon: Smartphone, title: 'Mode hors-ligne / PWA', desc: 'Aucune installation nécessaire. Ajoutez-le à votre téléphone en un geste et utilisez-le comme une app native.', accent: 'bg-zinc-800 text-white' },
+                { icon: Receipt, title: 'Factures en 30 secondes', desc: 'Créez une facture pro en moins de 30 secondes. Envoyez-la par WhatsApp ou imprimez un ticket thermique.', accent: 'bg-zinc-900 text-white' },
+                { icon: Package, title: 'Stock jamais à zéro', desc: 'Recevez une alerte avant la rupture. Sachez exactement combien de produits il vous reste, en temps réel.', accent: 'bg-zinc-800 text-white' },
+                { icon: Wallet, title: 'Caisse toujours prête', desc: 'Enregistrez une vente en 1 clic. Suivez vos entrées et sorties d\'argent sans cahier, sans erreur.', accent: 'bg-zinc-700 text-white' },
+                { icon: TrendingUp, title: 'Voyez ce qui rapporte', desc: 'Quels produits se vendent le mieux ? Quelle est votre marge ? Des rapports clairs, sans Excel.', accent: 'bg-zinc-900 text-white' },
+                { icon: Shield, title: 'Zéro risque de perdre vos données', desc: 'Tout est sauvegardé automatiquement et chiffré. Même si vous perdez votre téléphone, vos données sont là.', accent: 'bg-zinc-800 text-white' },
+                { icon: Globe, title: 'Vendez en FCFA, EUR, USD', desc: 'Changez de devise en un clic. Vos clients vous paient dans leur monnaie, vous voyez tout en FCFA.', accent: 'bg-zinc-700 text-white' },
+                { icon: Smartphone, title: 'Fonctionne même sans réseau', desc: 'Pas besoin d\'installer quoi que ce soit. Ouvrez votre navigateur, ajoutez à l\'écran d\'accueil, et travaillez.', accent: 'bg-zinc-800 text-white' },
               ].map((f) => (
                 <div
                   key={f.title}
@@ -186,6 +183,40 @@ export default async function Home() {
                   <p className="text-sm text-zinc-500 leading-relaxed">{f.desc}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section className="py-24 lg:py-28 px-6 bg-zinc-50/80">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-16">
+              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4 block">Comment ça marche</span>
+              <h2 className="text-[clamp(1.5rem,3.5vw,2.5rem)] font-heading font-bold tracking-tight mb-4">
+                Commencez en 3 minutes
+              </h2>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-8">
+              {[
+                { step: '1', icon: Store, title: 'Créez votre compte', desc: '30 secondes. Juste votre nom et votre email. Pas de carte bancaire demandée.' },
+                { step: '2', icon: Package, title: 'Ajoutez vos produits', desc: 'Scannez ou saisissez vos produits. Définissez vos prix de vente. C\'est tout.' },
+                { step: '3', icon: Receipt, title: 'Facturez et encaissez', desc: 'Créez une facture en 30 secondes. Imprimez un ticket. Votre stock se met à jour automatiquement.' },
+              ].map((item) => (
+                <div key={item.step} className="text-center">
+                  <div className="size-14 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-5">
+                    <item.icon className="size-6 text-white" />
+                  </div>
+                  <div className="text-xs font-bold text-zinc-400 mb-2">Étape {item.step}</div>
+                  <h3 className="font-heading font-semibold text-base mb-2">{item.title}</h3>
+                  <p className="text-sm text-zinc-500 leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+            <div className="text-center mt-12">
+              <Link href="/sign-up" className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-medium bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl active:scale-[0.98]">
+                Démarrer mon essai gratuit
+                <ArrowRight className="size-4" />
+              </Link>
             </div>
           </div>
         </section>
@@ -321,15 +352,16 @@ export default async function Home() {
               Prêt à développer votre commerce ?
             </h2>
             <p className="text-zinc-400 text-base lg:text-lg mb-8 max-w-xl mx-auto">
-              Rejoignez des centaines de commerçants qui font confiance à StockOS Pro.
+              Rejoignez 500+ commerçants qui gèrent leur activité sans stress avec StockOS Pro.
             </p>
             <Link
               href="/sign-up"
               className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-medium bg-white text-zinc-900 rounded-xl hover:bg-zinc-100 transition-all shadow-lg hover:shadow-xl active:scale-[0.98]"
             >
-              Commencer gratuitement
+              Démarrer mon essai gratuit
               <ArrowRight className="size-4" />
             </Link>
+            <p className="text-zinc-500 text-sm mt-4">30 jours gratuits. Sans engagement.</p>
           </div>
         </section>
       </main>

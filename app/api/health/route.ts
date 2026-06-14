@@ -16,7 +16,7 @@ export async function GET() {
   checks.SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ? 'present' : 'missing';
   checks.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ? 'present' : 'missing';
   checks.RESEND_API_KEY = process.env.RESEND_API_KEY ? 'present' : 'missing';
-  checks.NEXT_PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'not set';
+  checks.NEXT_PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL ? 'set' : 'missing';
 
   try {
     const admin = createAdminClient();
@@ -34,7 +34,7 @@ export async function GET() {
     checks.drizzle_db = `error: ${e.message}`;
   }
 
-  const allOk = Object.values(checks).every(v => v === 'ok' || v === 'present');
+  const allOk = Object.values(checks).every(v => v === 'ok' || v === 'present' || v === 'set');
 
   return NextResponse.json(
     { status: allOk ? 'healthy' : 'degraded', checks },

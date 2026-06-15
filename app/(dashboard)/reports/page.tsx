@@ -81,18 +81,11 @@ export default async function ReportsPage({
   const isAdvanced = planConfig.reports === 'advanced';
   const admin = createAdminClient();
 
-  const [invoicesResult, expensesResult, topProductsData, dailyRevenueData, cogsData] = await Promise.all([
+  const [invoicesResult, topProductsData, dailyRevenueData, cogsData] = await Promise.all([
     admin.from('invoices')
       .select('id, invoice_number, client_name, total, amount_paid, balance_due, status, paid_at, created_at')
       .eq('shop_id', shop.id)
       .in('status', ['PAID', 'PARTIALLY_PAID', 'VALIDATED'])
-      .gte('created_at', from)
-      .lte('created_at', to)
-      .order('created_at', { ascending: false }),
-    admin.from('cash_movements')
-      .select('amount, description, created_at')
-      .eq('shop_id', shop.id)
-      .eq('movement_type', 'EXPENSE')
       .gte('created_at', from)
       .lte('created_at', to)
       .order('created_at', { ascending: false }),
@@ -102,14 +95,11 @@ export default async function ReportsPage({
   ]);
 
   const invoices = invoicesResult.data ?? [];
-  const expenses = expensesResult.data ?? [];
 
   const totalCA = invoices.reduce((s, inv) => s + Number(inv.total), 0);
   const totalPaid = invoices.reduce((s, inv) => s + Number(inv.amount_paid), 0);
-  const totalExpenses = expenses.reduce((s, m) => s + Math.abs(Number(m.amount)), 0);
   const totalCOGS = cogsData.totalCost;
-  const totalCosts = totalCOGS + totalExpenses;
-  const profit = totalCA - totalCosts;
+  const profit = totalCA - totalCOGS;
   const marginPct = totalCA > 0 ? ((profit / totalCA) * 100) : 0;
   const nbSales = invoices.length;
   const avgBasket = nbSales > 0 ? totalCA / nbSales : 0;
@@ -178,7 +168,7 @@ export default async function ReportsPage({
 
       <p className="text-sm text-zinc-500 print-hide mt-1">{label}</p>
 
-      {/* Key numbers — simple, no jargon */}
+      {/* Key numbers */}
       <div className="grid grid-cols-3 gap-3 print:grid-cols-3">
         <div className="bg-white rounded-xl border p-4 text-center">
           <p className="text-xs text-zinc-400 mb-1">Chiffre d&apos;affaires</p>
@@ -186,12 +176,12 @@ export default async function ReportsPage({
           <p className="text-[10px] text-zinc-400 mt-1">{nbSales} vente{nbSales > 1 ? 's' : ''}</p>
         </div>
         <div className="bg-white rounded-xl border p-4 text-center">
-          <p className="text-xs text-zinc-400 mb-1">Dépenses</p>
-          <p className="text-xl font-bold font-heading tracking-tight text-red-500 tabular-nums">{formatCurrency(totalCosts)}</p>
-          <p className="text-[10px] text-zinc-400 mt-1">Marchandises + charges</p>
+          <p className="text-xs text-zinc-400 mb-1">Coût marchandises</p>
+          <p className="text-xl font-bold font-heading tracking-tight text-red-500 tabular-nums">{formatCurrency(totalCOGS)}</p>
+          <p className="text-[10px] text-zinc-400 mt-1">Coût des produits vendus</p>
         </div>
         <div className="bg-white rounded-xl border p-4 text-center">
-          <p className="text-xs text-zinc-400 mb-1">Ce qu&apos;il vous reste</p>
+          <p className="text-xs text-zinc-400 mb-1">Bénéfice brut</p>
           <p className={`text-xl font-bold font-heading tracking-tight tabular-nums ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
             {formatCurrency(profit)}
           </p>
@@ -204,9 +194,7 @@ export default async function ReportsPage({
       {/* Story section — plain language */}
       <StorySection
         revenue={totalCA}
-        costs={totalCosts}
         cogs={totalCOGS}
-        expenses={totalExpenses}
         profit={profit}
         marginPct={marginPct}
         nbSales={nbSales}

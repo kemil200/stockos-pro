@@ -4,22 +4,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://stockos.site';
   const now = new Date();
 
-  const staticRoutes = [
-    { path: '', priority: 1, freq: 'weekly' as const },
-    { path: '/sign-in', priority: 0.5, freq: 'monthly' as const },
-    { path: '/sign-up', priority: 0.8, freq: 'monthly' as const },
-    { path: '/forgot-password', priority: 0.3, freq: 'monthly' as const },
-    { path: '/privacy', priority: 0.3, freq: 'yearly' as const },
-    { path: '/terms', priority: 0.3, freq: 'yearly' as const },
-  ];
-
-  return staticRoutes.map(({ path, priority, freq }) => ({
-    url: `${baseUrl}${path}`,
-    lastModified: now,
-    changeFrequency: freq,
-    priority,
-    alternates: {
-      languages: { fr: `${baseUrl}${path}` },
+  return [
+    {
+      url: baseUrl,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 1,
+      alternates: { languages: { fr: baseUrl } },
     },
-  }));
+    {
+      url: `${baseUrl}/privacy`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+  ];
 }

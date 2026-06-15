@@ -4,7 +4,7 @@ export const metadata: Metadata = {
   title: 'Créer un compte — StockOS Pro',
   description:
     'Créez votre compte StockOS Pro et commencez à gérer votre commerce. Facturation, gestion de stock, caisse enregistreuse pour PME en Afrique de l\'Ouest. Essai gratuit de 30 jours.',
-  robots: { index: true, follow: false },
+  robots: { index: false, follow: false },
   openGraph: {
     title: 'Créer un compte — StockOS Pro | Logiciel gestion commerciale Afrique',
     description:

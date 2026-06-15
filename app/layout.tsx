@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { Toaster } from '@/components/ui/sonner';
+import { CookieBanner } from '@/components/cookie-banner';
 import './globals.css';
 
 const heading = Plus_Jakarta_Sans({
@@ -18,6 +19,10 @@ const body = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://stockos.site'),
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
   title: {
     default: 'StockOS Pro — Gestion commerciale, facturation et stock PME',
     template: '%s | StockOS Pro',
@@ -109,6 +114,7 @@ export default function RootLayout({
         {children}
         <Analytics />
         <Toaster position="top-right" richColors />
+        <CookieBanner />
       </body>
     </html>
   );

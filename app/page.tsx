@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/server';
 import { JsonLd } from '@/components/seo/json-ld';
 import { PricingSection } from '@/components/pricing-section';
+import { TestimonialsSection } from '@/components/landing/testimonials-section';
 import {
   Store, FileText, Package, Wallet, TrendingUp,
   Shield, Receipt, CreditCard, ArrowRight, Check,
@@ -224,7 +225,7 @@ export default async function Home() {
         {/* Tarifs */}
         <PricingSection />
 
-        {/* Testimonial / Stats */}
+        {/* Stats */}
         <section className="py-24 lg:py-28 px-6">
           <div className="max-w-4xl mx-auto text-center">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12 mb-16">
@@ -232,7 +233,7 @@ export default async function Home() {
                 { value: '10k+', label: 'Transactions traitées' },
                 { value: '500+', label: 'Commerces utilisateurs' },
                 { value: '99.9%', label: 'Temps de disponibilité' },
-                { value: '5★', label: 'Satisfaction client' },
+                { value: '4.9★', label: 'Satisfaction client' },
               ].map((s) => (
                 <div key={s.label}>
                   <div className="text-2xl lg:text-3xl font-bold font-heading tracking-tight text-zinc-900 mb-1">{s.value}</div>
@@ -251,34 +252,9 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Testimonial */}
-        <section className="py-24 lg:py-28 px-6 bg-white">
-          <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-12">
-              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4 block">Témoignage</span>
-              <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-heading font-bold tracking-tight mb-4">
-                Ils font confiance à StockOS Pro
-              </h2>
-            </div>
-            <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-8 lg:p-10">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="size-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                  <span className="text-emerald-700 font-bold text-sm">AK</span>
-                </div>
-                <div>
-                  <p className="text-sm text-zinc-700 leading-relaxed italic">
-                    &ldquo;Depuis que j&apos;utilise StockOS Pro, je suis mes ventes et mon stock sur mon téléphone sans effort. Je peux créer une facture en 30 secondes. Mes clients sont impressionnés par les tickets thermiques. J&apos;ai réduit mes pertes de stock de 40% en 3 mois.&rdquo;
-                  </p>
-                  <p className="text-sm font-semibold text-zinc-900 mt-4">Amivi K.</p>
-                  <p className="text-xs text-zinc-500">Boutique de cosmétiques — Lomé, Togo</p>
-                  <p className="text-xs text-emerald-700 font-medium mt-1">+40% de précision de stock en 3 mois</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <TestimonialsSection />
 
-        {/* Use cases / Solutions par pays */}
+        {/* Solutions par pays */}
         <section className="py-24 lg:py-28 px-6 bg-white">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">

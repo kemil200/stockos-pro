@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateShopSettings, updateInvoiceSettings } from '@/lib/actions/settings';
 
@@ -10,25 +11,35 @@ interface Props {
 
 export function SettingsForm({ shopSettings, invoiceSettings }: Props) {
   const router = useRouter();
+  const [shopError, setShopError] = useState<string | null>(null);
+  const [shopSaving, setShopSaving] = useState(false);
+  const [invError, setInvError] = useState<string | null>(null);
+  const [invSaving, setInvSaving] = useState(false);
 
   const handleShopSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setShopError(null);
+    setShopSaving(true);
     const result = await updateShopSettings(new FormData(e.currentTarget));
     if (result.success) {
       router.refresh();
     } else {
-      alert(result.error);
+      setShopError(result.error || 'Erreur');
     }
+    setShopSaving(false);
   };
 
   const handleInvoiceSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setInvError(null);
+    setInvSaving(true);
     const result = await updateInvoiceSettings(new FormData(e.currentTarget));
     if (result.success) {
       router.refresh();
     } else {
-      alert(result.error);
+      setInvError(result.error || 'Erreur');
     }
+    setInvSaving(false);
   };
 
   return (
@@ -38,8 +49,8 @@ export function SettingsForm({ shopSettings, invoiceSettings }: Props) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Nom légal</label>
-            <input name="legalName" defaultValue={shopSettings?.legal_name} className="w-full px-3 py-2 border rounded-lg text-sm" />
+            <label className="block text-sm font-medium text-zinc-700 mb-1">Nom légal *</label>
+            <input name="legalName" required defaultValue={shopSettings?.legal_name} className="w-full px-3 py-2 border rounded-lg text-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">Nom commercial</label>
@@ -54,12 +65,12 @@ export function SettingsForm({ shopSettings, invoiceSettings }: Props) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Email</label>
-            <input name="email" type="email" defaultValue={shopSettings?.email} className="w-full px-3 py-2 border rounded-lg text-sm" />
+            <label className="block text-sm font-medium text-zinc-700 mb-1">Email *</label>
+            <input name="email" type="email" required defaultValue={shopSettings?.email} className="w-full px-3 py-2 border rounded-lg text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Téléphone</label>
-            <input name="phone" defaultValue={shopSettings?.phone} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="+228XXXXXXXX" />
+            <label className="block text-sm font-medium text-zinc-700 mb-1">Téléphone *</label>
+            <input name="phone" required defaultValue={shopSettings?.phone} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="+228XXXXXXXX" />
           </div>
         </div>
 
@@ -88,15 +99,22 @@ export function SettingsForm({ shopSettings, invoiceSettings }: Props) {
         </div>
 
         <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">N° IFU / Tax ID</label>
+          <input name="taxId" defaultValue={shopSettings?.tax_id || ''} className="w-full px-3 py-2 border rounded-lg text-sm" />
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">Mentions légales (pied de facture)</label>
           <textarea name="invoiceFooter" defaultValue={shopSettings?.invoice_footer || ''} className="w-full px-3 py-2 border rounded-lg text-sm" rows={2} />
         </div>
 
-        <div className="flex gap-3">
-          <button type="submit" className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800">
-            Enregistrer
-          </button>
-        </div>
+        {shopError && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{shopError}</div>
+        )}
+
+        <button type="submit" disabled={shopSaving} className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 disabled:opacity-50">
+          {shopSaving ? 'Enregistrement...' : 'Enregistrer'}
+        </button>
       </form>
 
       <form onSubmit={handleInvoiceSubmit} className="bg-white rounded-xl border p-6 space-y-4">
@@ -112,19 +130,19 @@ export function SettingsForm({ shopSettings, invoiceSettings }: Props) {
           </label>
 
           <div className="ml-6 space-y-2">
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Taux TVA (%)</label>
+            <label className="block text-sm font-medium text-zinc-700">Taux TVA (%)</label>
             <input name="taxRate" type="number" step="0.1" min="0" max="100"
               defaultValue={invoiceSettings?.tax_rate ? Number(invoiceSettings.tax_rate) * 100 : 19}
               className="w-32 px-3 py-2 border rounded-lg text-sm"
             />
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Libellé TVA</label>
-            <input name="taxLabel" defaultValue={invoiceSettings?.tax_label || 'TVA'} className="w-32 px-3 py-2 border rounded-lg text-sm" />
+            <label className="block text-sm font-medium text-zinc-700">Libellé TVA</label>
+            <input name="taxLabel" defaultValue={invoiceSettings?.tax_label || 'TVA'} className="w-40 px-3 py-2 border rounded-lg text-sm" />
           </div>
 
           <label className="flex items-center justify-between p-3 border rounded-lg">
             <div>
               <p className="font-medium text-sm">Rabais par ligne</p>
-              <p className="text-xs text-zinc-500">Permet d'ajouter un % de réduction sur chaque article</p>
+              <p className="text-xs text-zinc-500">Réduction en % sur chaque article</p>
             </div>
             <input name="enableLineDiscount" type="checkbox" defaultChecked={invoiceSettings?.enable_line_discount} className="w-4 h-4" />
           </label>
@@ -145,10 +163,15 @@ export function SettingsForm({ shopSettings, invoiceSettings }: Props) {
             <input name="enableShipping" type="checkbox" defaultChecked={invoiceSettings?.enable_shipping} className="w-4 h-4" />
           </label>
 
+          <div className="ml-6">
+            <label className="block text-sm font-medium text-zinc-700">Libellé livraison</label>
+            <input name="shippingLabel" defaultValue={invoiceSettings?.shipping_label || 'Livraison'} className="w-40 px-3 py-2 border rounded-lg text-sm" />
+          </div>
+
           <label className="flex items-center justify-between p-3 border rounded-lg">
             <div>
               <p className="font-medium text-sm">Arrondi automatique</p>
-              <p className="text-xs text-zinc-500">Arrondir le total à la dizaine/centaine</p>
+              <p className="text-xs text-zinc-500">Arrondir le total au franc supérieur</p>
             </div>
             <input name="enableRounding" type="checkbox" defaultChecked={invoiceSettings?.enable_rounding} className="w-4 h-4" />
           </label>
@@ -159,8 +182,12 @@ export function SettingsForm({ shopSettings, invoiceSettings }: Props) {
           </div>
         </div>
 
-        <button type="submit" className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800">
-          Enregistrer
+        {invError && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{invError}</div>
+        )}
+
+        <button type="submit" disabled={invSaving} className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 disabled:opacity-50">
+          {invSaving ? 'Enregistrement...' : 'Enregistrer'}
         </button>
       </form>
     </>

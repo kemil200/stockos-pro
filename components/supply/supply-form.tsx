@@ -85,8 +85,7 @@ export function SupplyForm({ products }: { products: Product[] }) {
             min="0"
             value={qty}
             onChange={(e) => {
-              const v = e.target.value;
-              setQty(v === '' ? '' : Math.max(0.001, Number(v)));
+              setQty(e.target.value === '' ? '' : Number(e.target.value));
             }}
             className="w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
             required

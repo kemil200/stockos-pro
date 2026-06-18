@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
 import { getPlanConfig } from '@/lib/plans';
 import { notFound } from 'next/navigation';
-import { Landmark } from 'lucide-react';
+import { Landmark, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { PrintButton } from './print-button';
 
 const MOVEMENT_LABELS: Record<string, string> = {
   PAYMENT_IN: 'Paiement reçu',
@@ -21,6 +22,7 @@ const MOVEMENT_LABELS: Record<string, string> = {
   WITHDRAWAL: 'Retrait',
   DEPOSIT: 'Dépôt',
   OPENING_BALANCE: 'Solde initial',
+  EXPENSE: 'Dépense',
 };
 
 export default async function CashRegisterPage() {
@@ -37,27 +39,45 @@ export default async function CashRegisterPage() {
 
   const total = (balanceResult.data ?? []).reduce((sum, m) => sum + Number(m.amount), 0);
   const movements = movementsResult.data ?? [];
+  const today = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 print-area">
+      {/* Print-only header */}
+      <div className="hidden print:block mb-6 pb-4 border-b">
+        <h1 className="text-xl font-bold">{shop.name} — État de caisse</h1>
+        <p className="text-xs text-zinc-500 mt-1">Généré le {today} — StockOS Pro</p>
+      </div>
+
+      <div className="flex items-center justify-between print-hide">
         <div>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold tracking-tight">Caisse</h1>
           <p className="text-sm text-zinc-500 mt-1.5">Journal des flux financiers</p>
         </div>
-        <Card className="w-auto">
-          <CardContent className="flex items-center gap-3 py-3">
-            <div className="size-9 rounded-lg bg-zinc-100 flex items-center justify-center">
-              <Landmark className="size-5 text-zinc-600" />
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Solde actuel</p>
-              <p className={`text-lg font-bold tabular-nums ${total >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                {formatCurrency(total)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center gap-3">
+          <Card className="w-auto">
+            <CardContent className="flex items-center gap-3 py-3">
+              <div className="size-9 rounded-lg bg-zinc-100 flex items-center justify-center">
+                <Landmark className="size-5 text-zinc-600" />
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Solde actuel</p>
+                <p className={`text-lg font-bold tabular-nums ${total >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                  {formatCurrency(total)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <PrintButton />
+        </div>
+      </div>
+
+      {/* Print-only balance */}
+      <div className="hidden print:flex items-center justify-between mb-4 px-1">
+        <span className="text-sm font-medium">Solde :</span>
+        <span className={`text-lg font-bold tabular-nums ${total >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+          {formatCurrency(total)}
+        </span>
       </div>
 
       <Card>
@@ -107,6 +127,11 @@ export default async function CashRegisterPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Print footer */}
+      <div className="hidden print:block mt-6 pt-4 border-t text-xs text-zinc-400 text-center">
+        {shop.name} — StockOS Pro
+      </div>
     </div>
   );
 }

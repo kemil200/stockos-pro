@@ -4,7 +4,8 @@ import { Store, ArrowLeft } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Conditions d\'utilisation',
-  description: 'Conditions générales d\'utilisation de StockOS Pro — logiciel SaaS de gestion commerciale pour PME en Afrique de l\'Ouest.',
+  description: 'Conditions générales d\'utilisation de StockOS Pro — logiciel SaaS de gestion commerciale pour PME.',
+  robots: { index: false, follow: false },
 };
 
 export default function TermsPage() {

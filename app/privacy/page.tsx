@@ -4,7 +4,8 @@ import { Store, ArrowLeft } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Politique de confidentialité',
-  description: 'Politique de confidentialité de StockOS Pro — protection des données des commerces en Afrique de l\'Ouest.',
+  description: 'Politique de confidentialité de StockOS Pro — protection des données des commerces.',
+  robots: { index: false, follow: false },
 };
 
 export default function PrivacyPage() {

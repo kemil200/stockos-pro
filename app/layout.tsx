@@ -24,11 +24,11 @@ export const metadata: Metadata = {
     apple: '/favicon.svg',
   },
   title: {
-    default: 'StockOS Pro — Gestion commerciale, facturation et stock PME',
+    default: 'StockOS Pro — Logiciel gestion commerciale Togo, Lomé | Facturation, stock, caisse',
     template: '%s | StockOS Pro',
   },
   description:
-    'Logiciel SaaS gestion commerciale pour PME Afrique de l\'Ouest. Facturation, stock, caisse enregistreuse et rapports. PWA sans installation. FCFA, EUR, USD.',
+    'N°1 de la gestion commerciale au Togo. Logiciel SaaS pour PME à Lomé et au Togo. Facturation, stock, caisse, rapports. Essai gratuit 30 jours. PWA sans installation.',
   keywords: [
     'logiciel gestion commerciale', 'facturation PME', 'gestion de stock',
     'caisse enregistreuse', 'ERP Afrique', 'SaaS PME', 'logiciel facturation',
@@ -57,24 +57,24 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'fr_FR',
     siteName: 'StockOS Pro',
-    title: 'StockOS Pro — Gestion commerciale, facturation et stock pour PME en Afrique de l\'Ouest',
+    title: 'StockOS Pro — Logiciel gestion commerciale Togo | Facturation, stock, caisse PME',
     description:
-      'Solution SaaS complète pour les PME ouest-africaines. Facturez, gérez votre stock et votre caisse depuis n\'importe quel appareil, sans installation. Disponible au Togo, Bénin, Côte d\'Ivoire, Sénégal et plus.',
+      'N°1 au Togo. Solution SaaS pour PME à Lomé : facturez, gérez votre stock et votre caisse depuis votre téléphone. Essai gratuit 30 jours, sans installation.',
     url: '/',
     images: [
       {
         url: '/og',
         width: 1200,
         height: 630,
-        alt: 'StockOS Pro — Gestion commerciale pour PME en Afrique de l\'Ouest',
+        alt: 'StockOS Pro — Logiciel de gestion commerciale pour PME au Togo et en Afrique de l\'Ouest',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'StockOS Pro — Gestion commerciale SaaS pour PME ouest-africaines',
+    title: 'StockOS Pro — Gestion commerciale SaaS au Togo',
     description:
-      'Facturation, stock, caisse. Accessible sans installation. Conçu pour les commerces au Togo, Bénin, Côte d\'Ivoire, Sénégal.',
+      'Facturation, stock, caisse pour PME à Lomé et au Togo. Sans installation. FCFA. Essai gratuit 30 jours.',
     images: ['/og'],
   },
   alternates: {

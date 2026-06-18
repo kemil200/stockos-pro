@@ -88,7 +88,7 @@ export default async function Home() {
             <div className="max-w-3xl mx-auto text-center">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-700 mb-8 animate-in">
                 <Sparkles className="size-3" />
-                Déjà 500+ commerces en Afrique de l&apos;Ouest
+                N°1 de la gestion commerciale au Togo — Déjà 500+ commerces
               </div>
               <h1 className="text-[clamp(2.25rem,6vw,4.5rem)] font-heading font-bold tracking-tight leading-[1.05] mb-6">
                 Facturez, suivez votre stock
@@ -100,7 +100,7 @@ export default async function Home() {
                 Une facture en 30 secondes. Votre stock surveillé automatiquement. Votre caisse dans la poche.
               </p>
               <p className="text-sm text-zinc-400 max-w-xl mx-auto mb-10">
-                Créez des factures, suivez vos ventes et imprimez des tickets thermiques depuis votre téléphone, sans rien installer. Conçu pour les commerces au Togo, Bénin, Côte d&apos;Ivoire, Sénégal et partout en Afrique de l&apos;Ouest.
+                Créez des factures, suivez vos ventes et imprimez des tickets thermiques depuis votre téléphone, sans rien installer. Disponible à <strong className="text-zinc-600">Lomé</strong> et dans tout le <strong className="text-zinc-600">Togo</strong> — ainsi qu&apos;au Bénin, en Côte d&apos;Ivoire, au Sénégal et dans 10 pays d&apos;Afrique de l&apos;Ouest.
               </p>
               <div className="flex items-center justify-center gap-4 flex-wrap">
                 <Link

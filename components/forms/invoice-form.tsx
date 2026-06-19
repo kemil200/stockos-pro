@@ -4,7 +4,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { Trash2, Plus, Layers } from 'lucide-react';
-import { createInvoice } from '@/lib/actions/invoices';
+import { createInvoice, updateInvoice } from '@/lib/actions/invoices';
 import { getStockLevel } from '@/lib/actions/products';
 import { InvoicePreview } from '@/components/invoices/invoice-preview';
 import { formatCurrency } from '@/lib/utils/currency';
@@ -41,22 +41,35 @@ interface Props {
   products: Product[];
   packs?: Pack[];
   settings: any;
+  invoice?: {
+    id: string;
+    clientName: string;
+    clientPhone?: string;
+    lines: FormLine[];
+    globalDiscount?: number;
+    shippingFee?: number;
+  };
 }
 
-export function InvoiceForm({ products, packs = [], settings }: Props) {
+export function InvoiceForm({ products, packs = [], settings, invoice }: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [showDiscount, setShowDiscount] = useState(false);
+  const [showDiscount, setShowDiscount] = useState(invoice ? (invoice.lines.some(l => (l.discountRate ?? 0) > 0)) : false);
   const [stockLevels, setStockLevels] = useState<Record<string, number>>({});
+
+  const editMode = !!invoice;
 
   const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<InvoiceFormData>({
     defaultValues: {
-      clientName: '',
-      clientPhone: '',
-      lines: [{ description: '', quantity: 1, unitPrice: 0 }],
-      shippingFee: 0,
+      clientName: invoice?.clientName || '',
+      clientPhone: invoice?.clientPhone || '',
+      lines: invoice?.lines.length ? invoice.lines.map(l => ({
+        ...l,
+        discountRate: l.discountRate ? l.discountRate * 100 : undefined,
+      })) : [{ description: '', quantity: 1, unitPrice: 0 }],
+      shippingFee: invoice?.shippingFee || 0,
     },
   });
 
@@ -65,7 +78,7 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
   const shippingFee = watch('shippingFee');
 
   const remiseLabel = settings?.commercial_discount_name || settings?.enable_commercial_discount ? settings?.commercial_discount_name : 'Remise';
-  const [commercialRate, setCommercialRate] = useState(0);
+  const [commercialRate, setCommercialRate] = useState(invoice?.globalDiscount ? invoice.globalDiscount / (invoice.lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0)) * 100 || 0 : 0);
 
   const onSubmit = useCallback(async (data: InvoiceFormData) => {
     setSubmitting(true);
@@ -84,21 +97,27 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
       if (commercialDecimal > 0) fd.append('globalDiscountRate', String(commercialDecimal));
       if (data.shippingFee && data.shippingFee > 0) fd.append('shippingFee', String(data.shippingFee));
 
-      const result = await createInvoice(fd);
+      const result = editMode
+        ? await updateInvoice(invoice!.id, fd)
+        : await createInvoice(fd);
 
       if (!result.success) {
         setSubmitError(result.error);
         return;
       }
 
-      router.replace(`/invoices/${result.invoice.id}`);
+      if (editMode) {
+        router.replace(`/invoices/${invoice!.id}`);
+      } else {
+        router.replace(`/invoices/${(result as any).invoice.id}`);
+      }
       router.refresh();
     } catch {
       setSubmitError('Erreur réseau, veuillez réessayer');
     } finally {
       setSubmitting(false);
     }
-  }, [router, commercialRate]);
+  }, [router, commercialRate, editMode, invoice]);
 
   const handleFormError = () => {
     const el = formRef.current?.querySelector('[aria-invalid="true"], .t-input');
@@ -355,7 +374,7 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
             disabled={submitting}
             className="px-8 py-3 bg-zinc-900 text-white rounded-xl text-sm font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-all shadow-sm"
           >
-            {submitting ? 'Création...' : 'Créer la facture'}
+            {submitting ? 'Création...' : (editMode ? 'Enregistrer les modifications' : 'Créer la facture')}
           </button>
         </div>
 
@@ -366,7 +385,7 @@ export function InvoiceForm({ products, packs = [], settings }: Props) {
             disabled={submitting}
             className="w-full py-3.5 bg-zinc-900 text-white rounded-2xl text-base font-semibold hover:bg-zinc-800 disabled:opacity-50 transition-all shadow-sm active:scale-[0.98]"
           >
-            {submitting ? 'Création de la facture...' : 'Créer la facture'}
+            {submitting ? 'Création de la facture...' : (editMode ? 'Enregistrer les modifications' : 'Créer la facture')}
           </button>
           <button
             type="button"

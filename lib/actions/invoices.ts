@@ -500,6 +500,122 @@ export async function cancelInvoice(invoiceId: string, reason?: string) {
   }
 }
 
+export async function updateInvoice(invoiceId: string, formData: FormData) {
+  try {
+    const { shop, user } = await getCurrentShop();
+    await assertWritable(shop.id);
+
+    const admin = createAdminClient();
+    const { data: existing } = await admin
+      .from('invoices')
+      .select('*')
+      .eq('id', invoiceId)
+      .eq('shop_id', shop.id)
+      .single();
+
+    if (!existing) return { success: false, error: 'Facture introuvable' } as const;
+    if (existing.status !== 'DRAFT') return { success: false, error: 'Seules les factures en brouillon peuvent être modifiées' } as const;
+
+    const linesJson = formData.get('lines') as string;
+    if (linesJson.length > 100000) {
+      return { success: false, error: 'Trop de lignes' } as const;
+    }
+
+    const rawData = {
+      clientName: formData.get('clientName') as string,
+      clientPhone: (formData.get('clientPhone') as string) || undefined,
+      lines: JSON.parse(linesJson) as z.infer<typeof InvoiceLineSchema>[],
+      globalDiscountRate: formData.has('globalDiscountRate') ? Number(formData.get('globalDiscountRate')) : undefined,
+      shippingFee: formData.has('shippingFee') ? Number(formData.get('shippingFee')) : undefined,
+    };
+
+    let parsed: z.infer<typeof CreateInvoiceSchema>;
+    try {
+      parsed = CreateInvoiceSchema.parse(rawData);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const messages = err.issues.map((e) => e.message).join(', ');
+        return { success: false, error: messages } as const;
+      }
+      throw err;
+    }
+
+    const settings = await ensureInvoiceSettings(shop.id);
+    const calc = calculateInvoice(
+      parsed.lines,
+      {
+        enableTax: settings.enableTax ?? false,
+        taxRate: settings.taxRate,
+        enableGlobalDiscount: settings.enableGlobalDiscount ?? false,
+        enableLineDiscount: settings.enableLineDiscount ?? false,
+        enableShipping: settings.enableShipping ?? false,
+        enableRounding: settings.enableRounding ?? false,
+        roundingPrecision: settings.roundingPrecision,
+      },
+      parsed.globalDiscountRate ?? 0,
+      parsed.shippingFee ?? 0,
+    );
+
+    await db.transaction(async (tx) => {
+      await tx.delete(invoiceLines).where(eq(invoiceLines.invoiceId, invoiceId));
+
+      const linesData = parsed.lines.map((line: z.infer<typeof InvoiceLineSchema>, i: number) => {
+        const lineSubtotal = line.quantity * line.unitPrice;
+        const discountAmount = line.discountRate ? lineSubtotal * line.discountRate : 0;
+        return {
+          invoiceId,
+          productId: line.productId || null,
+          packId: line.packId || null,
+          description: line.description,
+          quantity: String(line.quantity),
+          unitPrice: String(line.unitPrice),
+          discountRate: String(line.discountRate || 0),
+          discountAmount: String(discountAmount),
+          lineTotal: String(lineSubtotal - discountAmount),
+          sortOrder: String(i),
+        };
+      });
+
+      await tx.insert(invoiceLines).values(linesData);
+
+      await tx
+        .update(invoices)
+        .set({
+          clientName: parsed.clientName,
+          clientPhone: parsed.clientPhone || null,
+          subtotal: String(calc.subtotal),
+          lineDiscountTotal: String(calc.lineDiscountTotal),
+          globalDiscount: String(calc.globalDiscount),
+          shippingFee: String(calc.shippingFee),
+          taxAmount: String(calc.taxAmount),
+          roundingAdjustment: String(calc.roundingAdjustment),
+          total: String(calc.total),
+          balanceDue: String(calc.total),
+          updatedAt: new Date(),
+        })
+        .where(eq(invoices.id, invoiceId));
+    });
+
+    try {
+      await auditLog({
+        shopId: shop.id,
+        userId: user.id,
+        action: AuditAction.INVOICE_UPDATED,
+        entityType: 'invoice',
+        entityId: invoiceId,
+        metadata: { number: existing.invoice_number, total: calc.total, client: parsed.clientName },
+      });
+    } catch { /* non-bloquant */ }
+
+    revalidatePath('/invoices');
+    revalidatePath(`/invoices/${invoiceId}`);
+    return { success: true } as const;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erreur inattendue';
+    return { success: false, error: message } as const;
+  }
+}
+
 export async function validateInvoiceAction(invoiceId: string) {
   const result = await validateInvoice(invoiceId);
   if (!result.success) throw new Error(result.error);

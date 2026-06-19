@@ -115,14 +115,22 @@ export default async function InvoiceDetailPage({
             invoiceId={id}
           />
           {invoice.status === 'DRAFT' && (
-            <form action={validateInvoiceAction.bind(null, id)}>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-sm font-medium hover:bg-zinc-800 transition-all shadow-sm"
+            <>
+              <Link
+                href={`/invoices/${id}/edit`}
+                className="px-4 py-2 border border-zinc-200 text-zinc-700 rounded-xl text-sm font-medium hover:bg-zinc-50 transition-all inline-flex items-center gap-1.5"
               >
-                Valider
-              </button>
-            </form>
+                Modifier
+              </Link>
+              <form action={validateInvoiceAction.bind(null, id)}>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-sm font-medium hover:bg-zinc-800 transition-all shadow-sm"
+                >
+                  Valider
+                </button>
+              </form>
+            </>
           )}
           {invoice.status === 'DRAFT' && (
             <CancelInvoiceButton invoiceId={id} />

@@ -2,14 +2,8 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Connexion — StockOS Pro',
-  description:
-    'Connectez-vous à votre espace StockOS Pro. Gérez votre facturation, stock et caisse enregistreuse pour votre commerce au Togo, Bénin, Côte d\'Ivoire, Sénégal et Afrique de l\'Ouest.',
   robots: { index: false, follow: false },
-  openGraph: {
-    title: 'Connexion — StockOS Pro | Gestion commerciale Afrique de l\'Ouest',
-    description:
-      'Accédez à votre tableau de bord StockOS Pro. Facturation, stock, caisse — tout en un.',
-  },
+  alternates: { canonical: '/' },
 };
 
 export default function SignInLayout({ children }: { children: React.ReactNode }) {

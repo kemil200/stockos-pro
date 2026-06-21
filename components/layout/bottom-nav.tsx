@@ -7,6 +7,7 @@ import {
   Package,
   Wallet,
   ShoppingCart,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRef, useCallback } from 'react';
@@ -50,7 +51,7 @@ const NAV_ITEMS = [
   { href: '/invoices', label: 'Factures', icon: FileText },
   { href: '/supply', label: 'Achats', icon: ShoppingCart },
   { href: '/products', label: 'Produits', icon: Package },
-  { href: '/cash-register', label: 'Caisse', icon: Wallet },
+  { href: '/mode-simple', label: 'Vente', icon: Zap },
 ];
 
 export function BottomNav({ plan, role }: { plan?: string | null; role?: string }) {
@@ -60,7 +61,6 @@ export function BottomNav({ plan, role }: { plan?: string | null; role?: string 
   const isEmployee = role === 'EMPLOYEE';
 
   const visibleItems = NAV_ITEMS.filter((item) => {
-    if (item.href === '/cash-register' && plan === 'STARTER') return false;
     if (isEmployee && item.href === '/supply') return false;
     if (isEmployee && item.href === '/products') return false;
     return true;

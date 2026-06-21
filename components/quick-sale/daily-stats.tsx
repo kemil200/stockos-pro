@@ -1,8 +1,5 @@
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
-import { db } from '@/lib/db';
-import { invoices, invoiceLines, products } from '@/lib/db/schema';
-import { eq, and, sql, gte } from 'drizzle-orm';
 import { formatCurrency } from '@/lib/utils/currency';
 import { TrendingUp, CircleDollarSign } from 'lucide-react';
 

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { createClient, createAdminClient } from '@/lib/server';
 import { Sidebar } from '@/components/layout/sidebar';
 import { CahierSidebar } from '@/components/layout/cahier-sidebar';
@@ -6,7 +7,6 @@ import { Navbar } from '@/components/layout/navbar';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { CahierBottomNav } from '@/components/layout/cahier-bottom-nav';
 import { EyeOff } from 'lucide-react';
-import { getUserMode } from '@/lib/actions/user-preferences';
 
 export default async function DashboardLayout({
   children,
@@ -51,7 +51,9 @@ export default async function DashboardLayout({
 
   const plan = sub?.plan || 'TRIAL';
 
-  const userMode = await getUserMode();
+  const cookieStore = await cookies();
+  const cookieMode = cookieStore.get('stockos-mode')?.value;
+  const userMode: 'simple' | 'complete' = (cookieMode === 'simple' || cookieMode === 'complete') ? cookieMode : 'complete';
 
   return (
     <div className="flex h-dvh overflow-hidden">

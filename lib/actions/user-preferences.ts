@@ -7,10 +7,6 @@ import { userPreferences } from '@/lib/db/schema';
 import { createClient } from '@/lib/server';
 
 export async function getUserMode(): Promise<'simple' | 'complete'> {
-  const cookieStore = await cookies();
-  const cookieMode = cookieStore.get('stockos-mode')?.value;
-  if (cookieMode === 'simple' || cookieMode === 'complete') return cookieMode;
-
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -22,11 +18,7 @@ export async function getUserMode(): Promise<'simple' | 'complete'> {
       .where(eq(userPreferences.userId, user.id))
       .limit(1);
 
-    const mode = (pref?.mode as 'simple' | 'complete') || 'complete';
-    if (mode) {
-      cookieStore.set('stockos-mode', mode, { path: '/', maxAge: 31536000, sameSite: 'lax' });
-    }
-    return mode;
+    return (pref?.mode as 'simple' | 'complete') || 'complete';
   } catch {
     return 'complete';
   }
@@ -45,6 +37,9 @@ export async function setUserMode(mode: 'simple' | 'complete') {
         target: userPreferences.userId,
         set: { mode, updatedAt: new Date() },
       });
+
+    const cookieStore = await cookies();
+    cookieStore.set('stockos-mode', mode, { path: '/', maxAge: 31536000, sameSite: 'lax' });
 
     return { success: true };
   } catch (err) {

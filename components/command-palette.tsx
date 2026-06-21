@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Command } from 'cmdk';
 import {
-  Search, FileText, Package, Layers, Warehouse, Receipt, Wallet, Settings,
-  ShoppingCart, Users, BarChart3, ArrowRight, Tag, Hash,
+  Search, FileText, Package, Layers, Warehouse, Receipt, Settings,
+  ShoppingCart, Users, BarChart3, ArrowRight, Tag, Hash, Zap,
 } from 'lucide-react';
 import { searchAll } from '@/lib/actions/search';
 
@@ -35,7 +35,7 @@ const PAGES = [
   { label: 'Packs', href: '/products/packs', icon: Layers },
   { label: 'Stock', href: '/stock', icon: Warehouse },
   { label: 'Paiements', href: '/payments', icon: Receipt },
-  { label: 'Caisse', href: '/cash-register', icon: Wallet },
+  { label: 'Vente rapide', href: '/mode-simple', icon: Zap },
   { label: 'Rapports', href: '/reports', icon: BarChart3 },
   { label: 'Paramètres', href: '/settings', icon: Settings },
 ];

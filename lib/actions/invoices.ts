@@ -9,7 +9,7 @@ import { invoices, invoiceLines, stockItems, stockMovements, packs, packItems, p
 import { calculateInvoice } from '@/lib/services/invoice-calculator';
 import { allocateInvoiceNumber, ensureInvoiceSettings } from '@/lib/services/invoice-numbering';
 import { revalidatePath } from 'next/cache';
-import { CreateInvoiceSchema, InvoiceLineSchema, QuickInvoiceSchema, CashJournalSchema } from '@/lib/validations/invoice';
+import { CreateInvoiceSchema, InvoiceLineSchema, CashJournalSchema } from '@/lib/validations/invoice';
 import { auditLog, AuditAction } from '@/lib/audit';
 import { assertWritable } from '@/lib/readonly';
 import { assertPlanLimit } from '@/lib/plans';
@@ -251,7 +251,6 @@ export async function createCashEntry(formData: FormData) {
     });
 
     revalidatePath('/mode-simple');
-    revalidatePath('/mode-simple/historique');
     revalidatePath('/invoices');
 
     return { success: true, invoiceId: result.id } as const;

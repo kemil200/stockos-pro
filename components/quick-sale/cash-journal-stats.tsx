@@ -1,6 +1,7 @@
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { formatCurrency } from '@/lib/utils/currency';
+import { cn } from '@/lib/utils';
 import { TrendingUp, ShoppingBag, CircleDollarSign } from 'lucide-react';
 
 export async function CashJournalStats() {
@@ -79,8 +80,4 @@ export async function CashJournalStats() {
       </div>
     </div>
   );
-}
-
-function cn(...classes: (string | undefined | false | null)[]) {
-  return classes.filter(Boolean).join(' ');
 }

@@ -14,7 +14,7 @@ export async function CashJournalList() {
 
   const { data: entries } = await admin
     .from('invoices')
-    .select('id, invoice_number, validated_at, client_name')
+    .select('id, invoice_number, validated_at')
     .eq('shop_id', shop.id)
     .eq('status', 'VALIDATED')
     .eq('client_name', '')

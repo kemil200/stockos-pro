@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { createClient, createAdminClient } from '@/lib/server';
 import { Sidebar } from '@/components/layout/sidebar';
-import { CahierSidebar } from '@/components/layout/cahier-sidebar';
 import { Navbar } from '@/components/layout/navbar';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { CahierBottomNav } from '@/components/layout/cahier-bottom-nav';
@@ -61,12 +60,6 @@ export default async function DashboardLayout({
       <div className="hidden lg:flex">
         <Sidebar plan={plan} role={userRole} />
       </div>
-      {/* Mobile Cahier: mini sidebar */}
-      {userMode === 'simple' && (
-        <div className="lg:hidden">
-          <CahierSidebar />
-        </div>
-      )}
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar plan={plan} role={userRole} userMode={userMode} />
         {(readOnly || expired) && (

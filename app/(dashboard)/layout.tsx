@@ -76,7 +76,7 @@ export default async function DashboardLayout({
           </div>
         )}
         <main className="flex-1 overflow-y-auto bg-zinc-50/80 pb-20 lg:pb-0">
-          <div className={userMode === 'simple' ? 'px-4 py-4' : 'px-4 py-6 sm:px-6 lg:px-8 xl:px-10'}>
+          <div className={userMode === 'simple' ? 'px-4 py-4 animate-in fade-in slide-in-from-bottom-2 duration-300' : 'px-4 py-6 sm:px-6 lg:px-8 xl:px-10'}>
             <div className="mx-auto" style={{ maxWidth: userMode === 'simple' ? '40rem' : '78rem' }}>
               {children}
             </div>

@@ -1,11 +1,16 @@
 'use server';
 
 import { eq } from 'drizzle-orm';
+import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { userPreferences } from '@/lib/db/schema';
 import { createClient } from '@/lib/server';
 
 export async function getUserMode(): Promise<'simple' | 'complete'> {
+  const cookieStore = await cookies();
+  const cookieMode = cookieStore.get('stockos-mode')?.value;
+  if (cookieMode === 'simple' || cookieMode === 'complete') return cookieMode;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -17,7 +22,11 @@ export async function getUserMode(): Promise<'simple' | 'complete'> {
       .where(eq(userPreferences.userId, user.id))
       .limit(1);
 
-    return (pref?.mode as 'simple' | 'complete') || 'complete';
+    const mode = (pref?.mode as 'simple' | 'complete') || 'complete';
+    if (mode) {
+      cookieStore.set('stockos-mode', mode, { path: '/', maxAge: 31536000, sameSite: 'lax' });
+    }
+    return mode;
   } catch {
     return 'complete';
   }

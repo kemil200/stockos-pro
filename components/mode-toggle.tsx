@@ -9,6 +9,7 @@ export function ModeToggle({ currentMode }: { currentMode: 'simple' | 'complete'
 
   const switchMode = async (mode: 'simple' | 'complete') => {
     if (mode === currentMode) return;
+    document.cookie = `stockos-mode=${mode};path=/;max-age=31536000;SameSite=Lax`;
     await setUserMode(mode);
     router.push(mode === 'simple' ? '/mode-simple' : '/invoices');
   };

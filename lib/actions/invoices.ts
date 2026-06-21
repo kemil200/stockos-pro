@@ -5,11 +5,11 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { db } from '@/lib/db';
-import { invoices, invoiceLines, stockItems, stockMovements, packs, packItems } from '@/lib/db/schema';
+import { invoices, invoiceLines, stockItems, stockMovements, packs, packItems, products } from '@/lib/db/schema';
 import { calculateInvoice } from '@/lib/services/invoice-calculator';
 import { allocateInvoiceNumber, ensureInvoiceSettings } from '@/lib/services/invoice-numbering';
 import { revalidatePath } from 'next/cache';
-import { CreateInvoiceSchema, InvoiceLineSchema } from '@/lib/validations/invoice';
+import { CreateInvoiceSchema, InvoiceLineSchema, QuickInvoiceSchema } from '@/lib/validations/invoice';
 import { auditLog, AuditAction } from '@/lib/audit';
 import { assertWritable } from '@/lib/readonly';
 import { assertPlanLimit } from '@/lib/plans';
@@ -134,6 +134,166 @@ export async function createInvoice(formData: FormData) {
 
     revalidatePath('/invoices');
     return { success: true, invoice, invoiceNumber: number } as const;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erreur inattendue';
+    return { success: false, error: message } as const;
+  }
+}
+
+export async function createQuickInvoice(formData: FormData) {
+  try {
+    const { shop, user } = await getCurrentShop();
+    await assertWritable(shop.id);
+    await assertPlanLimit(shop.id, 'maxInvoicesPerMonth');
+
+    const linesJson = formData.get('lines') as string;
+    if (linesJson.length > 100000) {
+      return { success: false, error: 'Trop de lignes' } as const;
+    }
+
+    const rawData = {
+      clientName: (formData.get('clientName') as string) || 'Client',
+      lines: JSON.parse(linesJson),
+      globalDiscountRate: formData.has('globalDiscountRate') ? Number(formData.get('globalDiscountRate')) : undefined,
+    };
+
+    let parsed: z.infer<typeof QuickInvoiceSchema>;
+    try {
+      parsed = QuickInvoiceSchema.parse(rawData);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const messages = err.issues.map((e) => e.message).join(', ');
+        return { success: false, error: messages } as const;
+      }
+      throw err;
+    }
+
+    const settings = await ensureInvoiceSettings(shop.id);
+
+    const admin = createAdminClient();
+    const { data: shopSettingsRows } = await admin
+      .from('shop_settings')
+      .select('currency')
+      .eq('shop_id', shop.id)
+      .limit(1);
+
+    const shopCurrency = shopSettingsRows?.[0]?.currency || 'XOF';
+
+    const calc = calculateInvoice(
+      parsed.lines.map((l) => ({
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+        discountRate: 0,
+      })),
+      {
+        enableTax: settings.enableTax ?? false,
+        taxRate: settings.taxRate,
+        enableGlobalDiscount: settings.enableGlobalDiscount ?? false,
+        enableLineDiscount: false,
+        enableShipping: false,
+        enableRounding: settings.enableRounding ?? false,
+        roundingPrecision: settings.roundingPrecision,
+      },
+      parsed.globalDiscountRate ?? 0,
+      0,
+    );
+
+    const result = await db.transaction(async (tx) => {
+      const resolvedLines = await Promise.all(
+        parsed.lines.map(async (line) => {
+          if (line.productId) return line;
+
+          const [existing] = await tx
+            .select({ id: products.id })
+            .from(products)
+            .where(and(eq(products.shopId, shop.id), eq(products.name, line.description)))
+            .limit(1);
+
+          if (existing) return { ...line, productId: existing.id };
+
+          const [newProduct] = await tx
+            .insert(products)
+            .values({
+              shopId: shop.id,
+              name: line.description,
+              unitPrice: String(line.unitPrice),
+              unitType: 'UNITY',
+            })
+            .returning({ id: products.id });
+
+          await tx.insert(stockItems).values({
+            shopId: shop.id,
+            productId: newProduct.id,
+            quantity: '0',
+            minThreshold: '0',
+          });
+
+          return { ...line, productId: newProduct.id };
+        })
+      );
+
+      const invoiceNumber = await allocateInvoiceNumber(tx, shop.id);
+
+      const [created] = await tx
+        .insert(invoices)
+        .values({
+          shopId: shop.id,
+          invoiceNumber,
+          clientName: parsed.clientName || 'Client',
+          clientPhone: null,
+          status: 'VALIDATED',
+          currency: shopCurrency,
+          subtotal: String(calc.subtotal),
+          lineDiscountTotal: String(calc.lineDiscountTotal),
+          globalDiscount: String(calc.globalDiscount),
+          shippingFee: String(calc.shippingFee),
+          taxAmount: String(calc.taxAmount),
+          roundingAdjustment: String(calc.roundingAdjustment),
+          total: String(calc.total),
+          amountPaid: '0',
+          balanceDue: String(calc.total),
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          validatedAt: new Date(),
+          validatedBy: user.id,
+          createdBy: user.id,
+        })
+        .returning();
+
+      const linesData = resolvedLines.map((line, i: number) => ({
+        invoiceId: created.id,
+        productId: line.productId || null,
+        packId: null,
+        description: line.description,
+        quantity: String(line.quantity),
+        unitPrice: String(line.unitPrice),
+        discountRate: '0',
+        discountAmount: '0',
+        lineTotal: String(line.quantity * line.unitPrice),
+        sortOrder: String(i),
+      }));
+
+      await tx.insert(invoiceLines).values(linesData);
+
+      return created;
+    });
+
+    try {
+      await auditLog({
+        shopId: shop.id,
+        userId: user.id,
+        action: AuditAction.INVOICE_CREATED,
+        entityType: 'invoice',
+        entityId: result.id,
+        metadata: { mode: 'quick', total: calc.total, client: parsed.clientName },
+      });
+    } catch {
+      // audit non-bloquant
+    }
+
+    revalidatePath('/mode-simple');
+    revalidatePath('/invoices');
+
+    return { success: true, invoiceId: result.id } as const;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erreur inattendue';
     return { success: false, error: message } as const;

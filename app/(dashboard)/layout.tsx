@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/server';
 import { Sidebar } from '@/components/layout/sidebar';
+import { CahierSidebar } from '@/components/layout/cahier-sidebar';
 import { Navbar } from '@/components/layout/navbar';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { EyeOff } from 'lucide-react';
@@ -53,7 +54,9 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-dvh overflow-hidden">
-      {userMode !== 'simple' && (
+      {userMode === 'simple' ? (
+        <CahierSidebar />
+      ) : (
         <Sidebar plan={plan} role={userRole} />
       )}
       <div className="flex-1 flex flex-col min-w-0">

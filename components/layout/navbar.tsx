@@ -39,7 +39,7 @@ export function Navbar({ plan, role, userMode }: { plan?: string | null; role?: 
   return (
     <header className="h-14 lg:h-16 border-b border-zinc-200/50 bg-white/80 backdrop-blur-xl flex items-center justify-between px-4 lg:px-6 sticky top-0 z-40">
       <div className="flex items-center gap-2">
-        <MobileSidebar plan={plan} role={role} />
+        {userMode !== 'simple' && <MobileSidebar plan={plan} role={role} />}
         {user?.role === 'SUPERADMIN' && (
           <Link
             href="/superadmin"

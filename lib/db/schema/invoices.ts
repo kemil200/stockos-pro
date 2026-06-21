@@ -68,6 +68,7 @@ export const invoiceLines = pgTable('invoice_lines', {
   description: text('description').notNull(),
   quantity: numeric('quantity', { precision: 12, scale: 3 }).notNull(),
   unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull(),
+  purchasePrice: numeric('purchase_price', { precision: 12, scale: 2 }),
   discountRate: numeric('discount_rate', { precision: 5, scale: 3 }).notNull().default('0'),
   discountAmount: numeric('discount_amount', { precision: 12, scale: 2 }).notNull().default('0'),
   lineTotal: numeric('line_total', { precision: 12, scale: 2 }).notNull(),

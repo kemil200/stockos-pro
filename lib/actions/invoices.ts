@@ -9,7 +9,7 @@ import { invoices, invoiceLines, stockItems, stockMovements, packs, packItems, p
 import { calculateInvoice } from '@/lib/services/invoice-calculator';
 import { allocateInvoiceNumber, ensureInvoiceSettings } from '@/lib/services/invoice-numbering';
 import { revalidatePath } from 'next/cache';
-import { CreateInvoiceSchema, InvoiceLineSchema, QuickInvoiceSchema } from '@/lib/validations/invoice';
+import { CreateInvoiceSchema, InvoiceLineSchema, QuickInvoiceSchema, CashJournalSchema } from '@/lib/validations/invoice';
 import { auditLog, AuditAction } from '@/lib/audit';
 import { assertWritable } from '@/lib/readonly';
 import { assertPlanLimit } from '@/lib/plans';
@@ -140,26 +140,23 @@ export async function createInvoice(formData: FormData) {
   }
 }
 
-export async function createQuickInvoice(formData: FormData) {
+export async function createCashEntry(formData: FormData) {
   try {
     const { shop, user } = await getCurrentShop();
     await assertWritable(shop.id);
     await assertPlanLimit(shop.id, 'maxInvoicesPerMonth');
 
-    const linesJson = formData.get('lines') as string;
-    if (linesJson.length > 100000) {
-      return { success: false, error: 'Trop de lignes' } as const;
-    }
-
     const rawData = {
-      clientName: (formData.get('clientName') as string) || 'Client',
-      lines: JSON.parse(linesJson),
-      globalDiscountRate: formData.has('globalDiscountRate') ? Number(formData.get('globalDiscountRate')) : undefined,
+      productName: formData.get('productName'),
+      purchasePrice: formData.get('purchasePrice'),
+      salePrice: formData.get('salePrice'),
+      quantity: formData.get('quantity') || '1',
+      date: formData.get('date'),
     };
 
-    let parsed: z.infer<typeof QuickInvoiceSchema>;
+    let parsed: z.infer<typeof CashJournalSchema>;
     try {
-      parsed = QuickInvoiceSchema.parse(rawData);
+      parsed = CashJournalSchema.parse(rawData);
     } catch (err) {
       if (err instanceof z.ZodError) {
         const messages = err.issues.map((e) => e.message).join(', ');
@@ -168,69 +165,47 @@ export async function createQuickInvoice(formData: FormData) {
       throw err;
     }
 
-    const settings = await ensureInvoiceSettings(shop.id);
-
     const admin = createAdminClient();
-    const { data: shopSettingsRows } = await admin
-      .from('shop_settings')
+    const { data: shopData } = await admin
+      .from('shops')
       .select('currency')
-      .eq('shop_id', shop.id)
-      .limit(1);
+      .eq('id', shop.id)
+      .single();
 
-    const shopCurrency = shopSettingsRows?.[0]?.currency || 'XOF';
-
-    const calc = calculateInvoice(
-      parsed.lines.map((l) => ({
-        quantity: l.quantity,
-        unitPrice: l.unitPrice,
-        discountRate: 0,
-      })),
-      {
-        enableTax: settings.enableTax ?? false,
-        taxRate: settings.taxRate,
-        enableGlobalDiscount: settings.enableGlobalDiscount ?? false,
-        enableLineDiscount: false,
-        enableShipping: false,
-        enableRounding: settings.enableRounding ?? false,
-        roundingPrecision: settings.roundingPrecision,
-      },
-      parsed.globalDiscountRate ?? 0,
-      0,
-    );
+    const currency = shopData?.currency || 'XOF';
+    const total = parsed.salePrice * parsed.quantity;
+    const entryDate = new Date(parsed.date);
 
     const result = await db.transaction(async (tx) => {
-      const resolvedLines = await Promise.all(
-        parsed.lines.map(async (line) => {
-          if (line.productId) return line;
+      const [existing] = await tx
+        .select({ id: products.id })
+        .from(products)
+        .where(and(eq(products.shopId, shop.id), eq(products.name, parsed.productName)))
+        .limit(1);
 
-          const [existing] = await tx
-            .select({ id: products.id })
-            .from(products)
-            .where(and(eq(products.shopId, shop.id), eq(products.name, line.description)))
-            .limit(1);
+      let productId: string | null = existing?.id ?? null;
 
-          if (existing) return { ...line, productId: existing.id };
-
-          const [newProduct] = await tx
-            .insert(products)
-            .values({
-              shopId: shop.id,
-              name: line.description,
-              unitPrice: String(line.unitPrice),
-              unitType: 'UNITY',
-            })
-            .returning({ id: products.id });
-
-          await tx.insert(stockItems).values({
+      if (!productId) {
+        const [newProduct] = await tx
+          .insert(products)
+          .values({
             shopId: shop.id,
-            productId: newProduct.id,
-            quantity: '0',
-            minThreshold: '0',
-          });
+            name: parsed.productName,
+            unitPrice: String(parsed.salePrice),
+            purchasePrice: String(parsed.purchasePrice),
+            unitType: 'UNITY',
+          })
+          .returning({ id: products.id });
 
-          return { ...line, productId: newProduct.id };
-        })
-      );
+        productId = newProduct.id;
+
+        await tx.insert(stockItems).values({
+          shopId: shop.id,
+          productId: newProduct.id,
+          quantity: '0',
+          minThreshold: '0',
+        });
+      }
 
       const invoiceNumber = await allocateInvoiceNumber(tx, shop.id);
 
@@ -239,58 +214,44 @@ export async function createQuickInvoice(formData: FormData) {
         .values({
           shopId: shop.id,
           invoiceNumber,
-          clientName: parsed.clientName || 'Client',
-          clientPhone: null,
+          clientName: '',
           status: 'VALIDATED',
-          currency: shopCurrency,
-          subtotal: String(calc.subtotal),
-          lineDiscountTotal: String(calc.lineDiscountTotal),
-          globalDiscount: String(calc.globalDiscount),
-          shippingFee: String(calc.shippingFee),
-          taxAmount: String(calc.taxAmount),
-          roundingAdjustment: String(calc.roundingAdjustment),
-          total: String(calc.total),
+          currency,
+          subtotal: String(total),
+          lineDiscountTotal: '0',
+          globalDiscount: '0',
+          shippingFee: '0',
+          taxAmount: '0',
+          roundingAdjustment: '0',
+          total: String(total),
           amountPaid: '0',
-          balanceDue: String(calc.total),
-          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          validatedAt: new Date(),
+          balanceDue: String(total),
+          validatedAt: entryDate,
           validatedBy: user.id,
           createdBy: user.id,
+          createdAt: entryDate,
+          updatedAt: entryDate,
         })
         .returning();
 
-      const linesData = resolvedLines.map((line, i: number) => ({
+      await tx.insert(invoiceLines).values({
         invoiceId: created.id,
-        productId: line.productId || null,
-        packId: null,
-        description: line.description,
-        quantity: String(line.quantity),
-        unitPrice: String(line.unitPrice),
+        productId,
+        description: parsed.productName,
+        quantity: String(parsed.quantity),
+        unitPrice: String(parsed.salePrice),
+        purchasePrice: String(parsed.purchasePrice),
         discountRate: '0',
         discountAmount: '0',
-        lineTotal: String(line.quantity * line.unitPrice),
-        sortOrder: String(i),
-      }));
-
-      await tx.insert(invoiceLines).values(linesData);
+        lineTotal: String(total),
+        sortOrder: '0',
+      });
 
       return created;
     });
 
-    try {
-      await auditLog({
-        shopId: shop.id,
-        userId: user.id,
-        action: AuditAction.INVOICE_CREATED,
-        entityType: 'invoice',
-        entityId: result.id,
-        metadata: { mode: 'quick', total: calc.total, client: parsed.clientName },
-      });
-    } catch {
-      // audit non-bloquant
-    }
-
     revalidatePath('/mode-simple');
+    revalidatePath('/mode-simple/historique');
     revalidatePath('/invoices');
 
     return { success: true, invoiceId: result.id } as const;

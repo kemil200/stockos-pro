@@ -2,6 +2,7 @@
 
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Plus, X, Receipt, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ interface Product {
 export function SaleForm({ products }: { products: Product[] }) {
   const [submitting, setSubmitting] = useState(false);
   const [lastClient, setLastClient] = useState('');
+  const router = useRouter();
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -74,6 +76,7 @@ export function SaleForm({ products }: { products: Product[] }) {
           clientName: data.clientName,
           lines: [{ description: '', quantity: 1, unitPrice: '', productId: undefined }],
         });
+        router.refresh();
       } else {
         toast.error(result.error || 'Erreur lors de la vente');
       }

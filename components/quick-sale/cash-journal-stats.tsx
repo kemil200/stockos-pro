@@ -17,6 +17,7 @@ export async function CashJournalStats() {
     .select('id, total')
     .eq('shop_id', shop.id)
     .eq('status', 'VALIDATED')
+    .eq('client_name', '')
     .gte('validated_at', todayStart.toISOString())
     .lte('validated_at', todayEnd.toISOString());
 

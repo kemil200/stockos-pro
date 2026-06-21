@@ -12,6 +12,7 @@ export default async function HistoriquePage() {
     .select('id, invoice_number, validated_at')
     .eq('shop_id', shop.id)
     .eq('status', 'VALIDATED')
+    .eq('client_name', '')
     .order('validated_at', { ascending: false })
     .limit(200);
 

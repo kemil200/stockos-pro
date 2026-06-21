@@ -57,10 +57,15 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-dvh overflow-hidden">
-      {userMode === 'simple' ? (
-        <CahierSidebar />
-      ) : (
+      {/* Desktop: always full Sidebar */}
+      <div className="hidden lg:flex">
         <Sidebar plan={plan} role={userRole} />
+      </div>
+      {/* Mobile Cahier: mini sidebar */}
+      {userMode === 'simple' && (
+        <div className="lg:hidden">
+          <CahierSidebar />
+        </div>
       )}
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar plan={plan} role={userRole} userMode={userMode} />
@@ -78,17 +83,20 @@ export default async function DashboardLayout({
           </div>
         )}
         <main className="flex-1 overflow-y-auto bg-zinc-50/80 pb-20 lg:pb-0">
-          <div className={userMode === 'simple' ? 'px-4 py-4 animate-in fade-in slide-in-from-bottom-2 duration-300' : 'px-4 py-6 sm:px-6 lg:px-8 xl:px-10'}>
-            <div className="mx-auto" style={{ maxWidth: userMode === 'simple' ? '40rem' : '78rem' }}>
+          <div className="px-4 py-4 sm:px-6 lg:px-8 xl:px-10">
+            <div className={userMode === 'simple' ? 'mx-auto max-w-xl' : 'mx-auto max-w-[78rem]'}>
               {children}
             </div>
           </div>
         </main>
-        {userMode === 'simple' ? (
-          <CahierBottomNav />
-        ) : (
-          <BottomNav plan={plan} role={userRole} />
-        )}
+        {/* Mobile bottom nav: mode-dependent */}
+        <div className="lg:hidden">
+          {userMode === 'simple' ? (
+            <CahierBottomNav />
+          ) : (
+            <BottomNav plan={plan} role={userRole} />
+          )}
+        </div>
       </div>
     </div>
   );

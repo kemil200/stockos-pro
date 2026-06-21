@@ -51,14 +51,8 @@ function SignInForm() {
       }
     }
 
-    const redirectTo = searchParams.get('redirect');
-    if (!redirectTo) {
-      const { getUserMode } = await import('@/lib/actions/user-preferences');
-      const mode = await getUserMode();
-      router.push(mode === 'simple' ? '/mode-simple' : '/invoices');
-    } else {
-      router.push(redirectTo);
-    }
+    const redirectTo = searchParams.get('redirect') || '/invoices';
+    router.push(redirectTo);
     router.refresh();
   };
 

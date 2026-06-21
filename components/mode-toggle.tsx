@@ -7,10 +7,10 @@ import { setUserMode } from '@/lib/actions/user-preferences';
 export function ModeToggle({ currentMode }: { currentMode: 'simple' | 'complete' }) {
   const router = useRouter();
 
-  const switchMode = async (mode: 'simple' | 'complete') => {
+  const switchMode = (mode: 'simple' | 'complete') => {
     if (mode === currentMode) return;
     document.cookie = `stockos-mode=${mode};path=/;max-age=31536000;SameSite=Lax`;
-    await setUserMode(mode);
+    setUserMode(mode);
     router.push(mode === 'simple' ? '/mode-simple' : '/invoices');
   };
 
@@ -22,7 +22,7 @@ export function ModeToggle({ currentMode }: { currentMode: 'simple' | 'complete'
         className={cn(
           'rounded-full px-3 py-1.5 text-[11px] font-medium transition-all',
           currentMode === 'simple'
-            ? 'bg-white text-zinc-900 shadow-sm'
+            ? 'bg-zinc-900 text-white shadow-sm'
             : 'text-zinc-500 hover:text-zinc-700'
         )}
       >
@@ -34,7 +34,7 @@ export function ModeToggle({ currentMode }: { currentMode: 'simple' | 'complete'
         className={cn(
           'rounded-full px-3 py-1.5 text-[11px] font-medium transition-all',
           currentMode === 'complete'
-            ? 'bg-white text-zinc-900 shadow-sm'
+            ? 'bg-zinc-900 text-white shadow-sm'
             : 'text-zinc-500 hover:text-zinc-700'
         )}
       >

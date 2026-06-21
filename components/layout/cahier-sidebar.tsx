@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Store, FileText, Calendar } from 'lucide-react';
+import { Store, FileText, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const CAHIER_ITEMS = [
   { href: '/mode-simple', label: 'Journal', icon: FileText },
-  { href: '/mode-simple/historique', label: 'Historique', icon: Calendar },
+  { href: '/reports', label: 'Rapports', icon: BarChart3 },
 ];
 
 export function CahierSidebar() {
@@ -26,7 +26,7 @@ export function CahierSidebar() {
 
       <nav className="flex-1 px-2.5 py-3 space-y-0.5">
         {CAHIER_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href || pathname.startsWith(href + '/');
+          const isActive = pathname === href || pathname.startsWith(href);
           return (
             <Link
               key={href}
@@ -34,7 +34,7 @@ export function CahierSidebar() {
               className={cn(
                 'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
                 isActive
-                  ? 'bg-zinc-900 text-white font-medium shadow-sm'
+                  ? 'bg-zinc-100 text-zinc-900 font-medium'
                   : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
               )}
             >

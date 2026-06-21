@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { Navbar } from '@/components/layout/navbar';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { EyeOff } from 'lucide-react';
+import { getUserMode } from '@/lib/actions/user-preferences';
 
 export default async function DashboardLayout({
   children,
@@ -48,11 +49,15 @@ export default async function DashboardLayout({
 
   const plan = sub?.plan || 'TRIAL';
 
+  const userMode = await getUserMode();
+
   return (
     <div className="flex h-dvh overflow-hidden">
-      <Sidebar plan={plan} role={userRole} />
+      {userMode !== 'simple' && (
+        <Sidebar plan={plan} role={userRole} />
+      )}
       <div className="flex-1 flex flex-col min-w-0">
-        <Navbar plan={plan} role={userRole} />
+        <Navbar plan={plan} role={userRole} userMode={userMode} />
         {(readOnly || expired) && (
           <div className="bg-amber-50 border-b border-amber-200/80 px-4 py-2.5 lg:px-6">
             <div className="flex items-center justify-center gap-2 text-sm text-amber-800">
@@ -67,13 +72,15 @@ export default async function DashboardLayout({
           </div>
         )}
         <main className="flex-1 overflow-y-auto bg-zinc-50/80 pb-20 lg:pb-0">
-          <div className="px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
-            <div className="mx-auto" style={{ maxWidth: '78rem' }}>
+          <div className={userMode === 'simple' ? 'px-4 py-4' : 'px-4 py-6 sm:px-6 lg:px-8 xl:px-10'}>
+            <div className="mx-auto" style={{ maxWidth: userMode === 'simple' ? '40rem' : '78rem' }}>
               {children}
             </div>
           </div>
         </main>
-        <BottomNav plan={plan} role={userRole} />
+        {userMode !== 'simple' && (
+          <BottomNav plan={plan} role={userRole} />
+        )}
       </div>
     </div>
   );

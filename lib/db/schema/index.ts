@@ -12,3 +12,4 @@ export * from './packs';
 export * from './categories';
 export * from './invites';
 export * from './password-reset-tokens';
+export * from './user-preferences';

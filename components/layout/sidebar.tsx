@@ -7,7 +7,6 @@ import {
   Package,
   Warehouse,
   Receipt,
-  Wallet,
   BarChart3,
   Settings,
   Menu,
@@ -31,7 +30,6 @@ const NAV_ITEMS = [
   { href: '/products', label: 'Produits', icon: Package, feature: null },
   { href: '/stock', label: 'Stock', icon: Warehouse, feature: null },
   { href: '/payments', label: 'Paiements', icon: Receipt, feature: null },
-  { href: '/cash-register', label: 'Caisse', icon: Wallet, feature: 'maxRegisters' as const },
   { href: '/mode-simple', label: 'Vente rapide', icon: Zap, feature: null },
   { href: '/reports', label: 'Rapports', icon: BarChart3, feature: 'reports' as const },
   { href: '/settings', label: 'Paramètres', icon: Settings, feature: null },
@@ -44,7 +42,6 @@ function SidebarContent({ onNavigate, plan, role }: { onNavigate?: () => void; p
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (!item.feature) return true;
-    if (item.feature === 'maxRegisters' && plan === 'STARTER') return false;
     return true;
   }).filter((item) => {
     if (!isEmployee) return true;

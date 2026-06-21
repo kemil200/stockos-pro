@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { CashJournalStats } from '@/components/quick-sale/cash-journal-stats';
 import { CashJournalForm } from '@/components/quick-sale/cash-journal-form';
 import { CashJournalList } from '@/components/quick-sale/cash-journal-list';
@@ -20,7 +21,9 @@ export default async function ModeSimplePage() {
 
       <CashJournalStats />
 
-      <CashJournalForm />
+      <Suspense fallback={null}>
+        <CashJournalForm />
+      </Suspense>
 
       <CashJournalList />
     </div>

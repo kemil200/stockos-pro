@@ -4,7 +4,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { Navbar } from '@/components/layout/navbar';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { EyeOff } from 'lucide-react';
-import { TrialBanner } from '@/components/subscription/trial-banner';
+import { SubscriptionBanner } from '@/components/subscription/trial-banner';
 
 export default async function DashboardLayout({
   children,
@@ -33,7 +33,7 @@ export default async function DashboardLayout({
 
   const { data: subs } = await admin
     .from('subscriptions')
-    .select('features, status, plan, trial_ends_at')
+    .select('features, status, plan, trial_ends_at, current_period_end')
     .eq('shop_id', shopId)
     .limit(1);
 
@@ -56,10 +56,11 @@ export default async function DashboardLayout({
       </div>
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar plan={plan} role={userRole} />
-        {sub?.status === 'TRIAL' && (
-          <TrialBanner
+        {sub && (
+          <SubscriptionBanner
             plan={plan}
             trialEndsAt={sub.trial_ends_at ?? null}
+            periodEnd={sub.current_period_end ?? null}
             status={sub.status ?? 'TRIAL'}
           />
         )}

@@ -2,6 +2,7 @@ import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { SettingsForm } from '@/components/forms/settings-form';
 import { hasFeature } from '@/lib/plans';
+import { RenewSubscriptionButton } from '@/components/subscription/renew-button';
 import Link from 'next/link';
 import { Users } from 'lucide-react';
 
@@ -66,8 +67,31 @@ export default async function SettingsPage() {
           </div>
           <div className="flex justify-between">
             <span className="text-zinc-500">Statut</span>
-            <span className="font-medium">{sub?.status || 'N/A'}</span>
+            <span className={`font-medium ${sub?.status === 'ACTIVE' ? 'text-emerald-600' : sub?.status === 'EXPIRED' ? 'text-red-600' : 'text-amber-600'}`}>
+              {sub?.status === 'TRIAL' ? 'Essai' : sub?.status === 'ACTIVE' ? 'Actif' : sub?.status === 'EXPIRED' ? 'Expiré' : sub?.status || 'N/A'}
+            </span>
           </div>
+          {sub?.trial_ends_at && (
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Fin d&apos;essai</span>
+              <span className="font-medium">{new Date(sub.trial_ends_at).toLocaleDateString('fr-FR')}</span>
+            </div>
+          )}
+          {sub?.current_period_start && (
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Début période</span>
+              <span className="font-medium">{new Date(sub.current_period_start).toLocaleDateString('fr-FR')}</span>
+            </div>
+          )}
+          {sub?.current_period_end && (
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Fin période</span>
+              <span className="font-medium">{new Date(sub.current_period_end).toLocaleDateString('fr-FR')}</span>
+            </div>
+          )}
+        </div>
+        <div className="pt-2 border-t">
+          <RenewSubscriptionButton plan={sub?.plan || 'ESSENTIAL'} />
         </div>
       </div>
 

@@ -48,6 +48,7 @@ async function handleSubscriptionSuccess(data: Record<string, unknown>) {
   const paymentType = metadata?.payment_type;
   const shopId = metadata?.shop_id as string;
   const plan = (metadata?.plan as string) || 'ESSENTIAL';
+  const months = Number(metadata?.months) || 12;
 
   if (paymentType !== 'subscription' || !shopId || !gpReference) {
     return buildError(400, 'Bad Request', 'Missing subscription metadata.');
@@ -66,8 +67,8 @@ async function handleSubscriptionSuccess(data: Record<string, unknown>) {
     return Response.json({ success: true, message: 'Already processed.' });
   }
 
-  const oneYearFromNow = new Date();
-  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+  const periodEnd = new Date();
+  periodEnd.setMonth(periodEnd.getMonth() + months);
 
   const { error: updateError } = await admin
     .from('subscriptions')
@@ -76,7 +77,7 @@ async function handleSubscriptionSuccess(data: Record<string, unknown>) {
       status: 'ACTIVE',
       trial_ends_at: null,
       current_period_start: new Date().toISOString(),
-      current_period_end: oneYearFromNow.toISOString(),
+      current_period_end: periodEnd.toISOString(),
     })
     .eq('shop_id', shopId);
 

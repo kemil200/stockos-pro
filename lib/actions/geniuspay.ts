@@ -9,10 +9,10 @@ import { assertWritable } from '@/lib/readonly';
 const GENIUSPAY_BASE = 'https://geniuspay.ci/api/v1/merchant';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://stockos.site';
 
-const PLAN_PRICES: Record<string, number> = {
-  STARTER: 55000,
-  ESSENTIAL: 90000,
-  BUSINESS: 120000,
+const PLAN_PRICES: Record<string, { monthly: number; annual: number }> = {
+  STARTER: { monthly: 5000, annual: 55000 },
+  ESSENTIAL: { monthly: 8500, annual: 90000 },
+  BUSINESS: { monthly: 13000, annual: 120000 },
 };
 
 function getGeniusPayKeys() {
@@ -22,25 +22,19 @@ function getGeniusPayKeys() {
   return { apiKey, apiSecret };
 }
 
-export async function initiateSubscriptionPayment(plan: string) {
+export async function initiateSubscriptionPayment(plan: string, billing: 'monthly' | 'annual' = 'annual') {
   try {
     const { shop, user } = await getCurrentShop();
     await assertWritable(shop.id);
 
     const admin = createAdminClient();
 
-    const { data: sub } = await admin
-      .from('subscriptions')
-      .select('status, plan')
-      .eq('shop_id', shop.id)
-      .single();
+    const prices = PLAN_PRICES[plan];
+    if (!prices) return { success: false, error: 'Plan invalide' } as const;
 
-    if (!sub || sub.status === 'ACTIVE') {
-      return { success: false, error: 'Abonnement déjà actif' } as const;
-    }
-
-    const amount = PLAN_PRICES[plan];
-    if (!amount) return { success: false, error: 'Plan invalide' } as const;
+    const amount = billing === 'monthly' ? prices.monthly : prices.annual;
+    const label = billing === 'monthly' ? 'mois' : 'an';
+    const months = billing === 'monthly' ? 1 : 12;
 
     const { data: shopSettings } = await admin
       .from('shop_settings')
@@ -55,7 +49,7 @@ export async function initiateSubscriptionPayment(plan: string) {
     const body: Record<string, unknown> = {
       amount,
       currency: 'XOF',
-      description: `Abonnement StockOS Pro — ${plan} (1 an)`,
+      description: `StockOS Pro — ${plan} (1 ${label})`,
       customer: { name: customerName },
       success_url: `${APP_URL}/invoices?gp_sub=success`,
       error_url: `${APP_URL}/invoices?gp_sub=error`,
@@ -63,15 +57,13 @@ export async function initiateSubscriptionPayment(plan: string) {
         payment_type: 'subscription',
         shop_id: shop.id,
         plan,
+        billing,
+        months,
       },
     };
 
     if (customerEmail) (body.customer as Record<string, unknown>).email = customerEmail;
     if (customerPhone) (body.customer as Record<string, unknown>).phone = customerPhone;
-
-    if (plan === 'BUSINESS') {
-      body.payment_method = 'wave';
-    }
 
     const { apiKey, apiSecret } = getGeniusPayKeys();
     const response = await fetch(`${GENIUSPAY_BASE}/payments`, {
@@ -100,7 +92,7 @@ export async function initiateSubscriptionPayment(plan: string) {
       status: 'pending',
       gpReference: gpData.reference,
       gpPaymentMethod: gpData.gateway || null,
-      metadata: JSON.stringify({ payment_type: 'subscription', plan, shop_name: shop.name }),
+      metadata: JSON.stringify({ payment_type: 'subscription', plan, billing, shop_name: shop.name }),
     });
 
     return {

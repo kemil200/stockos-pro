@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS geniuspay_transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   shop_id UUID NOT NULL REFERENCES shops(id),
-  invoice_id UUID NOT NULL REFERENCES invoices(id),
+  invoice_id UUID REFERENCES invoices(id),
   amount NUMERIC(12,2) NOT NULL,
   fees NUMERIC(12,2),
   net_amount NUMERIC(12,2),

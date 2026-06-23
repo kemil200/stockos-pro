@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { Navbar } from '@/components/layout/navbar';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { EyeOff } from 'lucide-react';
+import { TrialBanner } from '@/components/subscription/trial-banner';
 
 export default async function DashboardLayout({
   children,
@@ -55,6 +56,13 @@ export default async function DashboardLayout({
       </div>
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar plan={plan} role={userRole} />
+        {sub?.status === 'TRIAL' && (
+          <TrialBanner
+            plan={plan}
+            trialEndsAt={sub.trial_ends_at ?? null}
+            status={sub.status ?? 'TRIAL'}
+          />
+        )}
         {(readOnly || expired) && (
           <div className="bg-amber-50 border-b border-amber-200/80 px-4 py-2.5 lg:px-6">
             <div className="flex items-center justify-center gap-2 text-sm text-amber-800">

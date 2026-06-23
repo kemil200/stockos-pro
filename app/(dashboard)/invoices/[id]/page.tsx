@@ -9,7 +9,6 @@ import { ThermalTicket } from '@/components/invoices/thermal-ticket';
 import { formatCurrency } from '@/lib/utils/currency';
 import { validateInvoiceAction } from '@/lib/actions/invoices';
 import { CancelInvoiceButton } from '@/components/invoices/cancel-invoice-button';
-import { GeniusPayButton } from '@/components/invoices/geniuspay-button';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 
@@ -149,9 +148,7 @@ export default async function InvoiceDetailPage({
           {invoice.status === 'DRAFT' && (
             <CancelInvoiceButton invoiceId={id} />
           )}
-          {['VALIDATED', 'PARTIALLY_PAID'].includes(invoice.status) && (
-            <GeniusPayButton invoiceId={id} balance={Number(invoice.balance_due)} />
-          )}
+
         </div>
       </div>
 

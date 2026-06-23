@@ -3,16 +3,16 @@ import { createAdminClient } from '@/lib/server';
 import { InvoiceFilters } from '@/components/invoices/invoice-filters';
 import { InvoiceTable } from '@/components/invoices/invoice-table';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, CheckCircle2, XCircle } from 'lucide-react';
 
 const PAGE_SIZE = 50;
 
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string; gp_sub?: string }>;
 }) {
-  const { status, q, page } = await searchParams;
+  const { status, q, page, gp_sub } = await searchParams;
   const currentPage = Math.max(1, parseInt(page || '1', 10) || 1);
   const { shop } = await getCurrentShop();
   const admin = createAdminClient();
@@ -42,6 +42,18 @@ export default async function InvoicesPage({
 
   return (
     <div className="space-y-6">
+      {gp_sub === 'success' && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
+          <CheckCircle2 className="size-4" />
+          Paiement initié. Votre abonnement sera activé automatiquement. Rechargez la page dans quelques instants.
+        </div>
+      )}
+      {gp_sub === 'error' && (
+        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+          <XCircle className="size-4" />
+          Le paiement n&apos;a pas abouti. Veuillez réessayer.
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Factures</h1>

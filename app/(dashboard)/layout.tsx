@@ -1,10 +1,8 @@
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import { createClient, createAdminClient } from '@/lib/server';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Navbar } from '@/components/layout/navbar';
 import { BottomNav } from '@/components/layout/bottom-nav';
-import { CahierBottomNav } from '@/components/layout/cahier-bottom-nav';
 import { EyeOff } from 'lucide-react';
 
 export default async function DashboardLayout({
@@ -50,18 +48,13 @@ export default async function DashboardLayout({
 
   const plan = sub?.plan || 'TRIAL';
 
-  const cookieStore = await cookies();
-  const cookieMode = cookieStore.get('stockos-mode')?.value;
-  const userMode: 'simple' | 'complete' = (cookieMode === 'simple' || cookieMode === 'complete') ? cookieMode : 'complete';
-
   return (
     <div className="flex h-dvh overflow-hidden">
-      {/* Desktop: always full Sidebar */}
       <div className="hidden lg:flex">
         <Sidebar plan={plan} role={userRole} />
       </div>
       <div className="flex-1 flex flex-col min-w-0">
-        <Navbar plan={plan} role={userRole} userMode={userMode} />
+        <Navbar plan={plan} role={userRole} />
         {(readOnly || expired) && (
           <div className="bg-amber-50 border-b border-amber-200/80 px-4 py-2.5 lg:px-6">
             <div className="flex items-center justify-center gap-2 text-sm text-amber-800">
@@ -77,18 +70,13 @@ export default async function DashboardLayout({
         )}
         <main className="flex-1 overflow-y-auto bg-zinc-50/80 pb-20 lg:pb-0">
           <div className="px-4 py-4 sm:px-6 lg:px-8 xl:px-10">
-            <div className={userMode === 'simple' ? 'mx-auto max-w-xl' : 'mx-auto max-w-[78rem]'}>
+            <div className="mx-auto max-w-[78rem]">
               {children}
             </div>
           </div>
         </main>
-        {/* Mobile bottom nav: mode-dependent */}
         <div className="lg:hidden">
-          {userMode === 'simple' ? (
-            <CahierBottomNav />
-          ) : (
-            <BottomNav plan={plan} role={userRole} />
-          )}
+          <BottomNav plan={plan} role={userRole} />
         </div>
       </div>
     </div>

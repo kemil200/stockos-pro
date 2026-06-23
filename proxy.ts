@@ -8,7 +8,7 @@ export async function proxy(request: NextRequest) {
   // FIX: liste des routes publiques étendue + vérification exacte pour '/'
   // On utilise startsWith uniquement pour les préfixes vrais — '/' en exact match
   // pour éviter que tout soit considéré public (pathname.startsWith('/') = toujours vrai)
-  const publicRoutes = ['/sign-in', '/sign-up', '/forgot-password', '/reset-password', '/invite', '/_next', '/favicon', '/robots.txt', '/sitemap.xml', '/llms.txt', '/privacy', '/terms', '/api/health', '/api/db-check'];
+  const publicRoutes = ['/sign-in', '/sign-up', '/forgot-password', '/reset-password', '/invite', '/_next', '/favicon', '/robots.txt', '/sitemap.xml', '/llms.txt', '/privacy', '/terms', '/api/health', '/api/db-check', '/api/webhooks'];
   const isPublic =
     pathname === '/' ||
     publicRoutes.some((route) => pathname.startsWith(route));

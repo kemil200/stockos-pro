@@ -9,19 +9,20 @@ import { ThermalTicket } from '@/components/invoices/thermal-ticket';
 import { formatCurrency } from '@/lib/utils/currency';
 import { validateInvoiceAction } from '@/lib/actions/invoices';
 import { CancelInvoiceButton } from '@/components/invoices/cancel-invoice-button';
+import { GeniusPayButton } from '@/components/invoices/geniuspay-button';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 
 export default async function InvoiceDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ print?: string; thermal?: string }>;
+  searchParams: Promise<{ print?: string; thermal?: string; gp_status?: string }>;
 }) {
   const { id } = await params;
-  const { print, thermal } = await searchParams;
-  const { shop, user } = await getCurrentShop();
+  const { print, thermal, gp_status } = await searchParams;
+  const { shop } = await getCurrentShop();
   const admin = createAdminClient();
 
   const [invoiceResult, shopSettingsResult] = await Promise.all([
@@ -96,6 +97,19 @@ export default async function InvoiceDetailPage({
         Retour aux factures
       </Link>
 
+      {gp_status === 'success' && (
+        <div className="print-hide rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
+          <CheckCircle2 className="size-4" />
+          Paiement initié. Vous recevrez une confirmation une fois le paiement validé.
+        </div>
+      )}
+      {gp_status === 'error' && (
+        <div className="print-hide rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+          <XCircle className="size-4" />
+          Le paiement n&apos;a pas abouti. Veuillez réessayer.
+        </div>
+      )}
+
       {/* Screen-only header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 print-hide">
         <div>
@@ -134,6 +148,9 @@ export default async function InvoiceDetailPage({
           )}
           {invoice.status === 'DRAFT' && (
             <CancelInvoiceButton invoiceId={id} />
+          )}
+          {['VALIDATED', 'PARTIALLY_PAID'].includes(invoice.status) && (
+            <GeniusPayButton invoiceId={id} balance={Number(invoice.balance_due)} />
           )}
         </div>
       </div>

@@ -5,10 +5,10 @@ import { JsonLd } from '@/components/seo/json-ld';
 import { PricingSection } from '@/components/pricing-section';
 import { TestimonialsSection } from '@/components/landing/testimonials-section';
 import {
-  Store, FileText, Package, Wallet, TrendingUp,
-  Shield, Receipt, CreditCard, ArrowRight, Check,
-  BarChart3, Warehouse, Clock, Globe, Sparkles,
-  ChevronRight, Star, Smartphone, Download,
+  Store, Package, Wallet, TrendingUp,
+  Shield, Receipt, ArrowRight,
+  Globe, Sparkles,
+  ChevronRight, Smartphone,
 } from 'lucide-react';
 
 function isRedirectError(err: unknown): boolean {
@@ -167,7 +167,7 @@ export default async function Home() {
               {[
                 { icon: Receipt, title: 'Factures en 30 secondes', desc: 'Créez une facture pro en moins de 30 secondes. Envoyez-la par WhatsApp ou imprimez un ticket thermique.', accent: 'bg-zinc-900 text-white' },
                 { icon: Package, title: 'Stock jamais à zéro', desc: 'Recevez une alerte avant la rupture. Sachez exactement combien de produits il vous reste, en temps réel.', accent: 'bg-zinc-800 text-white' },
-                { icon: Wallet, title: 'Caisse toujours prête', desc: 'Enregistrez une vente en 1 clic. Suivez vos entrées et sorties d\'argent sans cahier, sans erreur.', accent: 'bg-zinc-700 text-white' },
+                { icon: Wallet, title: 'Caisse toujours prête', desc: 'Enregistrez une vente en 1 clic. Suivez vos entrées et sorties d\'argent en temps réel, sans erreur.', accent: 'bg-zinc-700 text-white' },
                 { icon: TrendingUp, title: 'Voyez ce qui rapporte', desc: 'Quels produits se vendent le mieux ? Quelle est votre marge ? Des rapports clairs, sans Excel.', accent: 'bg-zinc-900 text-white' },
                 { icon: Shield, title: 'Zéro risque de perdre vos données', desc: 'Tout est sauvegardé automatiquement et chiffré. Même si vous perdez votre téléphone, vos données sont là.', accent: 'bg-zinc-800 text-white' },
                 { icon: Globe, title: 'Vendez en FCFA, EUR, USD', desc: 'Changez de devise en un clic. Vos clients vous paient dans leur monnaie, vous voyez tout en FCFA.', accent: 'bg-zinc-700 text-white' },

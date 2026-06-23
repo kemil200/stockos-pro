@@ -131,15 +131,8 @@
     {
       "idx": 19,
       "version": "7",
-      "when": 1750800000000,
-      "tag": "0021_user_preferences",
-      "breakpoints": true
-    },
-    {
-      "idx": 20,
-      "version": "7",
-      "when": 1750900000000,
-      "tag": "0022_purchase_price_on_lines",
+      "when": 1788700000000,
+      "tag": "0024_geniuspay_transactions",
       "breakpoints": true
     }
   ]

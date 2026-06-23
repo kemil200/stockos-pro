@@ -5,11 +5,11 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { getCurrentShop } from '@/lib/tenant';
 import { createAdminClient } from '@/lib/server';
 import { db } from '@/lib/db';
-import { invoices, invoiceLines, stockItems, stockMovements, packs, packItems, products } from '@/lib/db/schema';
+import { invoices, invoiceLines, stockItems, stockMovements, packs, packItems } from '@/lib/db/schema';
 import { calculateInvoice } from '@/lib/services/invoice-calculator';
 import { allocateInvoiceNumber, ensureInvoiceSettings } from '@/lib/services/invoice-numbering';
 import { revalidatePath } from 'next/cache';
-import { CreateInvoiceSchema, InvoiceLineSchema, CashJournalSchema } from '@/lib/validations/invoice';
+import { CreateInvoiceSchema, InvoiceLineSchema } from '@/lib/validations/invoice';
 import { auditLog, AuditAction } from '@/lib/audit';
 import { assertWritable } from '@/lib/readonly';
 import { assertPlanLimit } from '@/lib/plans';
@@ -140,126 +140,6 @@ export async function createInvoice(formData: FormData) {
   }
 }
 
-export async function createCashEntry(formData: FormData) {
-  try {
-    const { shop, user } = await getCurrentShop();
-    await assertWritable(shop.id);
-    await assertPlanLimit(shop.id, 'maxInvoicesPerMonth');
-
-    const rawData = {
-      productName: formData.get('productName'),
-      purchasePrice: formData.get('purchasePrice'),
-      salePrice: formData.get('salePrice'),
-      quantity: formData.get('quantity') || '1',
-      date: formData.get('date'),
-    };
-
-    let parsed: z.infer<typeof CashJournalSchema>;
-    try {
-      parsed = CashJournalSchema.parse(rawData);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        const messages = err.issues.map((e) => e.message).join(', ');
-        return { success: false, error: messages } as const;
-      }
-      throw err;
-    }
-
-    const admin = createAdminClient();
-    const { data: shopData } = await admin
-      .from('shops')
-      .select('currency')
-      .eq('id', shop.id)
-      .single();
-
-    const currency = shopData?.currency || 'XOF';
-    const total = parsed.salePrice * parsed.quantity;
-    const entryDate = new Date(parsed.date);
-
-    const result = await db.transaction(async (tx) => {
-      const [existing] = await tx
-        .select({ id: products.id })
-        .from(products)
-        .where(and(eq(products.shopId, shop.id), eq(products.name, parsed.productName)))
-        .limit(1);
-
-      let productId: string | null = existing?.id ?? null;
-
-      if (!productId) {
-        const [newProduct] = await tx
-          .insert(products)
-          .values({
-            shopId: shop.id,
-            name: parsed.productName,
-            unitPrice: String(parsed.salePrice),
-            purchasePrice: String(parsed.purchasePrice),
-            unitType: 'UNITY',
-          })
-          .returning({ id: products.id });
-
-        productId = newProduct.id;
-
-        await tx.insert(stockItems).values({
-          shopId: shop.id,
-          productId: newProduct.id,
-          quantity: '0',
-          minThreshold: '0',
-        });
-      }
-
-      const invoiceNumber = await allocateInvoiceNumber(tx, shop.id);
-
-      const [created] = await tx
-        .insert(invoices)
-        .values({
-          shopId: shop.id,
-          invoiceNumber,
-          clientName: '',
-          status: 'VALIDATED',
-          currency,
-          subtotal: String(total),
-          lineDiscountTotal: '0',
-          globalDiscount: '0',
-          shippingFee: '0',
-          taxAmount: '0',
-          roundingAdjustment: '0',
-          total: String(total),
-          amountPaid: '0',
-          balanceDue: String(total),
-          validatedAt: entryDate,
-          validatedBy: user.id,
-          createdBy: user.id,
-          createdAt: entryDate,
-          updatedAt: entryDate,
-        })
-        .returning();
-
-      await tx.insert(invoiceLines).values({
-        invoiceId: created.id,
-        productId,
-        description: parsed.productName,
-        quantity: String(parsed.quantity),
-        unitPrice: String(parsed.salePrice),
-        purchasePrice: String(parsed.purchasePrice),
-        discountRate: '0',
-        discountAmount: '0',
-        lineTotal: String(total),
-        sortOrder: '0',
-      });
-
-      return created;
-    });
-
-    revalidatePath('/mode-simple');
-    revalidatePath('/invoices');
-
-    return { success: true, invoiceId: result.id } as const;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Erreur inattendue';
-    return { success: false, error: message } as const;
-  }
-}
-
 export async function validateInvoice(invoiceId: string) {
   try {
     const { shop, user } = await getCurrentShop();
@@ -281,7 +161,7 @@ export async function validateInvoice(invoiceId: string) {
       .select('*')
       .eq('invoice_id', invoiceId);
 
-    const settings = await ensureInvoiceSettings(shop.id);
+    await ensureInvoiceSettings(shop.id);
     const storedGlobalDiscount = Number(invoiceData.global_discount);
     const storedShippingFee = Number(invoiceData.shipping_fee);
     const storedSubtotal = Number(invoiceData.subtotal);

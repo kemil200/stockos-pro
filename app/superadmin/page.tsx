@@ -7,8 +7,6 @@ import {
   TrendingUp,
   Shield,
   Timer,
-  ShoppingBag,
-  DollarSign,
 } from 'lucide-react';
 import { SubscriptionRow } from '@/components/superadmin/subscription-row';
 import { SystemHealth } from '@/components/superadmin/system-health';
@@ -16,11 +14,9 @@ import { SignOutButton } from '@/components/layout/sign-out-button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Delta, DeltaIcon, DeltaValue } from '@/components/delta';
 
 const PLAN_PRICES: Record<string, number> = {
   STARTER: 55000,

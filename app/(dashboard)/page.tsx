@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import { getCurrentShop } from '@/lib/tenant';
 import { getDashboardStats } from '@/lib/actions/dashboard';
 import { StatsCard } from '@/components/dashboard/stats-card';
@@ -30,10 +29,6 @@ const METHOD_ICONS: Record<string, typeof Smartphone> = {
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const cookieStore = await cookies();
-  const cookieMode = cookieStore.get('stockos-mode')?.value;
-  if (cookieMode === 'simple') redirect('/mode-simple');
-
   const { shop } = await getCurrentShop();
   const stats = await getDashboardStats();
 

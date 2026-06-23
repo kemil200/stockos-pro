@@ -1,4 +1,3 @@
-import { formatCurrency } from '@/lib/utils/currency';
 import { Star, TrendingUp, Package } from 'lucide-react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
@@ -15,7 +14,7 @@ const testimonials = [
     name: 'Koffi M.',
     business: 'Quincaillerie',
     city: 'Cotonou, Bénin',
-    text: 'Avant, je notais tout dans un cahier. Maintenant, je sais exactement combien j\'ai gagné chaque jour. Les tickets thermiques impressionnent mes clients. Je ne reviendrai pas en arrière.',
+    text: 'Avant, je perdais du temps avec des notes papier. Maintenant, je sais exactement combien j\'ai gagné chaque jour. Les tickets thermiques impressionnent mes clients. Je ne reviendrai pas en arrière.',
     result: 'Suivi quotidien des ventes',
   },
   {

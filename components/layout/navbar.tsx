@@ -8,9 +8,8 @@ import { createClient } from '@/lib/client';
 import { Button } from '@/components/ui/button';
 import { MobileSidebar } from './sidebar';
 import { CommandPalette } from '@/components/command-palette';
-import { ModeToggle } from '@/components/mode-toggle';
 
-export function Navbar({ plan, role, userMode }: { plan?: string | null; role?: string; userMode: 'simple' | 'complete' }) {
+export function Navbar({ plan, role }: { plan?: string | null; role?: string }) {
   const router = useRouter();
   const [user, setUser] = useState<{ name?: string; email?: string; role?: string } | null>(null);
 
@@ -39,7 +38,7 @@ export function Navbar({ plan, role, userMode }: { plan?: string | null; role?: 
   return (
     <header className="h-14 lg:h-16 border-b border-zinc-200/50 bg-white/80 backdrop-blur-xl flex items-center justify-between px-4 lg:px-6 sticky top-0 z-40">
       <div className="flex items-center gap-2">
-        {userMode !== 'simple' && <MobileSidebar plan={plan} role={role} />}
+        <MobileSidebar plan={plan} role={role} />
         {user?.role === 'SUPERADMIN' && (
           <Link
             href="/superadmin"
@@ -52,7 +51,6 @@ export function Navbar({ plan, role, userMode }: { plan?: string | null; role?: 
       </div>
       <div className="flex items-center gap-2 sm:gap-3 ml-auto">
         <CommandPalette />
-        <ModeToggle currentMode={userMode} />
         <span className="text-sm text-zinc-500 hidden sm:inline truncate max-w-[180px]">
           {user?.email}
         </span>

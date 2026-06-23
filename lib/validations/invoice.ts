@@ -18,25 +18,6 @@ export const CreateInvoiceSchema = z.object({
   shippingFee: z.coerce.number().min(0).optional(),
 });
 
-export const QuickInvoiceSchema = z.object({
-  clientName: z.string().optional().default('Client'),
-  lines: z.array(z.object({
-    productId: z.string().uuid().optional(),
-    description: z.string().min(1, 'Nom du produit requis'),
-    quantity: z.coerce.number().positive('Quantité > 0'),
-    unitPrice: z.coerce.number().min(0, 'Prix ≥ 0'),
-  })).min(1, 'Au moins une ligne'),
-  globalDiscountRate: z.coerce.number().min(0).max(1).optional(),
-});
-
-export const CashJournalSchema = z.object({
-  productName: z.string().min(1, 'Nom du produit requis'),
-  purchasePrice: z.coerce.number().min(0, 'Prix d\'achat ≥ 0'),
-  salePrice: z.coerce.number().min(0, 'Prix de vente ≥ 0'),
-  quantity: z.coerce.number().positive('Quantité > 0').default(1),
-  date: z.string().min(1, 'Date requise'),
-});
-
 export const PaymentSchema = z.object({
   invoiceId: z.string().uuid(),
   amount: z.coerce.number().positive('Montant doit être positif'),

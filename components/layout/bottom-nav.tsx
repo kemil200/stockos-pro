@@ -7,7 +7,6 @@ import {
   Package,
   Wallet,
   ShoppingCart,
-  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRef, useCallback } from 'react';
@@ -51,7 +50,7 @@ const NAV_ITEMS = [
   { href: '/invoices', label: 'Factures', icon: FileText },
   { href: '/supply', label: 'Achats', icon: ShoppingCart },
   { href: '/products', label: 'Produits', icon: Package },
-  { href: '/mode-simple', label: 'Vente', icon: Zap },
+  { href: '/cash-register', label: 'Vente', icon: Wallet },
 ];
 
 export function BottomNav({ plan, role }: { plan?: string | null; role?: string }) {

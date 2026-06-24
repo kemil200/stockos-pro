@@ -50,9 +50,19 @@ export function SubscriptionBanner({
     : 0;
 
   const isExpiring = !isExpired && daysLeft <= 14;
+  const isCritical = !isExpired && daysLeft <= 3;
   const isExpiredOrNear = isExpired || isExpiring;
 
   if (!isExpiredOrNear && isActive) return null;
+
+  const urgencyClass = isExpired || isCritical
+    ? 'bg-red-50 border-b border-red-200/80'
+    : 'bg-amber-50 border-b border-amber-200/80';
+
+  const textClass = isExpired || isCritical ? 'text-red-700' : 'text-amber-800';
+  const buttonClass = isExpired || isCritical
+    ? 'bg-red-600 text-white hover:bg-red-700'
+    : 'bg-emerald-600 text-white hover:bg-emerald-700';
 
   const handlePay = async () => {
     setLoading(true);
@@ -86,29 +96,35 @@ export function SubscriptionBanner({
   const prices = PLAN_PRICES[plan] || PLAN_PRICES.ESSENTIAL;
 
   return (
-    <div className="bg-amber-50 border-b border-amber-200/80 px-4 py-2.5 lg:px-6">
+    <div className={`${urgencyClass} px-4 py-2.5 lg:px-6`}>
       <div className="flex items-center justify-center gap-3 flex-wrap">
         {isExpired ? (
-          <span className="text-sm text-amber-800">
+          <span className={`text-sm ${textClass}`}>
             {isTrial
               ? `Votre essai a expiré. Passez à ${planLabel} pour continuer.`
               : `Votre abonnement a expiré. Renouvelez ${planLabel} pour continuer.`}
           </span>
+        ) : isCritical ? (
+          <span className={`text-sm ${textClass} font-medium`}>
+            ⚠ Expire dans {daysLeft} jour{daysLeft > 1 ? 's' : ''} ! Renouvelez immédiatement.
+          </span>
         ) : isActive && isExpiring ? (
-          <span className="text-sm text-amber-800">
+          <span className={`text-sm ${textClass}`}>
             Expire dans {daysLeft} jour{daysLeft > 1 ? 's' : ''}. Renouvelez maintenant.
           </span>
         ) : (
-          <span className="text-sm text-amber-800">
+          <span className={`text-sm ${textClass}`}>
             Votre essai expire dans {daysLeft} jour{daysLeft > 1 ? 's' : ''}. Passez à {planLabel}.
           </span>
         )}
 
-        <div className="flex items-center gap-1.5 bg-white/60 rounded-lg p-0.5 border border-amber-200">
+        <div className={`flex items-center gap-1.5 rounded-lg p-0.5 border ${isCritical || isExpired ? 'bg-white/60 border-red-200' : 'bg-white/60 border-amber-200'}`}>
           <button
             onClick={() => setBilling('annual')}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-              billing === 'annual' ? 'bg-amber-200 text-amber-900' : 'text-amber-700 hover:bg-amber-100'
+              billing === 'annual'
+                ? (isCritical || isExpired ? 'bg-red-200 text-red-900' : 'bg-amber-200 text-amber-900')
+                : (isCritical || isExpired ? 'text-red-600 hover:bg-red-100' : 'text-amber-700 hover:bg-amber-100')
             }`}
           >
             Annuel
@@ -116,7 +132,9 @@ export function SubscriptionBanner({
           <button
             onClick={() => setBilling('monthly')}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-              billing === 'monthly' ? 'bg-amber-200 text-amber-900' : 'text-amber-700 hover:bg-amber-100'
+              billing === 'monthly'
+                ? (isCritical || isExpired ? 'bg-red-200 text-red-900' : 'bg-amber-200 text-amber-900')
+                : (isCritical || isExpired ? 'text-red-600 hover:bg-red-100' : 'text-amber-700 hover:bg-amber-100')
             }`}
           >
             Mensuel
@@ -126,7 +144,7 @@ export function SubscriptionBanner({
         <button
           onClick={handlePay}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-all"
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 transition-all ${buttonClass}`}
         >
           {loading ? (
             <Loader2 className="size-3.5 animate-spin" />

@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/server';
 import { SettingsForm } from '@/components/forms/settings-form';
 import { hasFeature } from '@/lib/plans';
 import { RenewSubscriptionButton } from '@/components/subscription/renew-button';
+import { SubscriptionManager } from '@/components/subscription/subscription-manager';
 import Link from 'next/link';
 import { Users } from 'lucide-react';
 
@@ -77,22 +78,18 @@ export default async function SettingsPage() {
               <span className="font-medium">{new Date(sub.trial_ends_at).toLocaleDateString('fr-FR')}</span>
             </div>
           )}
-          {sub?.current_period_start && (
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Début période</span>
-              <span className="font-medium">{new Date(sub.current_period_start).toLocaleDateString('fr-FR')}</span>
-            </div>
-          )}
           {sub?.current_period_end && (
             <div className="flex justify-between">
-              <span className="text-zinc-500">Fin période</span>
+              <span className="text-zinc-500">Prochaine échéance</span>
               <span className="font-medium">{new Date(sub.current_period_end).toLocaleDateString('fr-FR')}</span>
             </div>
           )}
         </div>
-        <div className="pt-2 border-t">
-          <RenewSubscriptionButton plan={sub?.plan || 'ESSENTIAL'} />
-        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border p-6 space-y-4">
+        <h2 className="text-lg font-semibold">Changer de formule</h2>
+        <SubscriptionManager currentPlan={sub?.plan || 'ESSENTIAL'} status={sub?.status || 'TRIAL'} />
       </div>
 
       <SettingsForm shopSettings={shopCfg} invoiceSettings={invCfg} />

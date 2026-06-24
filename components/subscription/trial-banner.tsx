@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { initiateSubscriptionPayment } from '@/lib/actions/geniuspay';
-import { Loader2, CreditCard, CheckCircle2, XCircle, RotateCw } from 'lucide-react';
+import { Loader2, CreditCard, CheckCircle2, XCircle, RotateCw, X } from 'lucide-react';
 
 const PLAN_LABELS: Record<string, string> = {
   STARTER: 'Starter',
@@ -31,6 +31,19 @@ export function SubscriptionBanner({
   const [billing, setBilling] = useState<'annual' | 'monthly'>('annual');
   const [error, setError] = useState<string | null>(null);
   const [paid, setPaid] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const key = `sub_banner_dismissed_${status}`;
+    const ts = localStorage.getItem(key);
+    if (!ts) return false;
+    return Date.now() - Number(ts) < 24 * 60 * 60 * 1000;
+  });
+
+  const handleDismiss = () => {
+    const key = `sub_banner_dismissed_${status}`;
+    localStorage.setItem(key, String(Date.now()));
+    setDismissed(true);
+  };
 
   const isActive = status === 'ACTIVE';
   const isExpired = status === 'EXPIRED';
@@ -54,6 +67,7 @@ export function SubscriptionBanner({
   const isExpiredOrNear = isExpired || isExpiring;
 
   if (!isExpiredOrNear && isActive) return null;
+  if (dismissed) return null;
 
   const urgencyClass = isExpired || isCritical
     ? 'bg-red-50 border-b border-red-200/80'
@@ -96,8 +110,15 @@ export function SubscriptionBanner({
   const prices = PLAN_PRICES[plan] || PLAN_PRICES.ESSENTIAL;
 
   return (
-    <div className={`${urgencyClass} px-4 py-2.5 lg:px-6`}>
-      <div className="flex items-center justify-center gap-3 flex-wrap">
+    <div className={`${urgencyClass} px-4 py-2.5 lg:px-6 relative`}>
+      <button
+        onClick={handleDismiss}
+        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-zinc-400 hover:text-zinc-600 transition-colors"
+        aria-label="Fermer"
+      >
+        <X className="size-4" />
+      </button>
+      <div className="flex items-center justify-center gap-3 flex-wrap pr-8">
         {isExpired ? (
           <span className={`text-sm ${textClass}`}>
             {isTrial

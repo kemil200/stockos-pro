@@ -57,7 +57,17 @@ export function InvoiceForm({ products, packs = [], settings, invoice }: Props) 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showDiscount, setShowDiscount] = useState(invoice ? (invoice.lines.some(l => (l.discountRate ?? 0) > 0)) : false);
+  const [discountMode, setDiscountMode] = useState<'percent' | 'amount'>('percent');
   const [stockLevels, setStockLevels] = useState<Record<string, number>>({});
+  const [productSearch, setProductSearch] = useState('');
+
+  const filteredProducts = productSearch
+    ? products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+    : products;
+
+  const filteredPacks = productSearch
+    ? packs.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+    : packs;
 
   const editMode = !!invoice;
 
@@ -84,10 +94,14 @@ export function InvoiceForm({ products, packs = [], settings, invoice }: Props) 
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const linesWithDecimalDiscount = data.lines.map((l) => ({
-        ...l,
-        discountRate: l.discountRate ? l.discountRate / 100 : 0,
-      }));
+      const linesWithDecimalDiscount = data.lines.map((l) => {
+        if (discountMode === 'amount') {
+          const subtotal = (l.quantity || 0) * (l.unitPrice || 0);
+          const rate = subtotal > 0 ? (l.discountRate || 0) / subtotal : 0;
+          return { ...l, discountRate: Math.min(rate, 1) };
+        }
+        return { ...l, discountRate: l.discountRate ? l.discountRate / 100 : 0 };
+      });
 
       const fd = new FormData();
       fd.append('clientName', data.clientName);
@@ -194,32 +208,39 @@ export function InvoiceForm({ products, packs = [], settings, invoice }: Props) 
             <div key={field.id} className={`bg-white rounded-2xl border p-4 sm:p-5 mb-3 ${isPackLine ? 'border-amber-200/80 bg-amber-50/30' : 'border-zinc-200/80'}`}>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-xs font-medium text-zinc-400 w-5">{index + 1}</span>
-                <select
-                  className="flex-1 text-sm py-2.5 border-b border-zinc-200 focus:border-zinc-900 outline-none transition-colors bg-transparent"
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val.startsWith('pack:')) {
-                      selectPack(index, val.slice(5));
-                    } else if (val) {
-                      selectProduct(index, val);
-                    }
-                  }}
-                  defaultValue=""
-                >
-                  <option value="" disabled>Produit ou pack</option>
-                  <optgroup label="Produits">
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </optgroup>
-                  {packs.length > 0 && (
-                    <optgroup label="Packs">
-                      {packs.map((p) => (
-                        <option key={`pack:${p.id}`} value={`pack:${p.id}`}>{p.name} (Pack)</option>
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    className="w-full text-sm py-2 px-2.5 border border-zinc-200 rounded-lg focus:border-zinc-900 outline-none transition-colors placeholder:text-zinc-300"
+                    placeholder="Rechercher un produit..."
+                  />
+                  {productSearch && (filteredProducts.length > 0 || filteredPacks.length > 0) && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-xl shadow-lg z-30 max-h-48 overflow-y-auto">
+                      {filteredProducts.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => { selectProduct(index, p.id); setProductSearch(''); }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50 transition-colors border-b border-zinc-100 last:border-0"
+                        >
+                          {p.name} <span className="text-zinc-400 text-xs">{formatCurrency(Number(p.unit_price))}</span>
+                        </button>
                       ))}
-                    </optgroup>
+                      {filteredPacks.map((p) => (
+                        <button
+                          key={`pack:${p.id}`}
+                          type="button"
+                          onClick={() => { selectPack(index, p.id); setProductSearch(''); }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50 transition-colors border-b border-zinc-100 last:border-0"
+                        >
+                          <span className="text-amber-600">📦</span> {p.name} (Pack) <span className="text-zinc-400 text-xs">{formatCurrency(Number(p.sale_price))}</span>
+                        </button>
+                      ))}
+                    </div>
                   )}
-                </select>
+                </div>
                 <button
                   type="button"
                   onClick={() => remove(index)}
@@ -258,17 +279,22 @@ export function InvoiceForm({ products, packs = [], settings, invoice }: Props) 
 
                 {showDiscount && (
                   <div className="flex items-center gap-1 ml-auto">
-                    <span className="text-xs text-zinc-400">−</span>
+                    <button
+                      type="button"
+                      onClick={() => setDiscountMode(m => m === 'percent' ? 'amount' : 'percent')}
+                      className="text-[10px] font-medium text-zinc-400 hover:text-zinc-600 bg-zinc-100 px-1.5 py-0.5 rounded"
+                    >
+                      {discountMode === 'percent' ? '%' : 'F'}
+                    </button>
                     <input
                       type="number"
                       step="any"
                       min="0"
-                      max="100"
+                      max={discountMode === 'percent' ? 100 : undefined}
                       {...register(`lines.${index}.discountRate`, { valueAsNumber: true })}
-                      className="w-14 text-center text-sm py-2.5 border rounded-xl focus:ring-2 focus:ring-zinc-900 outline-none"
-                      placeholder="%"
+                      className="w-16 text-center text-sm py-2.5 border rounded-xl focus:ring-2 focus:ring-zinc-900 outline-none"
+                      placeholder={discountMode === 'percent' ? '%' : 'FCFA'}
                     />
-                    <span className="text-xs text-zinc-400">%</span>
                   </div>
                 )}
               </div>
@@ -279,9 +305,15 @@ export function InvoiceForm({ products, packs = [], settings, invoice }: Props) 
                 </p>
               )}
               {stock !== undefined && (
-                <p className={`text-[11px] mt-2 ${overstock ? 'text-orange-500 font-medium' : 'text-zinc-400'}`}>
-                  Stock: {stock} {overstock ? '⚠️ insuffisant' : ''}
+                <p className={`text-[11px] mt-2 font-medium ${overstock ? 'text-red-600 flex items-center gap-1' : 'text-zinc-400'}`}>
+                  {overstock ? '⚠️ Stock insuffisant : ' : 'Stock : '}
+                  {stock} disponible{overstock && ` (demandé: ${qty})`}
                 </p>
+              )}
+              {overstock && (
+                <div className="mt-1.5 text-[10px] text-red-500 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
+                  La quantité demandée dépasse le stock disponible. La facture peut être créée mais le stock sera négatif.
+                </div>
               )}
               {errors.lines?.[index]?.quantity && (
                 <p className="text-red-500 text-[11px] mt-1">Quantité &gt; 0 requise</p>

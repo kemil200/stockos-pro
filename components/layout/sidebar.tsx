@@ -95,7 +95,7 @@ function SidebarContent({ onNavigate, plan, role }: { onNavigate?: () => void; p
 
 export function Sidebar({ className, plan, role }: { className?: string; plan?: string | null; role?: string }) {
   return (
-    <aside className={cn('w-60 border-r bg-white h-screen flex flex-col shrink-0 max-lg:hidden', className)}>
+    <aside className={cn('w-60 border-r bg-white h-dvh flex flex-col shrink-0 max-lg:hidden safe-area-left', className)}>
       <SidebarContent plan={plan} role={role} />
     </aside>
   );

@@ -77,7 +77,7 @@ export default async function DashboardLayout({
             </div>
           </div>
         )}
-        <main className="flex-1 overflow-y-auto bg-zinc-50/80 pb-20 lg:pb-0">
+        <main className="flex-1 overflow-y-auto bg-zinc-50/80 lg:pb-0" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
           <div className="px-4 py-4 sm:px-6 lg:px-8 xl:px-10">
             <div className="mx-auto max-w-[78rem]">
               {children}

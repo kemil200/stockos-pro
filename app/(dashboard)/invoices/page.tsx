@@ -63,7 +63,8 @@ export default async function InvoicesPage({
         </div>
         <Link
           href="/invoices/new"
-          className="fixed bottom-20 right-4 z-50 lg:hidden flex items-center justify-center size-14 bg-zinc-900 text-white rounded-2xl shadow-lg shadow-zinc-900/20 hover:bg-zinc-800 active:scale-95 transition-all"
+          className="fixed right-4 z-50 lg:hidden flex items-center justify-center size-14 bg-zinc-900 text-white rounded-2xl shadow-lg shadow-zinc-900/20 hover:bg-zinc-800 active:scale-95 transition-all"
+          style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}
         >
           <Plus className="size-6" />
         </Link>

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { Toaster } from '@/components/ui/sonner';
@@ -100,6 +100,15 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: '#18181b',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -110,7 +119,7 @@ export default function RootLayout({
       lang="fr"
       className={`${heading.variable} ${body.variable} h-full antialiased`}
     >
-      <body className="min-h-full font-body">
+      <body className="min-h-full font-body overscroll-none">{/* overscroll-none = pas de pull-to-refresh en PWA */}
         {children}
         <Analytics />
         <Toaster position="top-right" richColors />
